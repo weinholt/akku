@@ -11,7 +11,10 @@
           (revision "a19f3b6915ed28e742c12c3cbd9e70c33b5895e5")))
    ((version "0.0.0-akku.50.fc892da.weinholt")
     (lock (location (git "https://github.com/weinholt/chez-srfi.git"))
-          (revision "fc892dada9f2dc707e984901829a889a526edf80")))))
+          (revision "fc892dada9f2dc707e984901829a889a526edf80")))
+   ((version "0.0.0-akku.53.73bbf95")
+    (lock (location (git "https://github.com/arcfide/chez-srfi.git"))
+          (revision "73bbf95564184140242fa3d806bdb5995af42ae3")))))
 
 (package (name "hashing")
   (versions
