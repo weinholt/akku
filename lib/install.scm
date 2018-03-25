@@ -25,14 +25,15 @@
     make-r6rs-library-filenames)
   (import
     (rnrs (6))
-    (only (srfi :13 strings) string-index)
+    (only (srfi :13 strings) string-index string-prefix?)
     (only (rnrs r5rs) quotient remainder)
     (only (xitomatl common) pretty-print)
     (xitomatl alists)
     (xitomatl AS-match)
     (only (akku format manifest) manifest-filename)
     (only (akku lib compat) mkdir chmod file-directory?
-          file-symbolic-link? file-exists/no-follow? symlink)
+          file-regular? file-symbolic-link? file-exists/no-follow?
+          symlink directory-list delete-directory)
     (akku lib file-parser)
     (akku lib git)
     (akku lib init)
@@ -448,7 +449,8 @@
         (display "export YPSILON_SITELIB=\"$PWD/.akku/lib\"\n" p)
         (display "export PATH=$PWD/.akku/bin:$PATH\n" p)))))
 
-(define (install-file-list installed-files)
+;; Create .akku/list
+(define (install-file-list installed-project/artifact*)
   (define printed-files (make-hashtable string-hash string=?))
   (define (installed-type a)
     (cond ((r6rs-library? a) 'r6rs-library)
@@ -469,7 +471,7 @@
       (lambda (p)
         (for-each
          (match-lambda
-          (#(project filename*)
+          (#(project artifact/fn*)
            (for-each
             (match-lambda
              ((artifact . filename)
@@ -491,8 +493,44 @@
                      (display (installed-type artifact) p)
                      (display #\tab p)
                      (newline p)))))
-            (reverse filename*))))
-         (reverse installed-files))))))
+            (reverse artifact/fn*))))
+         (reverse installed-project/artifact*))))))
+
+(define (remove-extraneous-files installed-project/artifact*)
+  (let ((current-filenames (make-hashtable string-hash string=?)))
+    ;; Gather the filenames of all currently installed projects.
+    (for-each
+     (match-lambda
+      [#(project artifact/fn*)
+       (for-each
+        (match-lambda
+         [(artifact . filename)
+          (hashtable-set! current-filenames filename #t)])
+        artifact/fn*)])
+     installed-project/artifact*)
+    ;; Walk over .akku/lib and remove everything not current.
+    (letrec ((recurse
+              (lambda (path filename*)
+                (define (handle-file fn)
+                  (let ((filename (path-join path fn)))
+                    (cond
+                      ((or (file-regular? filename)
+                           (file-symbolic-link? filename))
+                       (when (not (hashtable-ref current-filenames filename #f))
+                         (print ";; INFO: Removing uninstalled file " filename)
+                         (assert (string-prefix? (libraries-directory) filename))
+                         (delete-file filename)))
+                      ((file-directory? filename)
+                       ;; XXX: must be after the file-symbolic-link?
+                       ;; check to prevent this from recursing into
+                       ;; directories outside .akku/lib via symlinks.
+                       (recurse filename (directory-list filename))
+                       (when (null? (directory-list filename))
+                         (print ";; INFO: Removing empty directory " filename)
+                         (assert (string-prefix? (libraries-directory) filename))
+                         (delete-directory filename))))))
+                (for-each handle-file filename*))))
+      (recurse (libraries-directory) (directory-list (libraries-directory))))))
 
 (define (install lockfile-location)
   (let ((project-list (read-lockfile lockfile-location))
@@ -504,15 +542,16 @@
           (lambda (p)
             (display (sources-directory*) p)))))
     (for-each fetch-project project-list)
-    (let* ((installed-files
-           (map-in-order (lambda (project)
-                           (vector project (install-project project #f)))
-                         project-list))
-           (installed-files
+    (let* ((installed-project/artifact*
+            (map-in-order (lambda (project)
+                            (vector project (install-project project #f)))
+                          project-list))
+           (installed-project/artifact*
             (if (running-from-home?)    ;protect against user being in $HOME
-                installed-files
-                (append installed-files
+                installed-project/artifact*
+                (append installed-project/artifact*
                         (list (vector current-project
                                       (install-project current-project 'symlink)))))))
-      (install-file-list installed-files))
+      (install-file-list installed-project/artifact*)
+      (remove-extraneous-files installed-project/artifact*))
     (install-activate-script))))
