@@ -227,14 +227,6 @@
              ("wak-common" "~0.1.0-akku")
              ("wak-riastreams" "~0.0.0-akku")))))
 
-(package (name "zabavno")
-  (versions
-   ((version "0.1.0")
-    (lock (location (git "https://github.com/weinholt/zabavno.git"))
-          (tag "v0.1.0")
-          (revision "3203e6bbb69a0a8648bbd12bd00fb31dd8c9b934"))
-    (depends ("machine-code" "^1.0.0")))))
-
 (package (name "machine-code")
   (versions
    ((version "1.0.0")
@@ -252,70 +244,6 @@
              ("hashing" "^1.0.0")
              ("struct-pack" "^1.0.0")))))
 
-(package (name "racr")
-  (versions
-   ((version "0.0.0-akku.752.602de68")
-    (lock (location (git "https://github.com/christoff-buerger/racr.git"))
-          (revision "602de6853fe17267f499ff9cfbca3fad22e9b467")))))
-
-(package (name "nanopass")
-  (versions
-   ((version "1.9.0")
-    (lock (location (git "https://github.com/nanopass/nanopass-framework-scheme.git"))
-          (tag "v1.9")
-          (revision "221eecb965d9dfacccd97d1cb73f2a31c4119d3a")))))
-
-(package (name "fectors")
-  (versions
-   ((version "0.1.0")
-    (lock (location (git "https://github.com/ijp/fectors"))
-          (tag "v0.1")
-          (revision "ecdd877c9baabf96415c833125b4baa3f7152a6e")))))
-
-(package (name "r6rs-monads")
-  (versions
-   ((version "0.1.0-akku.14.eb318f8")
-    (lock (location (git "https://github.com/jhidding/r6rs-monads"))
-          (revision "eb318f8e5495d7dd4f79dcd8fe668fa0db89c129")))))
-
-(package (name "pfds")
-  (versions
-   ((version "0.3.0")
-    (lock (location (git "https://github.com/ijp/pfds.git"))
-          (tag "v0.3")
-          (revision "454033f82dac7c0b0ea9e84eed1e8ed316487c78")))))
-
-(package (name "quickcheck")
-  (versions
-   ((version "0.0.0-akku.10.cc5cc2d")
-    (lock (location (git "https://github.com/ijp/quickcheck.git"))
-          (revision "cc5cc2d231967e4bf853687e13aaa692ae0c0496")))))
-
-(package (name "yuni")
-  (versions
-   ((version "0.0.0-akku.803.127a700")
-    (lock (location (git "https://github.com/okuoku/yuni.git"))
-          (revision "127a7005ab1047ef16974dda75f12fcb95726295")))))
-
-(package (name "dharmalab")
-  (versions
-   ((version "0.0.0-akku.53.aba65fb")
-    (lock (location (git "https://github.com/dharmatech/dharmalab.git"))
-          (revision "aba65fb64252b7187bf9e632f1d04d6d183d671f")))))
-
-(package (name "surfage")
-  (versions
-   ((version "0.0.0-akku.12.895f16a")
-    (lock (location (git "https://github.com/dharmatech/surfage.git"))
-          (revision "895f16af83d9ce3c190f69626c9baba8c44d76bc")))))
-
-(package (name "agave")
-  (versions
-   ((version "0.0.0-akku.96.1dd1193")
-    (lock (location (git "https://github.com/atog/agave.git"))
-          (revision "1dd11938e3b5fae30b3db5163bd7564a51908dec"))
-    (depends ("surfage" "~0.0.0-akku")))))
-
 (package (name "ocelotl")
   (versions
    ((version "0.0.0-akku.42.0c6aada")
@@ -327,80 +255,3 @@
              ("wak-parscheme" "~0.0.0-akku")
              ("wak-ssax" "~0.0.0-akku")
              ("wak-foof-loop" "~0.0.0-akku")))))
-
-(package (name "dorodango")
-  (versions
-   ((version "0.0.0-akku.268.4344bea")
-    (lock (location (git "https://gitlab.com/rotty/dorodango.git"))
-          (revision "4344bea7603e22976b45a4a869ec6bb4512c1145"))
-    (depends ("chez-srfi" "~0.0.0-akku")
-             ("wak-foof-loop" "~0.0.0-akku")
-             ("wak-fmt" "~0.8.0-akku")
-             ("wak-irregex" "~0.8.1-akku")
-             ("wak-parscheme" "~0.0.0-akku")
-             ("wak-wt-tree" "~0.0.0-akku")
-             ("spells" "~0.0.0-akku")
-             ("industria" "~1.4.0")
-             ("ocelotl" "~0.0.0-akku")))))
-
-(package (name "thunderchez")
-  (versions
-   ((version "0.0.0-akku.119.154bb66")
-    (lock (location (git "https://github.com/ovenpasta/thunderchez"))
-          (revision "154bb66240f021823b5e9a17286e778528565c6f")))))
-
-(package (name "json-tools")
-  (versions
-   ((version "0.0.0-akku.37.8075756")
-    (lock (location (git "https://github.com/ktakashi/json-tools.git"))
-          (revision "807575693e22984db0022fc68b093a22ff7adf81")))))
-
-(package (name "r6lint")
-  (versions
-   ((version "0.1.0")
-    (lock (location (git "https://github.com/weinholt/r6lint.git"))
-          (tag "v0.1.0")
-          (revision "5fe2f5b774dd06afac5c5226ad35d44769058d28")))))
-
-(package (name "oleg")
-  (versions
-   ((version "0.0.0-akku.2.c682687")
-    (lock (location (git "https://github.com/arcfide/oleg.git"))
-          (revision "c6826870436925fd4c873c01d7fcc24a7a7f95dc")))))
-
-(package (name "riastradh")
-  (versions
-   ((version "0.0.0-akku.16.9714b5c")
-    (lock (location (git "https://github.com/arcfide/riastradh.git"))
-          (revision "9714b5c8b642f2d6fdd94d655ec5d92aa9b59750")))))
-
-(package (name "r7rs-bridge")
-  (versions
-   ((version "0.0.0-akku.113.845ac2e")
-    (lock (location (git "https://github.com/okuoku/r7rs-bridge.git"))
-          (revision "845ac2ef01e2d9626e453ec92fa9b0dcd41473c0")))))
-
-(package (name "conjure")
-  (versions
-   ((version "0.0.0-akku.84.19f3aae")
-    (lock (location (git "https://github.com/rotty/conjure.git"))
-          (revision "19f3aaeb8cb73277a2c61a36a77cdb6aefd7f894"))
-    (depends ("chez-srfi" "~0.0.0-akku")
-             ("wak-fmt" "~0.8.0-akku")
-             ("wak-irregex" "~0.8.1-akku")
-             ("wak-foof-loop" "~0.0.0-akku")
-             ("wak-prometheus" "~0.0.0-akku")
-             ("spells" "~0.0.0-akku")))))
-
-(package (name "uuid")
-  (versions
-   ((version "0.0.0-akku.4.56abc60")
-    (lock (location (git "https://github.com/weinholt/uuid.git"))
-          (revision "56abc60ea1a031992c2274e5429ea3e87621f4fb")))))
-
-;; Currently not working, requires running a build script.
-(package (name "swish")
-  (versions
-   ((version "1.0.0-akku.31.a972230")
-    (lock (location (git "https://github.com/becls/swish.git"))
-          (revision "a9722308da8330a64e8e7040647ff251f0159108")))))
