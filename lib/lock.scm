@@ -21,6 +21,7 @@
 (library (akku lib lock)
   (export
     add-dependency
+    remove-dependencies
     lock-dependencies
     list-packages
     logger:akku.lock)
@@ -49,6 +50,7 @@
 
 (define logger:akku.lock (make-logger logger:akku 'lock))
 (define log/info (make-fmt-log logger:akku.lock 'info))
+(define log/warn (make-fmt-log logger:akku.lock 'warning))
 (define log/debug (make-fmt-log logger:akku.lock 'debug))
 (define log/trace (make-fmt-log logger:akku.lock 'trace))
 
@@ -240,21 +242,22 @@
               (else
                (error 'lock-dependencies "No acceptable solution - dependency hell")))))))))
 
+(define (update-manifest manifest-filename proc)
+  (let ((akku-package*
+         (call-with-input-file manifest-filename
+           (lambda (p)
+             (let lp ((pkg* '()))
+               (match (read p)
+                 ((and ('akku-package (_ _) . _) akku-package)
+                  (cons (proc akku-package) pkg*))
+                 ((? eof-object?) pkg*)
+                 (else (lp pkg*))))))))
+    (write-manifest manifest-filename (reverse akku-package*))
+    (log/info "Wrote " manifest-filename)))
+
 ;; Adds a dependency to the manifest. FIXME: needs to be moved to
 ;; somewhere else.
 (define (add-dependency manifest-filename index-filename dev? dep-name dep-range)
-  (define (update-manifest manifest-filename proc)
-    (let ((akku-package*
-           (call-with-input-file manifest-filename
-             (lambda (p)
-               (let lp ((pkg* '()))
-                 (match (read p)
-                   ((and ('akku-package (_ _) . _) akku-package)
-                    (cons (proc akku-package) pkg*))
-                   ((? eof-object?) pkg*)
-                   (else (lp pkg*))))))))
-      (write-manifest manifest-filename (reverse akku-package*))
-      (log/info "Wrote " manifest-filename)))
   (define manifest-packages
     (if (file-exists? manifest-filename)
         (read-manifest manifest-filename #f)
@@ -306,7 +309,32 @@
                                                   (,package-name ,range)))))
                      (log/info "Created a draft manifest in " manifest-filename))))))
       (else
-       (error 'add-dependency "Package not found" package-name)))))
+       (error 'add-dependency "Package not found" dep-name)))))
+
+(define (remove-dependencies manifest-filename dep-name*)
+  (cond ((file-exists? manifest-filename)
+         (update-manifest
+          manifest-filename
+          (match-lambda
+           (('akku-package (name version) prop* ...)
+            `(akku-package
+              (,name ,version)
+              ,@(map
+                 (match-lambda
+                  [((and (or 'depends 'depends/dev) dep-type) . dep-list)
+                   (cons dep-type
+                         (remp (match-lambda
+                                [(pkg-name range)
+                                 (let ((do-remove (member pkg-name dep-name*)))
+                                   (when do-remove
+                                     (log/info "Removing " pkg-name "@" range " from "
+                                               manifest-filename "..."))
+                                   do-remove)])
+                               dep-list))]
+                  [x x])
+                 prop*))))))
+        (else
+         (log/warn "No manifest: nothing to do"))))
 
 ;; Lists packages in the index.
 (define (list-packages manifest-filename lockfile-filename index-filename)

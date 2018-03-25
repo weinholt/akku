@@ -30,7 +30,7 @@
   (only (akku lib init) init-manifest)
   (only (akku lib install) install)
   (only (akku lib lock) logger:akku.lock lock-dependencies
-        add-dependency list-packages)
+        add-dependency remove-dependencies list-packages)
   (only (akku lib update) update-index)
   (only (akku lib utils) path-join application-home-directory)
   (only (akku lib publish) publish-packages)
@@ -59,7 +59,7 @@
 
 Simple usage:
    akku list - list all packages in the index
- * akku install <pkg> - all-in-one add/lock/install a package
+ * akku install <pkg>+ - all-in-one add/lock/install a package
  * akku update - update the package index
 
 Basic usage:
@@ -69,6 +69,8 @@ Basic usage:
    akku init - create a draft Akku.manifest (not yet useful)
    akku lock - generate Akku.lock from Akku.manifest and the index
  * akku install - install dependencies according to Akku.lock
+   akku remove <pkg> - remove a dependency from Akku.manifest
+ * akku uninstall <pkg>+ - all-in-one remove/lock/install
 
 Creative usage:
  * akku publish - publish the current project [WIP]
@@ -86,6 +88,11 @@ License: GNU GPLv3
 " (current-error-port))
   (exit 0))
 
+(define (parse-package-name package-name)
+  (if (char=? (string-ref package-name 0) #\()
+      (read (open-string-input-port package-name))
+      package-name))
+
 (define (cmd-add arg*)
   (when (null? arg*)
     (cmd-help))
@@ -97,12 +104,15 @@ License: GNU GPLv3
                      (match (string-split dep #\@)
                        [(package-name range) (values package-name range)]
                        [(package-name) (values package-name #f)])))
-         (let ((package-name (if (char=? (string-ref package-name 0) #\()
-                                 (read (open-string-input-port package-name))
-                                 package-name)))
+         (let ((package-name (parse-package-name package-name)))
            (add-dependency manifest-filename (get-index-filename)
                            dev? package-name range))))
      dep*)))
+
+(define (cmd-remove arg*)
+  (when (null? arg*)
+    (cmd-help))
+  (remove-dependencies manifest-filename (map parse-package-name arg*)))
 
 (define (cmd-init arg*)
   (unless (null? arg*)
@@ -138,6 +148,14 @@ License: GNU GPLv3
          (cmd-add arg*)
          (cmd-lock '())
          (cmd-install '()))))
+
+(define (cmd-uninstall arg*)
+  (when (null? arg*)
+    (cmd-help))
+  ;; All-in-one automatic removal of a package.
+  (cmd-remove arg*)
+  (cmd-lock '())
+  (cmd-install '()))
 
 (define (cmd-publish arg*)
   (unless (null? arg*)
@@ -178,8 +196,10 @@ License: GNU GPLv3
 (cond
   ((null? (cdr (command-line)))
    (cmd-help))
-  ((string=? (cadr (command-line)) "add") ; TODO: "remove"
+  ((string=? (cadr (command-line)) "add")
    (cmd-add (cddr (command-line))))
+  ((string=? (cadr (command-line)) "remove")
+   (cmd-remove (cddr (command-line))))
   ((string=? (cadr (command-line)) "init")
    (cmd-init (cddr (command-line))))
   ((string=? (cadr (command-line)) "list")
@@ -188,6 +208,8 @@ License: GNU GPLv3
    (cmd-lock (cddr (command-line))))
   ((string=? (cadr (command-line)) "install")
    (cmd-install (cddr (command-line))))
+  ((string=? (cadr (command-line)) "uninstall")
+   (cmd-uninstall (cddr (command-line))))
   ((string=? (cadr (command-line)) "publish")
    (cmd-publish (cddr (command-line))))
   ((string=? (cadr (command-line)) "update")
