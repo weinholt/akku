@@ -22,6 +22,7 @@
 (import
   (industria strings)
   (only (spells logging) set-logger-properties! log-entry-object)
+  (only (srfi :13 strings) string-prefix?)
   (xitomatl AS-match)
   (akku lib bundle)
   (only (akku format lockfile) lockfile-filename)
@@ -73,7 +74,7 @@ Basic usage:
  * akku uninstall <pkg>+ - all-in-one remove/lock/install
 
 Creative usage:
- * akku publish - publish the current project [WIP]
+ * akku publish [--version=x.y.z] - publish the current project
 
 Advanced usage:
    akku graph - print a graphviz file showing library dependencies
@@ -158,9 +159,13 @@ License: GNU GPLv3
   (cmd-install '()))
 
 (define (cmd-publish arg*)
-  (unless (null? arg*)
-    (cmd-help))
-  (publish-packages manifest-filename "." '("https://akku.weinholt.se/archive/")))
+  (let ((version-override               ;TODO: again, buy a better cmdline parser
+         (cond ((memp (lambda (x) (string-prefix? "--version=" x)) arg*)
+                => (lambda (arg*) (substring (car arg*) (string-length "--version=")
+                                             (string-length (car arg*)))))
+               (else #f))))
+    (publish-packages manifest-filename "." '("https://akku.weinholt.se/archive/")
+                      version-override)))
 
 (define (cmd-update arg*)
   (define repositories                  ;TODO: should be in a config file

@@ -63,12 +63,12 @@
            (let ((revision (git-rev-list/first base-directory version-tag)))
              (unless (string=? head-revision revision)
                (fmt (current-error-port)
-                    ";; WARNING: Branch HEAD does not match the release tag" nl))
+                    ";; WARNING: Publishing tag that does not match the branch HEAD" nl))
              `((location (git ,pull-url))
                (tag ,version-tag)
                (revision ,revision))))
           (else
-           (fmt (current-error-port) "INFO: Publishing untagged release" nl)
+           (fmt (current-error-port) ";; INFO: Publishing untagged release" nl)
            `((location (git ,pull-url))
              (revision ,head-revision))))))
 
@@ -130,12 +130,14 @@
        archive-url*)
      archive-url*)))
 
-(define (publish-packages manifest-filename base-directory archive-url*)
+(define (publish-packages manifest-filename base-directory archive-url* version-override)
   (cond
     ((file-exists? manifest-filename)
-     (let ((package* (read-manifest manifest-filename)))
+     (let ((package* (read-manifest manifest-filename #f version-override)))
        (when (null? package*)
          (error 'publish-packages "Empty manifest"))
+       (when version-override
+         (fmt #t ";; INFO: Version override: " version-override nl))
        (let* ((version (car (package-version* (car package*))))
               (lock (cond
                       ((is-git-repository? base-directory)
@@ -148,7 +150,7 @@
          (submit package* version base-directory archive-url*))))
     (else
      (write-manifest manifest-filename
-                     (list (draft-akku-package #f ;XXX: use highest version tag
+                     (list (draft-akku-package version-override ;XXX: use highest version tag
                                                `(location (git "https://example.com/")))))
      (fmt #t "Edit " manifest-filename " and run publish again" nl))))
 

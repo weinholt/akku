@@ -214,7 +214,7 @@
 (define (lock-dependencies manifest-filename lockfile-filename index-filename)
   (define dry-run? #f)
   (define dev-mode? #t)
-  (define manifest-packages (read-manifest manifest-filename 'mangle-names))
+  (define manifest-packages (read-manifest manifest-filename 'mangle-names #f))
 
   (let-values (((db packages) (read-package-index index-filename manifest-packages)))
     (add-package-dependencies db packages manifest-packages dev-mode?)
@@ -260,7 +260,7 @@
 (define (add-dependency manifest-filename index-filename dev? dep-name dep-range)
   (define manifest-packages
     (if (file-exists? manifest-filename)
-        (read-manifest manifest-filename #f)
+        (read-manifest manifest-filename #f #f)
         '()))
   (define (get-suitable-range version*)
     ;; TODO: This might pick a range that is not installable together

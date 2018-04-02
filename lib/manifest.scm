@@ -61,7 +61,7 @@
                         (synopsis ,@(version-synopsis version))
                         (authors ,@(version-authors version))
                         ,@(if (version-homepage version)
-                              `(homepage ,@(version-homepage version))
+                              `((homepage ,@(version-homepage version)))
                               '())
                         (license ,@(version-license version))
                         (lock ,@(version-lock version))
@@ -87,12 +87,13 @@
                   (assq-ref version-spec 'license #f))))
 
 ;; Read the packages in the manifest. Optionally mangle names so they
-;; don't get mixed up with names in the index.
+;; don't get mixed up with names in the index. Optionally override the
+;; version number.
 (define read-manifest
   (case-lambda
     ((manifest-filename)
-     (read-manifest manifest-filename #f))
-    ((manifest-filename mangle-names?)
+     (read-manifest manifest-filename #f #f))
+    ((manifest-filename mangle-names? version-override)
      (call-with-input-file manifest-filename
        (lambda (p)
          (let lp ((pkg* '()) (name* '()))
@@ -102,7 +103,7 @@
               (let ((license-expr (car (assq-ref prop* 'license))))
                 (or (member license-expr '("NONE" "NOASSERTION"))
                     (parse-license-expression license-expr))) ;TODO: validate
-              (let* ((ver (parse-version `((version ,version)
+              (let* ((ver (parse-version `((version ,(or version-override version))
                                            (lock #f)
                                            ,@prop*)))
                      (pkg (make-package (if mangle-names?
