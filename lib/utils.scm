@@ -30,7 +30,8 @@
     application-home-directory
     cache-directory
     running-from-home?
-    sanitized-name)
+    sanitized-name
+    get-terminal-size)
   (import
     (rnrs (6))
     (rnrs mutable-pairs (6))
@@ -141,4 +142,8 @@
                    (let-values (((n0 n1) (fxdiv-and-mod b 16)))
                      (put-char p #\%)
                      (put-char p (string-ref hex n0))
-                     (put-char p (string-ref hex n1))))))))))))
+                     (put-char p (string-ref hex n1)))))))))))
+
+(define (get-terminal-size)
+  ;; TODO: implement properly.
+  (values 80 24)))

@@ -45,7 +45,7 @@
     (only (akku lib solver internals) make-universe)
     (only (akku lib solver logging) dsp-universe)
     (only (akku private utils) make-fmt-log logger:akku)
-    (only (akku lib utils) split-path)
+    (only (akku lib utils) split-path get-terminal-size)
     (prefix (akku lib solver universe) universe-))
 
 (define logger:akku.lock (make-logger logger:akku 'lock))
@@ -373,13 +373,13 @@
            (set-ranges 'depends/dev (version-depends/dev v))))
        manifest-packages)
       deps))
-  (let-values (((_ packages) (read-package-index index-filename '())))
+  (let-values (((_ packages) (read-package-index index-filename '()))
+               ((terminal-cols _terminal-lines) (get-terminal-size)))
     (fmt #t ",-- (L) The version is in the lockfile" nl
             "|,- (M) The version matches the range in the manifest / (D) Dev. dependency" nl)
-    (fmt #t "||" (space-to 3) "Package name"
-         (space-to 25) "SemVer"
+    (fmt #t "||" (space-to 3) "Package name" (space-to 20) "SemVer" (space-to 36) "Synopsis"
          nl
-         (pad-char #\= (space-to 78))
+         (pad-char #\= (space-to (max 1 (- terminal-cols 1))))
          nl)
     (let ((package-names (hashtable-keys packages)))
       (vector-sort! (lambda (x y) (<? default-compare x y)) package-names)
@@ -406,7 +406,12 @@
                        (space-to 1)
                        (or manifest-match "")
                        (space-to 3) package-name
-                       (space-to 25) (colorize (version-number version))
+                       (space-to 20)
+                       (ellipses "…"
+                                 (colorize (pad 16 (trim 15 (version-number version))))
+                                 (trim (max 10 (- terminal-cols 37))
+                                       (cond ((version-synopsis version) => car)
+                                             (else "-"))))
                        nl))))
             (package-version* package))))
        package-names)))))
