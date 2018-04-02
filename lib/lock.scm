@@ -24,10 +24,11 @@
     remove-dependencies
     lock-dependencies
     list-packages
+    show-package
     logger:akku.lock)
   (import
     (rnrs (6))
-    (only (srfi :1 lists) iota append-map filter-map)
+    (only (srfi :1 lists) last iota append-map filter-map)
     (only (srfi :67 compare-procedures) <? default-compare)
     (semver versions)
     (semver ranges)
@@ -414,4 +415,43 @@
                                              (else "-"))))
                        nl))))
             (package-version* package))))
-       package-names)))))
+       package-names))))
+
+(define (show-package manifest-filename lockfile-filename index-filename pkg-name)
+  (let-values (((_ packages) (read-package-index index-filename '()))
+               ((terminal-cols _terminal-lines) (get-terminal-size)))
+    (let ((package (hashtable-ref packages pkg-name #f)))
+      (unless package
+        (error 'show-package "No package by that name" pkg-name))
+      (let ((highest (last (package-version* package))))
+        (fmt #t (fmt-underline (package-name package) " "
+                               (version-number highest) " - "
+                               (cond ((version-synopsis highest) => car)
+                                     (else "(no synopsis)")))
+             nl)
+        (when (version-description highest)
+          (fmt #t
+               (with-width (- terminal-cols 2)
+                           (fmt-join (lambda (paragraph)
+                                       (cat nl (wrap-lines paragraph)))
+                                     (version-description highest)))))
+        (fmt #t nl (fmt-underline "Metadata" nl))
+        (when (version-authors highest)
+          (fmt #t (fmt-join (lambda (x)
+                              (cat "Author:" (space-to 15) x nl))
+                            (version-authors highest))))
+        (when (version-homepage highest)
+          (fmt #t "Homepage:" (space-to 15) (car (version-homepage highest)) nl))
+        (let ((lock (version-lock highest)))
+          (match (assq-ref lock 'location)
+            [(('git remote-url))
+             (fmt #t nl (fmt-underline "Source code" nl))
+             (fmt #t "Git remote:" (space-to 15) remote-url nl
+                  "Revision:" (space-to 15) (car (assq-ref lock 'revision)) nl)
+             (cond ((assq-ref lock 'tag #f) =>
+                    (lambda (tag)
+                      (fmt #t "Tag:" (space-to 15) (car tag) nl))))]))
+
+        (fmt #t nl (fmt-underline "Available versions") nl
+             (fmt-join (lambda (v) (cat (version-number v) nl))
+                       (package-version* package))))))))

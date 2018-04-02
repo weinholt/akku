@@ -31,7 +31,8 @@
   (only (akku lib init) init-manifest)
   (only (akku lib install) install)
   (only (akku lib lock) logger:akku.lock lock-dependencies
-        add-dependency remove-dependencies list-packages)
+        add-dependency remove-dependencies list-packages
+        show-package)
   (only (akku lib update) update-index)
   (only (akku lib utils) path-join application-home-directory)
   (only (akku lib publish) publish-packages)
@@ -60,6 +61,7 @@
 
 Simple usage:
    akku list - list all packages in the index
+   akku show <pkg> - show package information
  * akku install <pkg>+ - all-in-one add/lock/install a package
  * akku update - update the package index
 
@@ -127,6 +129,11 @@ License: GNU GPLv3
   (unless (null? arg*)
     (cmd-help))
   (list-packages manifest-filename lockfile-filename (get-index-filename)))
+
+(define (cmd-show arg*)
+  (unless (= (length arg*) 1)
+    (cmd-help))
+  (show-package manifest-filename lockfile-filename (get-index-filename) (car arg*)))
 
 (define (cmd-lock arg*)
   (unless (null? arg*)
@@ -209,6 +216,8 @@ License: GNU GPLv3
    (cmd-init (cddr (command-line))))
   ((string=? (cadr (command-line)) "list")
    (cmd-list (cddr (command-line))))
+  ((string=? (cadr (command-line)) "show")
+   (cmd-show (cddr (command-line))))
   ((string=? (cadr (command-line)) "lock")
    (cmd-lock (cddr (command-line))))
   ((string=? (cadr (command-line)) "install")

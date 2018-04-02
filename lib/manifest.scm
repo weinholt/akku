@@ -26,7 +26,7 @@
     make-version version? parse-version
     version-number version-semver version-lock version-lock-set! version-depends
     version-depends/dev version-conflicts
-    version-synopsis version-authors version-homepage version-license
+    version-synopsis version-description version-authors version-homepage version-license
     read-manifest
     write-manifest
     draft-akku-package)
@@ -50,7 +50,7 @@
   (nongenerative)
   (sealed #t)
   (fields number semver (mutable lock) depends depends/dev conflicts
-          synopsis authors homepage license))
+          synopsis description authors homepage license))
 
 ;; Converts a package record to the format used in package indices.
 (define (package->index-package package)
@@ -59,6 +59,9 @@
              ,@(map (lambda (version)
                       `((version ,(version-number version))
                         (synopsis ,@(version-synopsis version))
+                        ,@(if (version-description version)
+                              `((description ,@(version-description version)))
+                              '())
                         (authors ,@(version-authors version))
                         ,@(if (version-homepage version)
                               `((homepage ,@(version-homepage version)))
@@ -81,6 +84,7 @@
                   (assq-ref version-spec 'conflicts '())
                   ;; For humans
                   (assq-ref version-spec 'synopsis #f)
+                  (assq-ref version-spec 'description #f)
                   (assq-ref version-spec 'authors #f)
                   (assq-ref version-spec 'homepage #f)
                   ;; For someone
