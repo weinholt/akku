@@ -52,9 +52,9 @@
              (lp (cdr remote*))))))))
 
 ;; Finds information to put into the lock part of the package index.
-(define (get-git-lock base-directory version)
+(define (get-git-lock base-directory version tag-override)
   (let ((version-tags (git-tag-list base-directory "v*"))
-        (version-tag (string-append "v" version))
+        (version-tag (or tag-override (string-append "v" version)))
         (head-revision (git-rev-parse base-directory "HEAD"))
         (pull-url (guess-public-git-location base-directory)))
     (unless pull-url
@@ -130,7 +130,8 @@
        archive-url*)
      archive-url*)))
 
-(define (publish-packages manifest-filename base-directory archive-url* version-override)
+(define (publish-packages manifest-filename base-directory archive-url*
+                          version-override tag-override)
   (cond
     ((file-exists? manifest-filename)
      (let ((package* (read-manifest manifest-filename #f version-override)))
@@ -138,10 +139,12 @@
          (error 'publish-packages "Empty manifest"))
        (when version-override
          (fmt #t ";; INFO: Version override: " version-override nl))
+       (when tag-override
+         (fmt #t ";; INFO: Tag override: " tag-override nl))
        (let* ((version (car (package-version* (car package*))))
               (lock (cond
                       ((is-git-repository? base-directory)
-                       (get-git-lock base-directory (version-number version)))
+                       (get-git-lock base-directory (version-number version) tag-override))
                       (else
                        (error 'publish-packages
                               "Publishing from non-git repositories is not yet supported")))))

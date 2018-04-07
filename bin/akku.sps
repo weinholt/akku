@@ -76,7 +76,7 @@ Basic usage:
  * akku uninstall <pkg>+ - all-in-one remove/lock/install
 
 Creative usage:
- * akku publish [--version=x.y.z] - publish the current project
+ * akku publish [--version=x.y.z] [--tag=v] - publish the current project
 
 Advanced usage:
    akku graph - print a graphviz file showing library dependencies
@@ -166,13 +166,15 @@ License: GNU GPLv3
   (cmd-install '()))
 
 (define (cmd-publish arg*)
-  (let ((version-override               ;TODO: again, buy a better cmdline parser
-         (cond ((memp (lambda (x) (string-prefix? "--version=" x)) arg*)
-                => (lambda (arg*) (substring (car arg*) (string-length "--version=")
-                                             (string-length (car arg*)))))
-               (else #f))))
+  (define (get-option arg* long-opt-prefix) ;TODO: again, buy a better cmdline parser
+    (cond ((memp (lambda (x) (string-prefix? long-opt-prefix x)) arg*)
+           => (lambda (arg*) (substring (car arg*) (string-length long-opt-prefix)
+                                        (string-length (car arg*)))))
+          (else #f)))
+  (let ((version-override (get-option arg* "--version="))
+        (tag-override (get-option arg* "--tag=")))
     (publish-packages manifest-filename "." '("https://akku.weinholt.se/archive/")
-                      version-override)))
+                      version-override tag-override)))
 
 (define (cmd-update arg*)
   (define repositories                  ;TODO: should be in a config file
