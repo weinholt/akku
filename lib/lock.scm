@@ -29,6 +29,7 @@
   (import
     (rnrs (6))
     (only (srfi :1 lists) last iota append-map filter-map)
+    (only (srfi :13 strings) string-prefix?)
     (only (srfi :67 compare-procedures) <? default-compare)
     (semver versions)
     (semver ranges)
@@ -433,8 +434,11 @@
           (fmt #t
                (with-width (- terminal-cols 2)
                            (fmt-join (lambda (paragraph)
-                                       (cat nl (wrap-lines paragraph)))
+                                       (if (string-prefix? " " paragraph)
+                                           (cat nl paragraph nl)
+                                           (cat nl (wrap-lines paragraph))))
                                      (version-description highest)))))
+
         (fmt #t nl (fmt-underline "Metadata" nl))
         (when (version-authors highest)
           (fmt #t (fmt-join (lambda (x)
@@ -442,6 +446,26 @@
                             (version-authors highest))))
         (when (version-homepage highest)
           (fmt #t "Homepage:" (space-to 15) (car (version-homepage highest)) nl))
+
+        (letrec ((show-deps
+                  (lambda (heading dep*)
+                    (unless (null? dep*)
+                      (fmt #t nl (fmt-underline heading) nl
+                           (fmt-join (match-lambda
+                                      [(dep-name dep-range)
+                                       (cat dep-name " " (space-to 15)
+                                            dep-range " "
+                                            (space-to 40)
+                                            "("
+                                            (semver-range->string
+                                             (semver-range-desugar
+                                              (string->semver-range dep-range)))
+                                            ")" nl)])
+                                     dep*))))))
+          (show-deps "Dependencies" (version-depends highest))
+          (show-deps "Dependencies (development)" (version-depends/dev highest))
+          (show-deps "Conflicts" (version-conflicts highest)))
+
         (let ((lock (version-lock highest)))
           (match (assq-ref lock 'location)
             [(('git remote-url))
