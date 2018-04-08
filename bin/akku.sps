@@ -27,6 +27,7 @@
   (akku lib bundle)
   (only (akku format lockfile) lockfile-filename)
   (only (akku format manifest) manifest-filename)
+  (only (akku lib archive-maint) archive-scan)
   (only (akku lib graph) print-gv-file)
   (only (akku lib init) init-manifest)
   (only (akku lib install) install)
@@ -80,8 +81,9 @@ Creative usage:
 
 Advanced usage:
    akku graph - print a graphviz file showing library dependencies
-   akku dependency-scan <filename(s)> - print source code dependencies
-   akku license-scan <filename(s)> - scan dependencies for notices
+   akku dependency-scan <filename>+ - print source code dependencies
+   akku license-scan <filename>+ - scan dependencies for notices
+   akku archive-scan <directory>+ - generate a package index
 
  [*]: This command may make network requests.
 
@@ -202,6 +204,13 @@ License: GNU GPLv3
     (cmd-help))
   (license-scan arg* '(chezscheme)))    ;TODO
 
+(define (cmd-archive-scan arg*)
+  (when (null? arg*)
+    (display "ERROR: You must provide at least one directory name\n\n"
+             (current-error-port))
+    (cmd-help))
+  (archive-scan arg*))
+
 (set-logger-properties! logger:akku.lock
                         `((threshold info)
                           (handlers ,simple-log-formatter)))
@@ -236,5 +245,7 @@ License: GNU GPLv3
    (cmd-dependency-scan (cddr (command-line))))
   ((string=? (cadr (command-line)) "license-scan")
    (cmd-license-scan (cddr (command-line))))
+  ((string=? (cadr (command-line)) "archive-scan")
+   (cmd-archive-scan (cddr (command-line))))
   (else
    (cmd-help)))
