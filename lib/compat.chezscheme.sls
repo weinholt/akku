@@ -51,7 +51,7 @@
   (define (symlink from to)
     (putenv "AKKU_FROM" from)
     (putenv "AKKU_TO" to)
-    (assert (zero? (system "ln -s -r \"$AKKU_FROM\" \"$AKKU_TO\""))))
+    (assert (zero? (system "ln -s \"$AKKU_FROM\" \"$AKKU_TO\""))))
 
   (define (readlink pathname)
     (define %readlink (foreign-procedure "readlink" (string u8* size_t) ssize_t))

@@ -31,14 +31,16 @@
     cache-directory
     running-from-home?
     sanitized-name
-    get-terminal-size)
+    get-terminal-size
+    symlink/relative)
   (import
     (rnrs (6))
     (rnrs mutable-pairs (6))
-    (only (srfi :1 lists) append-map filter-map map-in-order delete-duplicates)
-    (only (srfi :13 strings) string-prefix? string-suffix? string-index string-trim-right)
+    (only (srfi :1 lists) make-list append-map filter-map map-in-order delete-duplicates last)
+    (only (srfi :13 strings) string-prefix? string-suffix? string-index string-trim-right
+          string-join)
     (only (industria strings) string-split)
-    (only (akku lib compat) getcwd file-directory? mkdir getenv))
+    (only (akku lib compat) getcwd file-directory? mkdir getenv symlink))
 
 (define (print . x*)
   (for-each (lambda (x)
@@ -122,7 +124,8 @@
           (string-trim-right (getenv "HOME") #\/)))
 
 (define (sanitized-name name)
-  ;; Turns a project/package name into that works as a directory/file name.
+  ;; Turns a project/package name into something that works as a
+  ;; directory/file name.
   (define hex "0123456789abcdefgh")
   (let ((dirname (if (string? name)
                      name
@@ -146,4 +149,28 @@
 
 (define (get-terminal-size)
   ;; TODO: implement properly.
-  (values 80 24)))
+  (values 80 24))
+
+;; A not fully-generic relative symlink utility, similar to ln -r in
+;; GNU coreutils. It can be asked to symlink within .akku/lib or from
+;; ./ to somewhere inside .akku. Basically it will never go outside
+;; the current directory. The node being created is `to`.
+(define symlink/relative
+  (case-lambda
+    ((from to)
+     (symlink/relative from to #f))
+    ((from to dry-run?)
+     (define (relativize from to)
+       (let lp ((from* (remove "." (string-split from #\/)))
+                (to* (remove "." (string-split to #\/))))
+         (cond ((equal? (car from*) (car to*))
+                (lp (cdr from*) (cdr to*)))
+               (else
+                (let* ((levels-up (- (length to*) 1))
+                       (path-walk (make-list levels-up "..")))
+                  (path-join (string-join path-walk "/" 'infix)
+                             (string-join from* "/" 'infix)))))))
+     (let ((rel-from (relativize from to)))
+       (unless dry-run?
+         (symlink rel-from to))
+       rel-from)))))

@@ -33,7 +33,7 @@
     (only (akku format manifest) manifest-filename)
     (only (akku lib compat) mkdir chmod file-directory?
           file-regular? file-symbolic-link? file-exists/no-follow?
-          symlink directory-list delete-directory)
+          directory-list delete-directory)
     (akku lib file-parser)
     (akku lib git)
     (akku lib init)
@@ -328,7 +328,7 @@
        (mkdir/recursive target-directory)
        (when (file-exists/no-follow? target-pathname)
          (delete-file target-pathname))
-       (symlink source-pathname target-pathname)
+       (symlink/relative source-pathname target-pathname)
        target-pathname))))
 
 ;; Install an artifact.
