@@ -29,7 +29,7 @@
   (only (akku format manifest) manifest-filename)
   (only (akku lib archive-maint) archive-scan)
   (only (akku lib graph) print-gv-file)
-  (only (akku lib init) init-manifest)
+  (only (akku lib init) init-manifest)  ;TODO: redo this as a repository-scanner
   (only (akku lib install) install)
   (only (akku lib lock) logger:akku.lock lock-dependencies
         add-dependency remove-dependencies list-packages
@@ -70,7 +70,6 @@ Basic usage:
    akku add <pkg> - add a dependency to Akku.manifest
    akku add <pkg>@<range> - add a versioned dependency
    akku add --dev <pkg> - add a development dependency
-   akku init - create a draft Akku.manifest (not yet useful)
    akku lock - generate Akku.lock from Akku.manifest and the index
  * akku install - install dependencies according to Akku.lock
    akku remove <pkg> - remove a dependency from Akku.manifest
@@ -118,14 +117,6 @@ License: GNU GPLv3
   (when (null? arg*)
     (cmd-help))
   (remove-dependencies manifest-filename (map parse-package-name arg*)))
-
-(define (cmd-init arg*)
-  (unless (null? arg*)
-    (cmd-help))
-  ;; (when (file-exists? manifest-filename)
-  ;;   ;; XXX: well... it should do something useful
-  ;;   (error 'install "The manifest already exists" manifest-filename))
-  (init-manifest manifest-filename "."))
 
 (define (cmd-list arg*)
   (unless (null? arg*)
@@ -223,8 +214,6 @@ License: GNU GPLv3
    (cmd-add (cddr (command-line))))
   ((string=? (cadr (command-line)) "remove")
    (cmd-remove (cddr (command-line))))
-  ((string=? (cadr (command-line)) "init")
-   (cmd-init (cddr (command-line))))
   ((string=? (cadr (command-line)) "list")
    (cmd-list (cddr (command-line))))
   ((string=? (cadr (command-line)) "show")

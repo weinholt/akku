@@ -1,0 +1,329 @@
+.\" HTML output: groff -man -Thtml docs/akku.1
+.TH AKKU "1" "April 2018" "Akku.scm" "User Commands"
+.SH "NAME"
+akku \- R6RS Scheme language package manager
+.SH "SYNOPSIS"
+\fBakku\fR {list | show \fIpkg\fR | install \fIpkg\fR[@\fIversion-range\fR].\|.\|. | update | add [\-\-\fBdev\fR] \fIpkg\fR[@\fIversion-range\fR] | lock | install | remove \fIpkg\fR.\|.\|. | uninstall \fIpkg\fR.\|.\|. | publish [\-\-\fBversion\fR=\fIversion\fR] [\-\-\fBtag\fR=\fItag\fR] | graph | dependency\-scan \fIfilename\fR.\|.\|. | license\-scan \fIfilename\fR.\|.\|. | archive\-scan \fIdirectory\fR.\|.\|.}
+.SH DESCRIPTION
+\fBAkku.scm\fR is a project-based language package manager for R6RS
+Scheme. It is mainly meant for schemers who develop programs or
+libraries in R6RS Scheme, but could potentially work for end-users of
+those programs.
+.PP
+Project-based means that dependencies are local to each project you
+manage with Akku. The idea is that each project will specify its
+dependencies through a manifest and a lockfile. When developing on a
+project you set your environment variables by sourcing that project's
+activate script into your shell (\fCsource .akku/bin/activate\fR).
+This ensures that the code you load into your program is that of your
+direct or indirect dependencies, instead of something that just
+happened to exist somewhere in your load path.
+.PP
+A project's direct dependencies are listed in the manifest. By running
+a dependency solver, specific versions of those dependencies are
+\fIlocked\fR. This means that others who also use your lockfile will
+get exactly the same dependencies installed as you had while
+developing.
+.PP
+This manpage mostly goes over the details of the command line
+interface, where these command are available:
+.\" ------------------------------------------
+.TP
+.B list
+List the local package index. For each package in the index it shows
+the name (used in command line arguments), the version and a short
+synopsis. When used in the project directory it will read the manifest
+and the lockfile and use that information to highlight versions that
+match the dependencies.
+.\" ------------------------------------------
+.TP
+.BI show " pkg"
+Display details about a package in the local package index. The first
+few sections are for your information only. Any dependencies are
+listed together with a simplified version range in braces. The source
+code section shows all information that will be used to download the
+package when it is installed.
+.\" ------------------------------------------
+.TP
+.B install \fIpkg\fR[@\fIversion-range\fR].\|.\|.
+Running install with a list of packages will add them to the package
+manifest, lock dependencies and install everything in the lockfile.
+.\" ------------------------------------------
+.TP
+.B update
+Updates the local package index. The index files are signed with GnuPG
+signatures that are verified before they are used.
+.IP
+This command requires curl.
+.\" ------------------------------------------
+.TP
+\fBadd\fR [\-\-\fBdev\fR] \fIpkg\fR[@\fIversion-range\fR]
+Adds a package to the manifest using a version range that allows
+forwards-compatible upgrades. Optionally the range can be specified
+manually using the \fIpkg\fR@\fIversion-range\fR syntax, e.g.
+\fIsemver@^1.0.0\fR. It's also possible to edit the manifest by hand,
+but formatting will not be preserved by these commands.
+.IP
+The \-\-\fBdev\fR option adds the package as a development dependency.
+Development dependencies are ignored when the package is used as a
+dependency by a third package (they are only needed when doing
+development on the current package).
+.\" ------------------------------------------
+.TP
+.B lock
+Locks dependencies. Runs a dependency solver over the manifest and the
+local package index and generates the lockfile. The lockfile contains
+the location of each transitive dependency together with a
+cryptographic identity.
+.IP
+It is wise to commit both the manifest and the lockfile in your source
+code repository; the lockfile is not used when your package is pulled
+in as a dependency.
+.\" ------------------------------------------
+.TP
+.B install
+Without arguments, this command follows the instructions in the
+lockfile to download and install the listed projects. A file scanner
+looks at each file in the downloaded projects and figures out what
+type of source it is and where it goes in the file system.
+.IP
+This command requires git.
+.\" ------------------------------------------
+.TP
+.B remove \fIpkg\fR.\|.\|.
+Updates the package manifest to remove dependencies, doing the
+opposite of add.
+.\" ------------------------------------------
+.TP
+.B uninstall \fIpkg\fR.\|.\|.
+Does three things: removes dependencies from the manifest, locks
+dependencies and runs install to remove the files that are no longer
+needed.
+.\" ------------------------------------------
+.TP
+\fBpublish\fR [\-\-\fBversion\fR=\fIversion\fR] [\-\-\fBtag\fR=\fItag\fR]
+Guides you through publishing your package. If there is no manifest
+then it first creates a draft that you will need to edit. Otherwise it
+generates a package index snippet and asks if you want to submit it.
+Have a careful look. If you answer yes then it fires up gpg to sign
+the displayed snippet and then it submits the signed snippet to the
+server.
+.IP
+The version to publish is taken from the manifest but can be
+overridden by using the \-\-\fBversion\fR=\fIversion\fR option. By
+default it looks for a tag named v\fIversion\fR. It is possible to
+override the tag using the \-\-\fBtag\fR=\fItag\fR option if the
+repository does not use the v1.2.3 tagging scheme. If it does not find
+a tag then the published revision will match the current HEAD.
+.IP
+It is always the lock section of the printed index snippet that will
+dictate which revision of your code is associated with the version
+you're publishing.
+.IP
+Note that no matter which revision is published, it is the currently
+checked out manifest that will be used to populate the metadata of the
+index snippet.
+.IP
+See section
+.B "PUBLISHING PACKAGES"
+below for a checklist of things to go through before publishing.
+.IP
+This command requires gpg, a gpg key and curl.
+.\" ------------------------------------------
+.TP
+.B graph
+Runs the repository analyser and prints a digraph of library
+dependencies. It's kind of a proof of concept at this point. Example
+usage: \fCakku graph | dot -Tx11\fR.
+.\" ------------------------------------------
+.TP
+\fBdependency\-scan\fR \fIfilename\fR.\|.\|.
+Traces the dependencies of a set of library of program source files.
+.\" ------------------------------------------
+.TP
+\fBlicense\-scan\fR \fIfilename\fR.\|.\|.
+Does the same dependency scanning as dependency\-scan, but then
+searches through all files it finds to look for license notices and
+similar legal text. This command is useful as a first step in
+gathering notices when distributing a compiled Scheme program.
+.IP
+Some words are worth repeating here:
+this program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+.\" ------------------------------------------
+.TP
+\fBarchive\-scan\fR \fIdirectory\fR.\|.\|.
+Scans the given directories for \fC*.akku\fR files and gathers them
+into a single index file. This is used at repository servers as part
+of maintaining the archive.
+.\" ------------------------------------------
+.SH "PUBLISHING PACKAGES"
+Akku.scm is associated with a package index that you can upload to.
+This will make your package available for others for easily discover
+and use. You can perform the necessary steps with the \fBpublish\fR
+command described above. Here is a checklist of items to consider
+before publishing:
+.
+.IP 1.
+Ensure that your manifest is up to date and contains at least the
+right package name, version, synopsis, at least one author and a
+license identifier. The homepage or author fields are useful if you
+want to show users where to send feedback. If you don't have a
+manifest yet, then use \fIpublish\fR to get a draft.
+.IP 2.
+If there are missing dependencies then don't forget to \fIadd\fR them
+to the manifest.
+.IP 3.
+Version numbers must follow the
+.UR https://semver.org/
+SemVer specification
+.UE ,
+because this is used to determine which package versions are
+compatible with each other. If you are packaging software that does
+not follow the SemVer rules then adjust the version numbers so that
+they follow the rules. It is not strictly necessary that they match
+the original version numbers of the software.
+.IP 4.
+Please pay some attention to the license field to make sure that it is
+accurate. Use the identifiers from
+.UR https://spdx.org/licenses/
+the SPDX project
+.UE .
+The maintainers of the package index are keen on not being sued for
+copyright infringement and will only accept packages under irrevocable
+licenses that: allow free redistribution even together with any other
+packages; apply to anyone that receives the software; allow
+modifications and derived works; and that do not exclude certain
+individuals, groups or endeavours.
+.IP 4.
+Prepare your GnuPG key if you do not yet have one. If you're not too
+particular on the details of this and just want a key that works then
+you can run \fCgpg \-\-quick-generate-key "Name Goes Here
+<schemer@example.com>"\fR, filling in the name and email address that
+you want to use. Afterwards you should publish your key to the public
+key servers using the command \fCgpg \-\-send-keys \f[CI]keyID\fR, using
+the key ID associated with your new key.
+.IP 5.
+Currently all projects need to be in a publicly available git
+repository, but this will change later. The release should preferably
+be tagged using their SemVer version numbers: version 1.0.0 gets
+tagged with \fIv1.0.0\fR. You can use \fCgit tag \-s v1.0.0\fR to make
+a GnuPG signed tag. This makes downloading the code faster.
+.
+.PP
+All packages in the index are signed with GnuPG signatures. This
+provides several important benefits: through the OpenPGP Web of Trust
+it is possible to independently verify the veracity of the package
+index; it is possible to verify that a newly uploaded version came
+from same author as previously uploaded versions; it is possible to
+detect if uploaded packages have been tampered with or corrupted; and
+ownership of a package name can be assigned to the owner of a GnuPG
+key.
+.PP
+Packages are manually reviewed before they are accepted into the
+package index.
+.PP
+Publishing is meant to be easy and hassle-free after some initial
+setup, so please report any usability problems with the publish
+command.
+.SH BUGS
+Implementation-dependent language constructs (such as module forms and
+non-R6RS lexical syntax) are handled rather poorly.
+.PP
+Even though it is designed for R6RS in general it does not run with
+anything except Chez Scheme on Linux. The non-portable constructs have
+been separated from the rest of the code and help with porting is very
+welcome.
+.PP
+The lock command (and any command that uses it behind the scenes) does
+not preserve the versions of previously locked packages. This is
+planned to be fixed.
+.PP
+Please report bugs to:
+.UR https://github.com/weinholt/akku/issues
+.UE
+.SH EXAMPLES
+.\" ------------------------------------------
+.SS "Updating the local package index"
+.\" ------------------------------------------
+Right after installation and before doing anything else, it's a good
+idea to update the local package index:
+.
+.RS
+.EX
+$ akku update
+.EE
+.RE
+.
+.\" ------------------------------------------
+.SS "Quick start in a new project"
+.\" ------------------------------------------
+A quick way to get new dependencies into a project is to use the
+\fBinstall\fR command. Have a look at the package list and choose
+something you want to install. Afterwards, source the activate
+script to get the correct environment variables:
+.
+.RS
+.EX
+$ akku list
+$ akku install chez-srfi
+$ source .akku/bin/activate
+.EE
+.RE
+.
+.\" ------------------------------------------
+.SS "Install dependencies step-by-step"
+.\" ------------------------------------------
+Dependencies can be installed step-by-step in order to follow the process:
+.
+.RS
+.EX
+$ akku add chez-srfi  # writes Akku.manifest
+$ akku lock           # writes Akku.lock
+$ akku install        # updates .akku/
+.EE
+.RE
+.
+.SH ENVIRONMENT
+.ta \w'AKKU_HOME       'u
+.nf
+\fIAKKU_HOME\fR	override the application home directory
+\fIHOME\fR	user's home directory
+.SH FILES
+.nf
+.ta \w'~/.akku/share/bootstrap.db   'u
+\fI~/.akku/\fR	default Akku.scm home directory
+\fI~/.akku/bin/\fR	akku binary and supporting programs
+\fI~/.akku/boot/\fR	Chez Scheme boot files
+\fI~/.akku/share/bootstrap.db\fR	the package index from the distribution
+\fI~/.akku/share/index.db\fR	the local package index
+\fI~/.akku/share/keys.d/*\fR	trusted keys for the package index
+\fIAkku.manifest\fR	the package manifest
+\fIAkku.lock\fR	instructions for installing dependencies
+\fI.akku/bin/\fR	programs from packages; activate script
+\fI.akku/lib/\fR	installed libraries from packages
+\fI.akku/list\fR	a list of files and whence they came
+\fI.akku/notices/\fR	license notices from installed packages
+\fI.akku/src/\fR	downloaded source code
+.SH AUTHOR
+Written by G\[:o]ran Weinholt.
+.PP
+Thanks to everyone who has contributed to Scheme over the years.
+.SH HISTORY
+The dependency solver comes from Andreas Rottmann's dorodango, an
+earlier package manager, and he ported it from the solver in
+.BR aptitude (8).
+.SH COPYRIGHT
+Copyright \(co 2018 G\[:o]ran Weinholt.
+License GPLv3+: GNU GPL version 3 or later
+.UR http://gnu.org/licenses/gpl.html
+.UE
+.br
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+.SH "SEE ALSO"
+The project website:
+.UR https://github.com/weinholt/akku
+.UE
