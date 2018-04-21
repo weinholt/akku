@@ -115,6 +115,7 @@
     (copy-notices "dist/doc/copyright.txt" "bin/akku.sps"))
   (cp "README.md" "dist/doc")
   (cp "CONTRIBUTING.md" "dist/doc")
+  (cp "docs/akku.1" "dist/doc")
   ;; Bootstrap data
   (mkdir/recursive "dist/share")
   (cp "bootstrap.db" "dist/share/bootstrap.db")

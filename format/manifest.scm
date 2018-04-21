@@ -10,33 +10,41 @@
     manifest-filename
     akku-package)
   (import
-    (rnrs))
+    (rnrs)
+    (for (semver versions) expand))
 
 (define manifest-filename "Akku.manifest")
 
 (define-syntax akku-package
   (lambda (x)
-    (syntax-case x (description authors license notice-files extra-files
-                                source depends depends/dev)
-      ((_ . x*)
+    (syntax-case x (synopsis description authors license notice-files extra-files
+                             source depends depends/dev)
+      ((_ (name version) . x*)
+       #'(begin
+           (check-name name)
+           (check-version version)
+           #f)))))
+
+(define-syntax check-name
+  (lambda (x)
+    (syntax-case x ()
+      ((_ (id ...))
+       (for-all (lambda (component)
+                  (or (symbol? (syntax->datum component))
+                      (number? (syntax->datum component))))
+                #'(id ...)))
+      ((_ name)
+       (string? (syntax->datum #'name))))))
+
+(define-syntax check-version
+  (lambda (x)
+    (syntax-case x ()
+      ((_ version)
+       (guard (exn
+               ((and (who-condition? exn) (eq? (condition-who exn) 'string->semver))
+                (syntax-violation 'check-version "Not a valid SemVer" #'version)))
+         (string->semver (syntax->datum #'version)))
        #f))))
-
-;; (define-syntax name
-;;   (lambda (x)
-;;     (syntax-case x ()
-;;       ((_ (id ...))
-;;        (for-all (lambda (component)
-;;                   (or (symbol? (syntax->datum component))
-;;                       (number? (syntax->datum component))))
-;;                 #'(id ...)))
-;;       ((_ name)
-;;        (string? (syntax->datum #'name))))))
-
-;; (define-syntax version
-;;   (lambda (x)
-;;     (syntax-case x ()
-;;       ((_ version)
-;;        (string? (syntax->datum #'version))))))
 
 ;; (define-syntax license
 ;;   (lambda (x)

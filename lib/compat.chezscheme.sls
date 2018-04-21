@@ -49,9 +49,10 @@
     (file-exists? filename #f))
 
   (define (symlink from to)
-    (putenv "AKKU_FROM" from)
-    (putenv "AKKU_TO" to)
-    (assert (zero? (system "ln -s \"$AKKU_FROM\" \"$AKKU_TO\""))))
+    (define %symlink (foreign-procedure "symlink" (string string) int))
+    (let ((ret (%symlink from to)))
+      (when (= ret -1)
+        (error 'symlink "Could not create symbolic link" from to))))
 
   (define (readlink pathname)
     (define %readlink (foreign-procedure "readlink" (string u8* size_t) ssize_t))
