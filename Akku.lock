@@ -61,4 +61,9 @@
     (revision "8ca3272796e62fda209ca0395439e02edfd5087d"))
   ((name "wak-irregex")
     (location (git "https://gitlab.com/wak/wak-irregex.git"))
-    (revision "e0304c7ac9b67a1e9dc1e5ec8ec9ceb3ff0ff019")))
+    (revision "e0304c7ac9b67a1e9dc1e5ec8ec9ceb3ff0ff019"))
+  ((name "compression")
+    (location
+      (git "https://github.com/weinholt/compression.git"))
+    (tag "v0.1.0")
+    (revision "b245fa3e7b364d164f809fda11b01de81bcf065e")))

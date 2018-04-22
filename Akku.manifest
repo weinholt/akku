@@ -1,7 +1,7 @@
 #!r6rs ; -*- mode: scheme; coding: utf-8 -*-
 (import (akku format manifest))
 
-(akku-package ("akku" "0.2.2")
+(akku-package ("akku" "0.2.3-beta.0")
   (synopsis "Language package manager for Scheme")
   (authors "Göran Weinholt <goran@weinholt.se>")
   (license "(GPL-3.0-or-later AND MIT AND LicenseRef-BSD-3-Clause-New-Style)")
@@ -15,5 +15,6 @@
            ("wak-foof-loop" "~0.0.0-akku")
            ("wak-wt-tree" "~0.0.0-akku")
            ("xitomatl" "~0.0.0-akku")
-           ("hashing" "^1.1.0"))
+           ("hashing" "^1.1.0")
+           ("compression" "^0.1.0"))
 )

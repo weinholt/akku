@@ -22,25 +22,39 @@
   (export
     install
     libraries-directory file-list-filename
-    make-r6rs-library-filenames)
+    make-r6rs-library-filenames
+    logger:akku.install)
   (import
     (rnrs (6))
     (only (srfi :13 strings) string-index string-prefix?)
     (only (rnrs r5rs) quotient remainder)
+    (prefix (compression tar) tar:)
+    (compression xz)
+    (hashing sha-2)
+    (spells logging)
     (only (xitomatl common) pretty-print)
     (xitomatl alists)
     (xitomatl AS-match)
     (only (akku format manifest) manifest-filename)
     (only (akku lib compat) mkdir chmod file-directory?
           file-regular? file-symbolic-link? file-exists/no-follow?
-          directory-list delete-directory)
+          directory-list delete-directory rename-file)
     (akku lib file-parser)
     (akku lib git)
     (akku lib init)
     (akku lib lock)
     (akku lib library-name)
     (akku lib repo-scanner)
-    (akku lib utils))
+    (akku lib utils)
+    (akku private http)
+    (only (akku private utils) make-fmt-log logger:akku))
+
+(define logger:akku.install (make-logger logger:akku 'install))
+(define log/info (make-fmt-log logger:akku.install 'info))
+(define log/warn (make-fmt-log logger:akku.install 'warning))
+(define log/error (make-fmt-log logger:akku.install 'error))
+(define log/debug (make-fmt-log logger:akku.install 'debug))
+(define log/trace (make-fmt-log logger:akku.install 'trace))
 
 (define (support-windows?)
   #f)
@@ -79,19 +93,26 @@
 (define (file-list-filename)
   (path-join (akku-directory) "list"))
 
+(define (project-cache-file project)
+  (path-join (cache-directory)
+             (string-append (project-sanitized-name project)
+                            "-"
+                            (cadr (assq 'sha256 (project-content project))))))
+
 (define-record-type project
   (fields name packages source
           installer                     ;for future extensions
           ;; one of these:
-          tag revision)
+          tag revision content)
   (sealed #t)
   (nongenerative))
 
 (define (parse-project spec)
   (let ((name (car (assq-ref spec 'name)))
         (tag (cond ((assq 'tag spec) => cadr) (else #f)))
-        (revision (car (assq-ref spec 'revision)))
-        (location (assq 'location spec)))
+        (revision (cond ((assq-ref spec 'revision #f) => car) (else #f)))
+        (location (assq 'location spec))
+        (content (assq-ref spec 'content #f)))
     (assert (not (char=? (string-ref name 0) #\()))
     (match location
       (('location ('directory _))
@@ -101,7 +122,7 @@
                   (cond ((assq 'install spec) => cdr) (else #f))
                   (car (assq-ref spec 'location))
                   (assq-ref spec 'installer '((r6rs)))
-                  tag revision)))
+                  tag revision content)))
 
 ;; Parse a lockfile, returning a list of project records.
 (define (read-lockfile lockfile-location)
@@ -119,13 +140,53 @@
            (lp (append (map parse-project prj*) project*)))
           (_ (lp project*)))))))
 
+;; Verify that the file contents match whatever the content spec says.
+(define (verify-file-contents filename content-spec)
+  (let ((s (make-sha-256)))
+    (call-with-port (open-file-input-port filename)
+      (lambda (inp)
+        (let lp ()
+          (let ((buf (get-bytevector-n inp (* 16 1024))))
+            (unless (eof-object? buf)
+              (sha-256-update! s buf)
+              (lp))))))
+    (let ((expected-digest (cadr (assq 'sha256 content-spec)))
+          (computed-digest (sha-256->string (sha-256-finish s))))
+      (string-ci=? expected-digest
+                   computed-digest))))
+
+;; Extracts a tarball into a directory.
+(define (extract-tarball tarball directory)
+  (call-with-port (open-xz-file-input-port tarball)
+    (lambda (tarp)
+      (let loop ()
+        (let ((hdr (tar:get-header-record tarp)))
+          (unless (eof-object? hdr)
+            (case (tar:header-typeflag hdr)
+              ((regular)
+               (check-filename (tar:header-name hdr) #f)
+               (let ((output-filename (path-join directory (tar:header-name hdr))))
+                 (log/debug "Writing " output-filename)
+                 (mkdir/recursive (car (split-path output-filename)))
+                 (call-with-port (open-file-output-port output-filename (file-options no-fail))
+                   (lambda (outp)
+                     (tar:extract-to-port tarp hdr outp)))))
+              ((directory)
+               (tar:skip-file tarp hdr))
+              (else
+               (log/trace "Ignoring the entry " (tar:header-name hdr) " of type "
+                          (tar:header-typeflag hdr))
+               (tar:skip-file tarp hdr)))
+            (loop)))))))
+
 ;; Fetch a project so that it's available locally.
 (define (fetch-project project)
   (let ((srcdir (project-source-directory project)))
     ;; Get the code.
-    (print ";; INFO: Fetching " (project-name project) " ...")
+    (log/info "Fetching " (project-name project))
     (match (project-source project)
       (('git repository)
+       ;; Git repository
        (cond ((file-directory? srcdir)
               (git-remote-set-url srcdir "origin" repository))
              (else
@@ -143,14 +204,35 @@
                (else
                 (error 'install "No revision" project))))
        (let ((current-revision (git-rev-parse srcdir "HEAD")))
-         (print ";; INFO: Fetched revision " current-revision)
+         (log/info "Fetched revision " current-revision)
          (unless (or (not (project-revision project))
                      (equal? current-revision (project-revision project)))
            (error 'install "Tag does not match revision" (project-tag project)
                   (project-revision project)))))
       (('directory dir)
+       ;; Local directory
        (unless (file-directory? dir)
          (error 'install "Directory does not exist" project)))
+      (('url url)
+       ;; Internet download
+       (mkdir/recursive (cache-directory))
+       (let* ((cached-file (project-cache-file project))
+              (temp-filename (string-append cached-file ".partial")))
+         (let retry ((i 10))
+           (cond
+             ((and (file-exists? cached-file)
+                   (verify-file-contents cached-file (project-content project)))
+              (log/info "Extracting " cached-file)
+              (extract-tarball cached-file srcdir))
+             ((zero? i)
+              (error 'install "Download failed" url (project-name project)))
+             (else
+              (log/info "Downloading " url)
+              (when (file-exists? temp-filename)
+                (delete-file temp-filename))
+              (download-file url temp-filename #f)
+              (rename-file temp-filename cached-file)
+              (retry (- i 1)))))))
       (else
        (error 'install "Unsupported project source: upgrade Akku.scm"
               (project-source project) (project-name project))))))
@@ -202,8 +284,8 @@
               ((serious-condition? exn)
                (when (and (message-condition? exn)
                           (irritants-condition? exn))
-                 (print "ERROR: " (condition-message exn) ": "
-                        (condition-irritants exn)))
+                 (log/error (condition-message exn) ": "
+                            (condition-irritants exn)))
                #f))
         (let* ((filename (library-name->file-name name))
                (filename (substring filename 1 (string-length filename)))
@@ -220,7 +302,7 @@
 ;; Copies a single R6RS library form from one file to another.
 (define (copy-r6rs-library target-directory target-filename source-pathname form-index)
   (let ((target-pathname (path-join target-directory target-filename)))
-    (print ";; DEBUG: Copying R6RS library " source-pathname (if (zero? form-index) "" " ")
+    (log/debug "Copying R6RS library " source-pathname (if (zero? form-index) "" " ")
            (if (zero? form-index) "" (list 'form form-index))
            " to " target-pathname)
     (check-filename target-pathname (support-windows?))
@@ -253,7 +335,7 @@
                      ;; for this case. This will be a problem for
                      ;; license compliance if form 0 is not used in a
                      ;; compiled program, but form 1 is.
-                     (print ";; DEBUG: Reformatting " target-pathname)
+                     (log/debug "Reformatting " target-pathname)
                      (let ((form (case form-index
                                    ((0) f0)
                                    ((1) f1)
@@ -272,9 +354,9 @@
 ;; Copies an R6RS program from one file to another.
 (define (copy-r6rs-program target-directory target-filename source-pathname form-index)
   (let ((target-pathname (path-join target-directory target-filename)))
-    (print ";; DEBUG: Copying R6RS program " source-pathname (if (zero? form-index) "" " ")
-           (if (zero? form-index) "" (list 'form form-index))
-           " to " target-pathname)
+    (log/debug "Copying R6RS program " source-pathname (if (zero? form-index) "" " ")
+               (if (zero? form-index) "" (list 'form form-index))
+               " to " target-pathname)
     (check-filename target-pathname (support-windows?))
     (call-with-port (open-input-file source-pathname)
       (lambda (inp)
@@ -304,7 +386,7 @@
 ;; Copy a regular file.
 (define (copy-file target-directory target-filename source-pathname)
   (let ((target-pathname (path-join target-directory target-filename)))
-    (print ";; DEBUG: Copying file " source-pathname " to " target-pathname)
+    (log/debug "Copying file " source-pathname " to " target-pathname)
     (check-filename target-pathname (support-windows?))
     (call-with-port (open-file-input-port source-pathname)
       (lambda (inp)
@@ -323,7 +405,7 @@
      (copy-file target-directory target-filename source-pathname))
     (else
      (let ((target-pathname (path-join target-directory target-filename)))
-       (print ";; DEBUG: Symlinking file " source-pathname " to " target-pathname)
+       (log/debug "Symlinking file " source-pathname " to " target-pathname)
        (check-filename target-pathname (support-windows?))
        (mkdir/recursive target-directory)
        (when (file-exists/no-follow? target-pathname)
@@ -340,8 +422,8 @@
                                          (artifact-implementation artifact))))
        (cond
          ((null? library-locations)
-          (print ";; WARNING: could not construct a filename for "
-                 (r6rs-library-name artifact))
+          (log/warn "Could not construct a filename for "
+                    (r6rs-library-name artifact))
           '())
          (else
           ;; Create each of the locations for the library. The first
@@ -358,8 +440,8 @@
                                         (path-join srcdir (artifact-path artifact))))
                          (else
                           (when always-symlink?
-                            (print ";; WARNING: refusing to symlink multi-form file "
-                                   (artifact-path artifact)))
+                            (log/warn "Refusing to symlink multi-form file "
+                                      (artifact-path artifact)))
                           (copy-r6rs-library (path-join (libraries-directory) (car target))
                                              (cdr target)
                                              (path-join srcdir (artifact-path artifact))
@@ -402,7 +484,9 @@
   (let ((srcdir (project-source-directory project)))
     ;; Copy libraries, programs and assets to the file system. These
     ;; operations are ordered.
-    (print ";; INFO: Installing " (project-name project) " ...")
+    (log/info "Installing " (if (string=? (project-name project) "")
+                                "the current project"
+                                (project-name project)))
     (cond
       ((equal? (project-installer project) '((r6rs)))
        (let* ((artifact* (filter (lambda (artifact)
@@ -421,8 +505,8 @@
                               asset*)))
            (append (apply append artifact-filename*) (apply append asset-filename*)))))
       (else
-       (print ";; ERROR: Installation of " (project-name project) " requires a newer Akku.scm")
-       (print ";; ERROR: No support for the installer " (map car (project-installer project)))
+       (log/error "Installation of " (project-name project) " requires a newer Akku.scm")
+       (log/error "No support for the installer " (map car (project-installer project)))
        '()))))
 
 ;; Installs an activation script, like Python's virtualenv.
@@ -430,7 +514,7 @@
   ;; TODO: Setup routines for more Schemes, perhaps take the wrappers
   ;; from scheme-ci. Larceny is missing.
   (let ((filename (path-join (binaries-directory) "activate")))
-    (print ";; INFO: Installing " filename)
+    (log/info "Installing " filename)
     (mkdir/recursive (binaries-directory))
     (call-with-port (open-file-output-port filename
                                            (file-options no-fail)
@@ -462,7 +546,7 @@
           ((artifact? a) 'artifact)
           (else 'unknown)))
   (let ((filename (file-list-filename)))
-    (print ";; INFO: Writing " filename)
+    (log/info "Writing " filename)
     (mkdir/recursive (akku-directory))
     (call-with-port (open-file-output-port filename
                                            (file-options no-fail)
@@ -478,9 +562,9 @@
               (cond ((hashtable-ref printed-files filename #f)
                      => (match-lambda
                          ((other-project . other-artifact)
-                          (print ";; INFO: File " filename  " in "
-                                 (project-name other-project)
-                                 " shadows that from " (project-name project)))))
+                          (log/info "File " filename  " in "
+                                    (project-name other-project)
+                                    " shadows that from " (project-name project)))))
                     (else
                      (hashtable-set! printed-files filename (cons project artifact))
                      (display filename p)
@@ -517,7 +601,7 @@
                       ((or (file-regular? filename)
                            (file-symbolic-link? filename))
                        (when (not (hashtable-ref current-filenames filename #f))
-                         (print ";; INFO: Removing uninstalled file " filename)
+                         (log/info "Removing uninstalled file " filename)
                          (assert (string-prefix? (libraries-directory) filename))
                          (delete-file filename)))
                       ((file-directory? filename)
@@ -526,7 +610,7 @@
                        ;; directories outside .akku/lib via symlinks.
                        (recurse filename (directory-list filename))
                        (when (null? (directory-list filename))
-                         (print ";; INFO: Removing empty directory " filename)
+                         (log/info "Removing empty directory " filename)
                          (assert (string-prefix? (libraries-directory) filename))
                          (delete-directory filename))))))
                 (for-each handle-file filename*))))
@@ -534,7 +618,7 @@
 
 (define (install lockfile-location)
   (let ((project-list (read-lockfile lockfile-location))
-        (current-project (make-project "" #f '(directory ".") '((r6rs)) #f #f)))
+        (current-project (make-project "" #f '(directory ".") '((r6rs)) #f #f #f)))
     (mkdir/recursive (akku-directory))
     (let ((gitignore (path-join (akku-directory) ".gitignore")))
       (unless (file-exists? gitignore)

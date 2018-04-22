@@ -26,9 +26,11 @@
     open-http-request
     http-response?
     http-response-status
-    http-response-port)
+    http-response-port
+    download-file)
   (import
     (rnrs (6))
+    (only (srfi :13 strings) string-prefix?)
     (srfi :115 regexp)
     (akku lib compat))
 
@@ -69,4 +71,28 @@
                     (make-http-response status from-stdout))))
             (else
              (close-port from-stdout)
-             (error 'open-http-request "Could not open request" req resp)))))))
+             (error 'open-http-request "Could not open request" req resp))))))
+
+(define (download-file url local-filename callback)
+  (call-with-port (open-file-output-port local-filename)
+    (lambda (p)
+      (cond
+        ((or (string-prefix? "http:" url)
+             (string-prefix? "https:" url))
+         (let* ((req (make-http-request 'get url))
+                (resp (open-http-request req)))
+           (unless (equal? (http-response-status resp) "200")
+             (close-port (http-response-port resp))
+             (error 'download-file "Bad http response" resp req))
+           (let lp ()
+             (let ((buf (get-bytevector-n (http-response-port resp)
+                                          (* 64 1024))))
+               (unless (eof-object? buf)
+                 (put-bytevector p buf)
+                 (when callback (callback buf))
+                 (lp))))
+           (close-port (http-response-port resp))))
+        (else
+         (error 'download-file "URL scheme not supported" url))))))
+
+)

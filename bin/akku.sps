@@ -21,8 +21,11 @@
 
 (import
   (industria strings)
-  (only (spells logging) set-logger-properties! log-entry-object)
+  (only (spells logging) set-logger-properties! log-entry-level-name
+        log-entry-object default-log-formatter)
   (only (srfi :13 strings) string-prefix?)
+  (wak fmt)
+  (wak fmt color)
   (xitomatl AS-match)
   (akku lib bundle)
   (only (akku format lockfile) lockfile-filename)
@@ -30,22 +33,33 @@
   (only (akku lib archive-maint) archive-scan)
   (only (akku lib graph) print-gv-file)
   (only (akku lib init) init-manifest)  ;TODO: redo this as a repository-scanner
-  (only (akku lib install) install)
+  (only (akku lib install) install logger:akku.install)
   (only (akku lib lock) logger:akku.lock lock-dependencies
         add-dependency remove-dependencies list-packages
         show-package)
   (only (akku lib update) update-index)
   (only (akku lib utils) path-join application-home-directory)
   (only (akku lib publish) publish-packages)
+  (only (akku private utils) logger:akku)
   (rnrs (6)))
 
-(define (simple-log-formatter entry)
-  (let ((port (current-error-port))
-        (obj (log-entry-object entry)))
+(define (log-formatter entry port)
+  (put-char port #\[)
+  (let ((level (log-entry-level-name entry)))
+    (fmt port (case level
+                ((debug) (fmt-bold level))
+                ((info) (fmt-green level))
+                ((warning) (fmt-yellow level))
+                ((error) (fmt-red level))
+                ((critical) (fmt-bold (fmt-red level)))
+                (else level))))
+  (put-string port "] ")
+  (let ((obj (log-entry-object entry)))
     (if (procedure? obj)
         (obj port)
-        (display obj port))
-    (newline port)))
+        (display obj port)))
+  (newline port)
+  (flush-output-port port))
 
 (define (get-index-filename)
   (let ((index (path-join (application-home-directory) "share/index.db"))
@@ -202,9 +216,17 @@ License: GNU GPLv3
     (cmd-help))
   (archive-scan arg*))
 
+(set-logger-properties! logger:akku.install
+                        `((threshold info)
+                          (handlers
+                           ,(lambda (entry)
+                              (log-formatter entry (current-error-port))))))
+
 (set-logger-properties! logger:akku.lock
                         `((threshold info)
-                          (handlers ,simple-log-formatter)))
+                          (handlers
+                           ,(lambda (entry)
+                              (log-formatter entry (current-error-port))))))
 
 ;; TODO: get a real command line parser.
 (cond
