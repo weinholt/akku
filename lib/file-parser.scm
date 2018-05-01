@@ -40,9 +40,14 @@
     (srfi :115 regexp)
     (xitomatl AS-match)
     (akku lib schemedb)
-    (akku lib utils))
+    (akku lib utils)
+    (akku private logging))
 
-(define *verbose* #f)                   ;TODO: move to logging
+(define logger:akku.file-parser (make-logger logger:akku 'file-parser))
+(define log/info (make-fmt-log logger:akku.file-parser 'info))
+(define log/warn (make-fmt-log logger:akku.file-parser 'warning))
+(define log/debug (make-fmt-log logger:akku.file-parser 'debug))
+(define log/trace (make-fmt-log logger:akku.file-parser 'trace))
 
 (define rx-legal-notice-filename     ;relative to the root of the repo
   (rx (w/nocase
@@ -240,7 +245,7 @@
               pkgpath
               (if (null? dir^)
                   (cond ((member real-pkgroot '("" "."))
-                         (print ";; WARNING: could not resolve include: " (list dir fn ext))
+                         (log/warn "Could not resolve include: " (list dir fn ext))
                          #f)
                         (else
                          (lp-root (car (split-path real-pkgroot)))))
@@ -399,8 +404,7 @@
                                  (map library-reference-name parsed-import-spec*))))))
       (_ #f)))
   (guard (exn (else
-               (when *verbose*
-                 (print ";; Warning: Exception while examining file: " path))
+               (log/debug "Exception while examining file: " path)
                #f))
     ;; TODO: use a reader that handles non-r6rs code
     (call-with-input-file realpath

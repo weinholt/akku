@@ -27,16 +27,14 @@
   (import
     (rnrs (6))
     (only (srfi :13 strings) string-index string-prefix?)
-    (only (rnrs r5rs) quotient remainder)
     (prefix (compression tar) tar:)
     (compression xz)
     (hashing sha-2)
-    (spells logging)
     (only (xitomatl common) pretty-print)
     (xitomatl alists)
     (xitomatl AS-match)
     (only (akku format manifest) manifest-filename)
-    (only (akku lib compat) mkdir chmod file-directory?
+    (only (akku lib compat) chmod file-directory?
           file-regular? file-symbolic-link? file-exists/no-follow?
           directory-list delete-directory rename-file)
     (akku lib file-parser)
@@ -47,7 +45,7 @@
     (akku lib repo-scanner)
     (akku lib utils)
     (akku private http)
-    (only (akku private utils) make-fmt-log logger:akku))
+    (akku private logging))
 
 (define logger:akku.install (make-logger logger:akku 'install))
 (define log/info (make-fmt-log logger:akku.install 'info))
@@ -218,7 +216,7 @@
        (mkdir/recursive (cache-directory))
        (let* ((cached-file (project-cache-file project))
               (temp-filename (string-append cached-file ".partial")))
-         (let retry ((i 10))
+         (let retry ((i 2))
            (cond
              ((and (file-exists? cached-file)
                    (verify-file-contents cached-file (project-content project)))
@@ -620,6 +618,7 @@
   (let ((project-list (read-lockfile lockfile-location))
         (current-project (make-project "" #f '(directory ".") '((r6rs)) #f #f #f)))
     (mkdir/recursive (akku-directory))
+    (mkdir/recursive (libraries-directory))
     (let ((gitignore (path-join (akku-directory) ".gitignore")))
       (unless (file-exists? gitignore)
         (call-with-output-file gitignore

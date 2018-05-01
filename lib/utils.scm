@@ -20,7 +20,6 @@
 
 (library (akku lib utils)
   (export
-    print
     append-map filter-map map-in-order delete-duplicates
     string-prefix? string-suffix? string-index
     string-split
@@ -41,12 +40,6 @@
           string-join)
     (only (industria strings) string-split)
     (only (akku lib compat) getcwd file-directory? mkdir getenv symlink))
-
-(define (print . x*)
-  (for-each (lambda (x)
-              (display x (current-error-port)))
-            x*)
-  (newline (current-error-port)))
 
 ;; Split directory name and filename components.
 (define (split-path filename)

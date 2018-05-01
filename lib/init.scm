@@ -23,23 +23,30 @@
     init-manifest)
   (import
     (rnrs (6))
+    (wak fmt)
     (xitomatl AS-match)
     (akku lib compat)
     (akku lib file-parser)
     (akku lib repo-scanner)
     (akku lib schemedb)
-    (akku lib utils))
+    (akku lib utils)
+    (akku private utils)
+    (akku private logging))
 
-(define *verbose* #t)
+(define logger:akku.init (make-logger logger:akku 'init))
+(define log/info (make-fmt-log logger:akku.init 'info))
+(define log/warn (make-fmt-log logger:akku.init 'warning))
+(define log/debug (make-fmt-log logger:akku.init 'debug))
+(define log/trace (make-fmt-log logger:akku.init 'trace))
 
 (define-record-type package
   (nongenerative)
   (fields name artifacts))
 
 (define (print-package pkg)
-  (print "Package: " (package-name pkg))
+  (fmt #f "Package: " (package-name pkg))
   (for-each (lambda (artifact)
-              (print " Artifact: " (artifact-path artifact)))
+              (fmt #f " Artifact: " (artifact-path artifact)))
             (package-artifacts pkg)))
 
 ;; Go over all artifacts to find dependencies on libraries that are
@@ -142,8 +149,7 @@
                                  (lp (cdr iter-artifact*) unchanged))
                                 (else
                                  ;; Move everything in package-name to parent-name.
-                                 (when *verbose*
-                                   (print "Package " package-name " subsumed by " parent-name))
+                                 (log/debug "Package " package-name " subsumed by " parent-name)
                                  (for-each
                                   (lambda (artifact^)
                                     (when (equal? (hashtable-ref artifact->pkg-name artifact^ #f)
@@ -159,7 +165,7 @@
     (for-each
      (lambda (artifact)
        (unless (hashtable-ref artifact->pkg-name artifact #f)
-         (print "Orphan: " (artifact-path artifact) " -- " (artifact-path-list artifact))))
+         (log/info "Orphan: " (artifact-path artifact) " -- " (artifact-path-list artifact))))
      artifact*)
     ;; Gather the final list of package names.
     (hashtable-clear! package-names)
@@ -180,8 +186,7 @@
                    keys values)))))
 
 (define (init-manifest manifest-filepath base-directory)
-  (when *verbose*
-    (print ";; INFO: Initialising manifest " manifest-filepath " in " base-directory))
+  (log/info "Initialising manifest " manifest-filepath " in " base-directory)
   (let ((artifact* (find-artifacts base-directory (scm-file-list base-directory))))
     (for-each print-artifact artifact*)
 

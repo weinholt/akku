@@ -32,9 +32,14 @@
     (akku lib compat)
     (akku lib git)
     (akku lib file-parser)
-    (akku lib utils))
+    (akku lib utils)
+    (akku private logging))
 
-(define *verbose* #f)
+(define logger:akku.repo-scanner (make-logger logger:akku 'repo-scanner))
+(define log/info (make-fmt-log logger:akku.repo-scanner 'info))
+(define log/warn (make-fmt-log logger:akku.repo-scanner 'warning))
+(define log/debug (make-fmt-log logger:akku.repo-scanner 'debug))
+(define log/trace (make-fmt-log logger:akku.repo-scanner 'trace))
 
 ;; Get the location for cloning the repository.
 (define (scm-origin dir)
@@ -87,26 +92,22 @@
              (string=? "Akku.manifest" fn)
              (and (file-symbolic-link? realpath)
                   (symlink-inside-repo? realpath relpath-list)))
-         (when *verbose*
-           (print ";; Ignored " relpath))
+         (log/debug "Ignored " relpath)
          '())                        ;ignore
         ((file-regular? realpath)
          (let ([path-list (reverse (cons (filename->component fn) relpath-list))])
            (cond
              ((and (pair? tracked-files) (not (member relpath tracked-files)))
-              (when *verbose*
-                (print ";; File " relpath " is not a tracked file, ignored."))
+              (log/info "File " relpath " is not a tracked file, ignored.")
               '())
              ((and (for-all (lambda (x) x) path-list)
                    (examine-source-file realpath relpath path-list)))
              ((examine-other-file realpath relpath path-list))
              ((exists (lambda (x) (not x)) path-list)
-              (when *verbose*
-                (print ";; File " relpath " rejected by filename->component"))
+              (log/debug "File " relpath " rejected by filename->component")
               (list (make-generic-file relpath path-list)))
              (else
-              (when *verbose*
-                (print ";; File " relpath " rejected by examine-file"))
+              (log/debug "File " relpath " rejected by examine-file")
               (list (make-generic-file relpath path-list))))))
         ((file-directory? realpath)
          (find-artifacts* realpath relpath
@@ -114,8 +115,7 @@
                           (directory-list realpath)
                           tracked-files))
         (else
-         (when *verbose*
-           (print ";; Ignored " relpath " because it is not a regular file or directory"))
+         (log/debug "Ignored " relpath " because it is not a regular file or directory")
          '()))))
   (append-map filename->record* (list-sort string<? files)))
 

@@ -48,7 +48,7 @@
           (spells alist)
           (spells logging)
           (wak wt-tree)
-          (akku private utils)
+          (akku private logging)
           (akku lib solver universe)
           (akku lib solver choice))
 

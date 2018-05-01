@@ -34,7 +34,6 @@
     (semver versions)
     (semver ranges)
     (spdx parser)
-    (spells logging)
     (wak fmt)
     (wak fmt color)
     (xitomatl alists)
@@ -46,9 +45,9 @@
     (akku lib solver dummy-db)          ;TODO: Make a proper database
     (only (akku lib solver internals) make-universe)
     (only (akku lib solver logging) dsp-universe)
-    (only (akku private utils) make-fmt-log logger:akku)
     (only (akku lib utils) split-path get-terminal-size)
-    (prefix (akku lib solver universe) universe-))
+    (prefix (akku lib solver universe) universe-)
+    (akku private logging))
 
 (define logger:akku.lock (make-logger logger:akku 'lock))
 (define log/info (make-fmt-log logger:akku.lock 'info))
@@ -216,7 +215,10 @@
 (define (lock-dependencies manifest-filename lockfile-filename index-filename)
   (define dry-run? #f)
   (define dev-mode? #t)
-  (define manifest-packages (read-manifest manifest-filename 'mangle-names #f))
+  (define manifest-packages
+    (if (file-exists? manifest-filename)
+        (read-manifest manifest-filename 'mangle-names #f)
+        '()))
 
   (let-values (((db packages) (read-package-index index-filename manifest-packages)))
     (add-package-dependencies db packages manifest-packages dev-mode?)
@@ -246,14 +248,16 @@
 
 (define (update-manifest manifest-filename proc)
   (let ((akku-package*
-         (call-with-input-file manifest-filename
-           (lambda (p)
-             (let lp ((pkg* '()))
-               (match (read p)
-                 ((and ('akku-package (_ _) . _) akku-package)
-                  (cons (proc akku-package) pkg*))
-                 ((? eof-object?) pkg*)
-                 (else (lp pkg*))))))))
+         (if (file-exists? manifest-filename)
+             (call-with-input-file manifest-filename
+               (lambda (p)
+                 (let lp ((pkg* '()))
+                   (match (read p)
+                     ((and ('akku-package (_ _) . _) akku-package)
+                      (cons (proc akku-package) pkg*))
+                     ((? eof-object?) pkg*)
+                     (else (lp pkg*))))))
+             '())))
     (write-manifest manifest-filename (reverse akku-package*))
     (log/info "Wrote " manifest-filename)))
 

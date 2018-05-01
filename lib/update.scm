@@ -33,8 +33,15 @@
     (xitomatl alists)
     (xitomatl AS-match)
     (only (akku lib compat) directory-list rename-file pretty-print)
-    (only (akku lib utils) print path-join url-join)
-    (akku private http))
+    (only (akku lib utils) path-join url-join)
+    (akku private http)
+    (akku private logging))
+
+(define logger:akku.update (make-logger logger:akku 'update))
+(define log/info (make-fmt-log logger:akku.update 'info))
+(define log/warn (make-fmt-log logger:akku.update 'warning))
+(define log/debug (make-fmt-log logger:akku.update 'debug))
+(define log/trace (make-fmt-log logger:akku.update 'trace))
 
 ;; Verify the OpenPGP signature. The signature file can have multiple
 ;; signatures and only one valid signature is needed.
@@ -60,20 +67,21 @@
                     (let-values (((result key) (verify-openpgp-signature sig keyring signed-port)))
                       (case result
                         ((missing-key)
-                         (fmt #t ";; INFO: Signed by unknown key with ID "
-                              (pad/left 16 (num key 16))))
+                         (log/warn "Signed by unknown key with ID "
+                                   (pad/left 16 (num key 16))))
                         (else
-                         (fmt #t (if (eq? result 'good-signature) ";; INFO: Good"
-                                     ";; WARNING: Bad")
-                              " signature from "
-                              (openpgp-format-fingerprint
-                               (openpgp-public-key-fingerprint key))
-                              " in " keyfile
-                              nl)
+                         (let ((signature-info
+                                (list " signature from "
+                                      (openpgp-format-fingerprint
+                                       (openpgp-public-key-fingerprint key))
+                                      " in " keyfile)))
+                           (if (eq? result 'good-signature)
+                               (apply log/info "Good" signature-info)
+                               (apply log/warn "BAD" signature-info)))
                          (for-each
                           (lambda (data)
                             (when (openpgp-user-id? data)
-                              (fmt #t ";; INFO: User ID: " (openpgp-user-id-value data) nl)))
+                              (log/info "User ID: " (openpgp-user-id-value data))))
                           (hashtable-ref keyring (openpgp-public-key-id key) #f))))
                       (and (eq? result 'good-signature) result))))
                 (cond ((eof-object? sig) #f)
@@ -93,7 +101,7 @@
       (when (file-exists? temp-sig-filename)
         (delete-file temp-sig-filename))
       ;; Fetch the index to e.g. "index.db.0".
-      (print ";; INFO: Fetching index from " repository-url " ...")
+      (log/info "Fetching index from " repository-url " ...")
       (download-file (url-join repository-url "Akku-index.scm")
                      temp-filename
                      (lambda (buf) (sha-256-update! index-checksum buf)))
@@ -181,4 +189,4 @@
                                outp))))
            package-names))))
     (rename-file tempfile full-index-filename)
-    (fmt #t ";; INFO: Index updated" nl))))
+    (log/info "Index updated"))))

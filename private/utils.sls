@@ -14,18 +14,12 @@
 (library (akku private utils)
   (export in-hashtable
 
-          wt-tree/update
-
           xvector-remove-first!
           xvector-remove
           in-xvector
           fmt-join/xvector
 
-          define-guarantor
-
-          logger:akku
-          make-fmt-log
-          )
+          define-guarantor)
   (import (except (rnrs) file-exists? delete-file)
           (only (srfi :1) drop-right last)
           (srfi :8 receive)
@@ -35,7 +29,6 @@
           (only (spells misc) and=>)
           (spells alist)
           (spells xvector)
-          (spells logging)
           (wak wt-tree))
 
 (define-syntax define-guarantor
@@ -48,18 +41,6 @@
                                 (string-append "invalid argument type (expected "
                                                type-name ")")
                                 obj))))))
-
-(define make-fmt-log
-  (case-lambda
-    ((logger)
-     (let ((log (make-log logger)))
-       (lambda (level . formats)
-         (log level (lambda (port)
-                      (apply fmt port formats))))))
-    ((logger level)
-     (let ((log (make-log logger level)))
-       (lambda formats
-         (log (lambda (port) (apply fmt port formats))))))))
 
 (define-syntax in-hashtable
   (syntax-rules ()
@@ -126,10 +107,4 @@
                    ((cat (formatter (xvector-ref vec i))
                          (if (< i (- len 1)) sep fmt-null))
                     st)))
-        => st))))
-
-
-;; This doesn't really belong here
-(define logger:akku (make-logger root-logger 'akku))
-
-)
+        => st)))))

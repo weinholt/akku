@@ -20,6 +20,7 @@
 ;; Main command line interface to Akku.scm.
 
 (import
+  (rnrs (6))
   (industria strings)
   (only (spells logging) set-logger-properties! log-entry-level-name
         log-entry-object default-log-formatter)
@@ -40,8 +41,13 @@
   (only (akku lib update) update-index)
   (only (akku lib utils) path-join application-home-directory)
   (only (akku lib publish) publish-packages)
-  (only (akku private utils) logger:akku)
-  (rnrs (6)))
+  (akku private logging))
+
+(define logger:akku.main (make-logger logger:akku 'main))
+(define log/info (make-fmt-log logger:akku.lock 'info))
+(define log/warn (make-fmt-log logger:akku.lock 'warning))
+(define log/error (make-fmt-log logger:akku.lock 'error))
+(define log/debug (make-fmt-log logger:akku.lock 'debug))
 
 (define (log-formatter entry port)
   (put-char port #\[)
@@ -145,9 +151,6 @@ License: GNU GPLv3
 (define (cmd-lock arg*)
   (unless (null? arg*)
     (cmd-help))
-  (unless (file-exists? manifest-filename)
-    (error 'install "There is no manifest: run 'akku add <pkg>' first"
-           manifest-filename))
   (lock-dependencies manifest-filename
                      lockfile-filename
                      (get-index-filename)))
@@ -197,32 +200,23 @@ License: GNU GPLv3
 
 (define (cmd-dependency-scan arg*)
   (when (null? arg*)
-    (display "ERROR: You must provide at least one program or library entry point\n\n"
-             (current-error-port))
+    (log/error "At least one program or library entry point must be provided")
     (cmd-help))
   (dependency-scan arg* '(chezscheme))) ;TODO
 
 (define (cmd-license-scan arg*)
   (when (null? arg*)
-    (display "ERROR: You must provide at least one program or library entry point\n\n"
-             (current-error-port))
+    (log/error "At least one program or library entry point must be provided")
     (cmd-help))
   (license-scan arg* '(chezscheme)))    ;TODO
 
 (define (cmd-archive-scan arg*)
   (when (null? arg*)
-    (display "ERROR: You must provide at least one directory name\n\n"
-             (current-error-port))
+    (log/error "At least one directory name must be provided")
     (cmd-help))
   (archive-scan arg*))
 
-(set-logger-properties! logger:akku.install
-                        `((threshold info)
-                          (handlers
-                           ,(lambda (entry)
-                              (log-formatter entry (current-error-port))))))
-
-(set-logger-properties! logger:akku.lock
+(set-logger-properties! logger:akku
                         `((threshold info)
                           (handlers
                            ,(lambda (entry)
@@ -259,4 +253,5 @@ License: GNU GPLv3
   ((string=? (cadr (command-line)) "archive-scan")
    (cmd-archive-scan (cddr (command-line))))
   (else
+   (log/error "Unrecognized command: " (cadr (command-line)))
    (cmd-help)))

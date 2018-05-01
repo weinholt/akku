@@ -21,7 +21,8 @@
 (library (akku lib bundle)
   (export
     dependency-scan
-    license-scan)
+    license-scan
+    logger:akku.bundle)
   (import
     (rnrs (6))
     (only (srfi :1 lists) append-map filter-map delete-duplicates)
@@ -33,7 +34,14 @@
           file-list-filename)
     (akku lib repo-scanner)
     (akku lib schemedb)
-    (only (akku lib utils) print path-join))
+    (only (akku lib utils) path-join)
+    (akku private logging))
+
+(define logger:akku.bundle (make-logger logger:akku 'bundle))
+(define log/info (make-fmt-log logger:akku.bundle 'info))
+(define log/warn (make-fmt-log logger:akku.bundle 'warning))
+(define log/debug (make-fmt-log logger:akku.bundle 'debug))
+(define log/trace (make-fmt-log logger:akku.bundle 'trace))
 
 ;; Trace the dependencies of `files`, returning a subset of
 ;; filename->artifact.
@@ -77,7 +85,7 @@
                                  (else #f)))
                          candidate-filenames)
              (unless (r6rs-builtin-library? lib-name (artifact-implementation file))
-               (print ";; WARNING: can not import " lib-name)))))
+               (log/warn "Can not import " lib-name)))))
        (artifact-imports file))))
   (for-each trace filenames files)
   used-files)
@@ -248,7 +256,7 @@
                          (lp line0))))
                    (print-footer)))
                (unless printed-header
-                 (print ";; INFO: No copyright notice in used file " fn))))])
+                 (log/info "No copyright notice in used file " fn))))])
           (list-sort (lambda (x y) (string<? (car x) (car y)))
                      (hashtable-ref project->file* project-name '()))))
        (list-sort string<? used-project*))

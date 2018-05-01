@@ -171,8 +171,8 @@
                (let ((result (make-solution (step-actions best-future-solution-step)
                                             (step-score best-future-solution-step)
                                             (step-tier best-future-solution-step))))
-                 (log/info "--- Returning the future solution "
-                           (dsp-solution result) " from step " best-future-solution)
+                 (log/debug "--- Returning the future solution "
+                            (dsp-solution result) " from step " best-future-solution)
                  (wt-tree/delete! pending-future-solutions best-future-solution)
                  result)))
             ((contains-canditate? pending)
@@ -192,7 +192,7 @@
           (step-tier (search-graph-step graph (wt-tree/min pending)))))
     
     (define (start-search)
-      (log/info "Starting a new search.")
+      (log/debug "Starting a new search.")
       (let* ((broken-size (wt-tree/size initial-broken))
              (root-score (+ (* broken-size score/broken)
                             (if (= 0 broken-size)
@@ -210,7 +210,7 @@
     (define (process-step step-num)
       (loop continue ((with step-num step-num))
         (let ((step (search-graph-step graph step-num)))
-          (log/info "Examining step " step-num " " (dsp-step step))
+          (log/debug "Examining step " step-num " " (dsp-step step))
           (when (tier>=? (step-tier step) defer-tier)
             (internal-error "the tier of step " step-num
                             " is an unprocessed tier, so why is it a candidate?"))
@@ -229,8 +229,8 @@
              (log/trace "Processing step " step-num)
              (hashtable-set! closed step step-num)
              (cond ((step-solution? step)
-                    (log/info " --- Found solution at step " step-num
-                              ": " (dsp-step step))
+                    (log/debug " --- Found solution at step " step-num
+                               ": " (dsp-step step))
                     (add-promotion step-num
                                    (make-promotion
                                     (generalize-choice-set (step-actions step))

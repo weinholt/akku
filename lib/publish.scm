@@ -31,7 +31,15 @@
     (only (akku lib compat) system putenv)
     (akku lib git)
     (akku lib manifest)
-    (akku lib utils))
+    (akku lib utils)
+    (akku private logging))
+
+(define logger:akku.install (make-logger logger:akku 'publish))
+(define log/info (make-fmt-log logger:akku.install 'info))
+(define log/error (make-fmt-log logger:akku.install 'error))
+(define log/warn (make-fmt-log logger:akku.install 'warning))
+(define log/debug (make-fmt-log logger:akku.install 'debug))
+(define log/trace (make-fmt-log logger:akku.install 'trace))
 
 (define (guess-public-git-location base-directory)
   (let lp ((remote* (git-list-remotes base-directory)))
@@ -62,13 +70,12 @@
     (cond ((member version-tag version-tags)
            (let ((revision (git-rev-list/first base-directory version-tag)))
              (unless (string=? head-revision revision)
-               (fmt (current-error-port)
-                    ";; WARNING: Publishing tag that does not match the branch HEAD" nl))
+               (log/warn "Publishing tag that does not match the branch HEAD"))
              `((location (git ,pull-url))
                (tag ,version-tag)
                (revision ,revision))))
           (else
-           (fmt (current-error-port) ";; INFO: Publishing untagged release" nl)
+           (log/info "Publishing untagged release")
            `((location (git ,pull-url))
              (revision ,head-revision))))))
 
@@ -92,7 +99,7 @@
        (call-with-output-file fn
          (lambda (p)
            ;; This writes a fragment of an index file.
-           (fmt #t "Writing " fn " ..." nl)
+           (log/info "Writing " fn " ...")
            (fmt p "#!r6rs" nl)
            (for-each (lambda (archive-url)
                        (fmt p ";; Submit-To: " archive-url "packages/" nl))
@@ -111,13 +118,13 @@
     ;; Sign them.
     (for-each
      (lambda (pkg fn)
-       (fmt #t "Signing " fn " ..." nl)
+       (log/info "Signing " fn " ...")
        (gpg-detach-sign fn))
      package* filename*)
     ;; Submit.
     (for-each
      (lambda (archive-url)
-       (fmt #t "Submitting to " archive-url " ..." nl)
+       (log/info "Submitting to " archive-url " ...")
        (putenv "AKKU_FN" (fmt #f (fmt-join
                                   (lambda (fn)
                                     (cat (dsp fn) (dsp ".sig")
@@ -138,9 +145,9 @@
        (when (null? package*)
          (error 'publish-packages "Empty manifest"))
        (when version-override
-         (fmt #t ";; INFO: Version override: " version-override nl))
+         (log/info "Version override: " version-override))
        (when tag-override
-         (fmt #t ";; INFO: Tag override: " tag-override nl))
+         (log/info "Tag override: " tag-override))
        (let* ((version (car (package-version* (car package*))))
               (lock (cond
                       ((is-git-repository? base-directory)
@@ -155,6 +162,4 @@
      (write-manifest manifest-filename
                      (list (draft-akku-package version-override ;XXX: use highest version tag
                                                `(location (git "https://example.com/")))))
-     (fmt #t "Edit " manifest-filename " and run publish again" nl))))
-
-)
+     (log/error "Edit " manifest-filename " and run publish again")))))
