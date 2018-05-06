@@ -61,5 +61,6 @@ before_script:
   - source .akku/bin/activate
 
 script:
+  - ~/bin/akku update
   - private/build.chezscheme.sps </dev/null
   - ./run-tests.sh

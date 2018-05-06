@@ -70,10 +70,7 @@
 (define (get-index-filename)
   (let ((index (path-join (application-home-directory) "share/index.db"))
         (bootstrap (path-join (application-home-directory) "share/bootstrap.db")))
-    (cond ((and (file-exists? "bootstrap.db") (file-exists? "bin/akku.sps"))
-           ;; Running from the Akku repository
-           "bootstrap.db")
-          ((file-exists? index) index)
+    (cond ((file-exists? index) index)
           ((file-exists? bootstrap) bootstrap)
           (else (error 'cmd-lock "Unable to locate the package index")))))
 

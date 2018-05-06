@@ -8,7 +8,8 @@
 
 (import
   (chezscheme)
-  (only (akku lib utils) string-split path-join mkdir/recursive)
+  (only (akku lib utils) string-split path-join mkdir/recursive
+        application-home-directory)
   (semver versions))
 
 (define (which filename)                ;same as which(1)
@@ -118,7 +119,8 @@
   (cp "docs/akku.1" "dist/doc")
   ;; Bootstrap data
   (mkdir/recursive "dist/share")
-  (cp "bootstrap.db" "dist/share/bootstrap.db")
+  (cp (path-join (application-home-directory) "share/index.db")
+      "dist/share/bootstrap.db")
   (mkdir/recursive "dist/share/keys.d")
   (cp "akku-archive-2018.gpg" "dist/share/keys.d/akku-archive-2018.gpg"))
 
