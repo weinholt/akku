@@ -3,7 +3,7 @@
 .SH "NAME"
 akku \- R6RS Scheme language package manager
 .SH "SYNOPSIS"
-\fBakku\fR {list | show \fIpkg\fR | install \fIpkg\fR[@\fIversion-range\fR].\|.\|. | update | add [\-\-\fBdev\fR] \fIpkg\fR[@\fIversion-range\fR] | lock | install | remove \fIpkg\fR.\|.\|. | uninstall \fIpkg\fR.\|.\|. | publish [\-\-\fBversion\fR=\fIversion\fR] [\-\-\fBtag\fR=\fItag\fR] | graph | dependency\-scan \fIfilename\fR.\|.\|. | license\-scan \fIfilename\fR.\|.\|. | archive\-scan \fIdirectory\fR.\|.\|.}
+\fBakku\fR {list | show \fIpkg\fR | install \fIpkg\fR[@\fIversion-range\fR].\|.\|. | update | add [\-\-\fBdev\fR] \fIpkg\fR[@\fIversion-range\fR] | lock | install | remove \fIpkg\fR.\|.\|. | uninstall \fIpkg\fR.\|.\|. | scan [\fIdirectory\fR] | publish [\-\-\fBversion\fR=\fIversion\fR] [\-\-\fBtag\fR=\fItag\fR] | graph | dependency\-scan \fIfilename\fR.\|.\|. | license\-scan \fIfilename\fR.\|.\|. | archive\-scan \fIdirectory\fR.\|.\|.}
 .SH DESCRIPTION
 \fBAkku.scm\fR is a project-based language package manager for R6RS
 Scheme. It is mainly meant for schemers who develop programs or
@@ -99,6 +99,13 @@ opposite of add.
 Does three things: removes dependencies from the manifest, locks
 dependencies and runs install to remove the files that are no longer
 needed.
+.\" ------------------------------------------
+.TP
+\fBscan\fR [directory]
+Scans a directory recursively and analyses all files. The result of
+the analysis is printed as a series of YAML documents (syntax might
+be a bit off: send bug reports). Useful for figuring out what type
+of code Akku thinks the repository contains.
 .\" ------------------------------------------
 .TP
 \fBpublish\fR [\-\-\fBversion\fR=\fIversion\fR] [\-\-\fBtag\fR=\fItag\fR]

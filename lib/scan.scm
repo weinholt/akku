@@ -16,13 +16,14 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #!r6rs
 
-;; Initialize a package manifest based on repository analysis.
+;; Scan a repository and print what was found.
 
-(library (akku lib init)
+(library (akku lib scan)
   (export
-    init-manifest)
+    scan-repository)
   (import
     (rnrs (6))
+    (only (srfi :67 compare-procedures) <? default-compare)
     (wak fmt)
     (xitomatl AS-match)
     (akku lib compat)
@@ -79,6 +80,7 @@
             (filter (lambda (lib-name) (not (member lib-name lib-dep*))) test-dep*))))
 
 ;; Partition a list of artifacts into packages.
+#;
 (define (find-packages artifact*)
   (define (library-name->package-name lib-name)
     (define *internal-components* '(internal private compat))
@@ -185,37 +187,24 @@
                      (make-package package-name artifact*))
                    keys values)))))
 
-(define (init-manifest manifest-filepath base-directory)
-  (log/info "Initialising manifest " manifest-filepath " in " base-directory)
+(define (scan-repository base-directory)
+  (log/info "Scanning " base-directory)
+  ;; Print artifacts
   (let ((artifact* (find-artifacts base-directory (scm-file-list base-directory))))
-    (for-each print-artifact artifact*)
+    (fmt #t (fmt-join (lambda (a) (cat (fmt-artifact a) nl)) artifact*))
 
-    (let ((package* (find-packages artifact*)))
-      (display "#!r6rs ; -*- mode: scheme; coding: utf-8 -*-\n")
-      (write '(import (akku format manifest)))
-      (newline)
-      (newline)
+    ;; Print dependencies
+    (let-values (((lib-deps lib-deps/test) (find-library-deps artifact*)))
+      (letrec ((fmt-deps
+                (lambda (lib-deps)
+                  (fmt-join (lambda (lib-name)
+                              (cat fl "- " lib-name nl))
+                            (list-sort (lambda (x y) (<? default-compare x y))
+                                       lib-deps)))))
+        (fmt #t "External library dependencies:" nl
+             (fmt-deps lib-deps))
+        (unless (null? lib-deps/test)
+          (fmt #t nl "External library dependencies for tests:" nl
+               (fmt-deps lib-deps/test)))))
 
-      (for-each
-       (lambda (package)
-         (let ((extra-files (map artifact-path
-                                 (filter generic-file? (package-artifacts package)))))
-           (let-values (((lib-deps lib-deps/test)
-                         (find-library-deps (package-artifacts package))))
-             ;; (find-package-deps )
-             (pretty-print
-              `(akku-package (,(package-name package) "0.1.0-alpha.0")
-                 (synopsis "")
-                 (description "")
-                 (authors)
-                 (license "NOASSERTION")
-                 (extra-files ,@extra-files) ;XXX: unused
-                 ,@(cond ((scm-origin ".") ;XXX: unused
-                          => (lambda (scm-origin) `((source ,scm-origin))))
-                         (else '()))
-                 (lib-depends ,@lib-deps) ;XXX: unused
-                 (lib-depends/dev ,@lib-deps/test) ;XXX: unused
-                 (depends)
-                 (depends/dev)))
-             (newline))))
-       package*)))))
+)))

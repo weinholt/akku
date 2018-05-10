@@ -20,7 +20,7 @@
 
 (library (akku lib file-parser)
   (export
-    examine-source-file examine-other-file print-artifact
+    examine-source-file examine-other-file fmt-artifact
     artifact? artifact-path artifact-path-list artifact-form-index
     artifact-last-form? artifact-imports artifact-assets
     artifact-implementation artifact-for-test? artifact-internal?
@@ -38,6 +38,7 @@
   (import
     (rnrs (6))
     (srfi :115 regexp)
+    (wak fmt)
     (xitomatl AS-match)
     (akku lib schemedb)
     (akku lib utils)
@@ -144,70 +145,65 @@
       (memq 'demos (artifact-path-list artifact))
       (memq 'programs (artifact-path-list artifact))))
 
-(define print-artifact
-  (case-lambda
-    ((a p)
-     (define (print-library-reference ref p)
-       (write (library-reference-name ref) p)
-       (unless (null? (library-reference-version-reference ref))
-         (display " version: ")
-         (write (library-reference-version-reference ref) p))
-       (newline p))
-     (define (print-include-reference ref p)
-       (write (include-reference-path ref) p)
-       (display " <= " p)
-       (write (include-reference-realpath ref) p)
-       (cond ((include-reference-conversion ref) =>
-              (lambda (conv) (display " " p) (display conv p))))
-       (newline p))
-     (cond ((r6rs-library? a)
-            (display "R6RS library: " p))
-           ((r6rs-program? a)
-            (display "R6RS program: " p))
-           ((module? a)
-            (display "Module: " p))
-           ((legal-notice-file? a)
-            (display "Notice: " p))
-           (else
-            (display "File: " p)))
-     (write (artifact-path a) p)
-     (when (artifact-for-test? a)
-       (display " -- for test" p))
-     ;; (display " -- " p)
-     ;; (write (artifact-path-list f) p)
-     (unless (zero? (artifact-form-index a))
-       (display " -- form " p)
-       (display (artifact-form-index a) p))
-     (when (artifact-implementation a)
-       (display "\n Requires: ")
-       (display (artifact-implementation a) p))
-     (cond ((r6rs-library? a)
-            (display "\n Name: " p)
-            (write (r6rs-library-name a) p)
-            (unless (null? (r6rs-library-version a))
-              (display " version: " p)
-              (write (r6rs-library-version a) p))
-            (display "\n Exports: " p)
-            (write (r6rs-library-exports a) p)))
-     (cond ((pair? (artifact-imports a))
-            (display "\n Imports: \n - " p)
-            (print-library-reference (car (artifact-imports a)) p)
-            (for-each (lambda (library-import)
-                        (display "   ")
-                        (print-library-reference library-import p))
-                      (cdr (artifact-imports a)))))
-     (cond ((pair? (artifact-assets a))
-            (display " Assets: \n - " p)
-            (print-include-reference (car (artifact-assets a)) p)
-            (for-each (lambda (file-include)
-                        (display "   ")
-                        (print-include-reference file-include p))
-                      (cdr (artifact-assets a)))
-            (newline p))
-           (else
-            (newline p))))
-    ((a)
-     (print-artifact a (current-output-port)))))
+(define (fmt-artifact a)
+  (define (fmt-library-reference ref)
+    (cat
+     (if (null? (library-reference-version-reference ref))
+         (wrt (library-reference-name ref))
+         (cat "name: " (wrt (library-reference-name ref)) ", version: "
+              (wrt (library-reference-version-reference ref))))))
+  (define (fmt-include-reference ref)
+    (cat
+     "path: "(wrt (include-reference-path ref))
+     (cond ((include-reference-conversion ref) =>
+            (lambda (conv) (cat " , conversion: " conv)))
+           (else fmt-null))))
+  (cat
+   "Filename: " (wrt (artifact-path a))
+   (if (> (artifact-form-index a) 0)
+       (cat fl "Form index: " (artifact-form-index a))
+       fmt-null)
+   fl "Type: "
+   (cond ((r6rs-library? a) "R6RS library")
+         ((r6rs-program? a) "R6RS program")
+         ((module? a) "Module")
+         ((legal-notice-file? a) "Notice")
+         ((generic-file? a) "Generic file")
+         (else "Artifact"))
+
+   (if (artifact-for-test? a) (cat fl "Is for test: true") fmt-null)
+   (if (artifact-for-bin? a) (cat fl "Is for bin: true") fmt-null)
+   (if (artifact-internal? a) (cat fl "Is internal: true") fmt-null)
+
+   (if (artifact-implementation a)
+       (cat fl "For implementation: "(artifact-implementation a))
+       fmt-null)
+
+   (cond ((r6rs-library? a)
+          (cat fl "Name: "  (wrt (r6rs-library-name a))
+               (if (null? (r6rs-library-version a))
+                   fmt-null
+                   (cat " version: " (wrt (r6rs-library-version a))))
+               fl "Exports: "
+               (fmt-join (lambda (exp)
+                           (cat fl "- " exp))
+                         (r6rs-library-exports a))))
+         (else fmt-null))
+
+   (cond ((pair? (artifact-imports a))
+          (cat fl "Imports: "
+               (fmt-join (lambda (imp)
+                           (cat fl "- " (fmt-library-reference imp) nl))
+                         (artifact-imports a))))
+         (else fmt-null))
+
+   (cond ((pair? (artifact-assets a))
+          (cat fl "Assets: "
+               (fmt-join (lambda (file-include)
+                           (cat fl "- " (fmt-include-reference file-include) nl))
+                         (artifact-assets a))))
+         (else fmt-null))
+   fl "--" fl))
 
 ;; Does the artifact satisfy the library reference?
 (define (library-reference-satisfied? import artifact)

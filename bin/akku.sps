@@ -33,7 +33,7 @@
   (only (akku format manifest) manifest-filename)
   (only (akku lib archive-maint) archive-scan)
   (only (akku lib graph) print-gv-file)
-  (only (akku lib init) init-manifest)  ;TODO: redo this as a repository-scanner
+  (only (akku lib scan) scan-repository)
   (only (akku lib install) install logger:akku.install)
   (only (akku lib lock) logger:akku.lock lock-dependencies
         add-dependency remove-dependencies list-packages
@@ -94,6 +94,7 @@ Basic usage:
 
 Creative usage:
  * akku publish [--version=x.y.z] [--tag=v] - publish the current project
+   akku scan [directory] - scan a repository and print what Akku sees
 
 Advanced usage:
    akku graph - print a graphviz file showing library dependencies
@@ -183,6 +184,11 @@ License: GNU GPLv3
     (publish-packages manifest-filename "." '("https://akku.weinholt.se/archive/")
                       version-override tag-override)))
 
+(define (cmd-scan arg*)
+  (when (> (length arg*) 1)
+    (cmd-help))
+  (scan-repository (if (null? arg*) "." (car arg*))))
+
 (define (cmd-update arg*)
   (define repositories                  ;TODO: should be in a config file
     '([(tag . akku)
@@ -239,6 +245,8 @@ License: GNU GPLv3
    (cmd-uninstall (cddr (command-line))))
   ((string=? (cadr (command-line)) "publish")
    (cmd-publish (cddr (command-line))))
+  ((string=? (cadr (command-line)) "scan")
+   (cmd-scan (cddr (command-line))))
   ((string=? (cadr (command-line)) "update")
    (cmd-update (cddr (command-line))))
   ((string=? (cadr (command-line)) "graph")

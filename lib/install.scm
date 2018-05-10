@@ -39,7 +39,6 @@
           directory-list delete-directory rename-file)
     (akku lib file-parser)
     (akku lib git)
-    (akku lib init)
     (akku lib lock)
     (akku lib library-name)
     (akku lib repo-scanner)
