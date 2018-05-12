@@ -22,7 +22,8 @@
   (export
     r6rs-builtin-library?
     r6rs-library-name->implementation-name
-    r6rs-library-name*->implementation-name)
+    r6rs-library-name*->implementation-name
+    r7rs-builtin-library?)
   (import
     (rnrs (6))
     (xitomatl AS-match))
@@ -43,12 +44,18 @@
                         lib-pattern*))))
         (else #f))))
 
+(define (r7rs-builtin-library? lib-name)
+  (member lib-name r7rs-standard-libraries))
+
 (define implementation-specific-libraries
   '((chezscheme (scheme *)
                 (chezscheme *))
+    (chibi (chibi))
     (guile (guile *))
     (ikarus (ikarus *))
     (ironscheme (ironscheme *))
+    (kawa (kawa *)
+          (class *))
     (larceny (primitives *)
              (larceny *)
              (rnrs eval reflection))    ;van Tonder macros

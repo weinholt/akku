@@ -61,14 +61,21 @@
       (lambda (import)
         (let ((lib-name (library-reference-name import)))
           (unless (or (exists (lambda (file)
-                                (and (r6rs-library? file)
-                                     (equal? (r6rs-library-name file) lib-name)))
+                                (or
+                                  (and (r7rs-library? file)
+                                       (equal? (r7rs-library-name file) lib-name))
+                                  (and (r6rs-library? file)
+                                       (equal? (r6rs-library-name file) lib-name))))
                               artifact*)
                       (r6rs-builtin-library? lib-name (artifact-implementation file))
+                      (and (or (r7rs-library? file)
+                               (r7rs-program? file))
+                           (r7rs-builtin-library? lib-name))
                       ;; XXX: For now ignore the library dependencies
                       ;; that are only in implementation-specific
                       ;; artifacts.
                       (artifact-implementation file))
+            (log/debug "Adding " lib-name " as external due to " (artifact-path file))
             (if (artifact-for-test? file)
                 (hashtable-set! test-deps lib-name #t)
                 (hashtable-set! lib-deps lib-name #t)))))

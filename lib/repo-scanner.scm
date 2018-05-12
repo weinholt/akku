@@ -28,6 +28,7 @@
     (only (srfi :1 lists) take-while)
     (only (srfi :13 strings) string-prefix?)
     (industria strings)
+    (wak fmt)
     (xitomatl AS-match)
     (akku lib compat)
     (akku lib git)
@@ -104,7 +105,7 @@
                    (examine-source-file realpath relpath path-list)))
              ((examine-other-file realpath relpath path-list))
              ((exists (lambda (x) (not x)) path-list)
-              (log/debug "File " relpath " rejected by filename->component")
+              (log/debug "File " relpath " rejected by filename->component: " (wrt path-list))
               (list (make-generic-file relpath path-list)))
              (else
               (log/debug "File " relpath " rejected by examine-file")
