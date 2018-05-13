@@ -87,6 +87,7 @@
              (unless (r6rs-builtin-library? lib-name (artifact-implementation file))
                (log/warn "Can not import " lib-name)))))
        (artifact-imports file))))
+  (log/trace "Tracing dependencies")
   (for-each trace filenames files)
   used-files)
 
@@ -110,8 +111,12 @@
 ;; Get a list of filenames for all source needed to compile the files.
 (define (find-used-source filenames implementations only-first?)
   (assert (for-all file-exists? filenames))
+  ;; FIXME: One filename can map to multiple artifacts...
   (let ((files-to-scan (append-map (lambda (filename)
-                                     (examine-source-file filename filename '()))
+                                     (or (examine-source-file filename filename '())
+                                         (error 'find-used-source
+                                                "The file is not understood by file-parser"
+                                                filename)))
                                    filenames)))
     (let-values (((filename->artifact r6rs-lib-name->artifact*)
                   (scan-installed-artifacts (libraries-directory))))

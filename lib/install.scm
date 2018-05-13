@@ -622,7 +622,8 @@
       (unless (file-exists? gitignore)
         (call-with-output-file gitignore
           (lambda (p)
-            (display (sources-directory*) p)))))
+            (display (sources-directory*) p)
+            (newline p)))))
     (for-each fetch-project project-list)
     (let* ((installed-project/artifact*
             (map-in-order (lambda (project)
