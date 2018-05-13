@@ -18,7 +18,7 @@ code and vigorously shakes it until it behaves properly.
 * Resolve all files needed for compilation and scan them for license
   notices.
 
-More words: [Introduction to Akku.scm](https://weinholt.se/articles/introduction-to-akku-scm/).
+Web site: [akkuscm.org](https://akkuscm.org/).
 
 ## Dependencies
 
@@ -64,13 +64,11 @@ assuming you use one of these Schemes: Chez Scheme, GNU Guile (with
 R6RS settings), Ikarus, Mosh, Racket (plt-r6rs), Sagittarius, Vicare
 or Ypsilon.
 
+More details are in the manpage: `man docs/akku.1`.
+
 ## License
 
 Akku.scm is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
 Free Software Foundation, either version 3 of the License, or (at your
 option) any later version.
-
-## Demo
-
-[![asciicast](https://asciinema.org/a/165299.png)](https://asciinema.org/a/165299)

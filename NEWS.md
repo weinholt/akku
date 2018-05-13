@@ -34,3 +34,19 @@ part of the installation. These files are removed.
 When akku runs from the home directory it will no longer scan it to
 analyze the "current project". This should make it fine to run akku
 from the home directory.
+
+## Version 0.2.3
+
+This release fixes the support for `include-file` from the
+`wak-common` and `spells` packages, which was broken for one of the
+forms.
+
+The new `scan` command analyzes and shows the result of a repository
+scan. This is useful for developers who want to know what Akku.scm is
+going to do with their source files.
+
+The `update` and `publish` commands now use https://akkuscm.org/.
+
+This release also contains a file parser for R7RS code, preliminary
+support for downloading and installing packages from tar.xz files,
+improved console output and a manpage.

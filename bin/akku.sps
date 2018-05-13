@@ -181,7 +181,7 @@ License: GNU GPLv3
           (else #f)))
   (let ((version-override (get-option arg* "--version="))
         (tag-override (get-option arg* "--tag=")))
-    (publish-packages manifest-filename "." '("https://akku.weinholt.se/archive/")
+    (publish-packages manifest-filename "." '("https://akkuscm.org/")
                       version-override tag-override)))
 
 (define (cmd-scan arg*)
@@ -192,7 +192,7 @@ License: GNU GPLv3
 (define (cmd-update arg*)
   (define repositories                  ;TODO: should be in a config file
     '([(tag . akku)
-       (url . "https://akku.weinholt.se/archive/")
+       (url . "https://archive.akkuscm.org/archive/")
        (keyfile . "akku-archive-*.gpg")]))
   (define keys-directory (path-join (application-home-directory) "share/keys.d"))
   (define index-filename (path-join (application-home-directory) "share/index.db"))
