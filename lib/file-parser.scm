@@ -584,7 +584,7 @@
          ((r7rs-import-set? import*)
           (let ((parsed-import-spec* (map parse-r7rs-import-spec import*))
                 (include* '()))
-            (log/debug "TODO: Scan R7RS program bodies for assets: " realpath)
+            (log/debug "TODO: Scan R7RS program bodies for more imports/assets: " realpath)
             (make-r7rs-program path path-list form-index #t parsed-import-spec* include*
                                #f)))
          (else
@@ -625,7 +625,7 @@
                               (or (maybe-program datum form-index next-datum reader)
                                   (maybe-library/module datum form-index next-datum)))
                          => (lambda (artifact)
-                              (if (r6rs-library? artifact)
+                              (if (or (r6rs-library? artifact) (r7rs-library? artifact))
                                   (lp (cons artifact artifact*)
                                       (+ form-index 1)
                                       next-datum)
