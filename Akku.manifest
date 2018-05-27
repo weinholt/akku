@@ -4,17 +4,12 @@
 (akku-package ("akku" "0.2.3")
   (synopsis "Language package manager for Scheme")
   (description
-   "Akku.scm is a language package manager for Scheme. It
-grabs hold of code and vigorously shakes it until it behaves
-properly."
+   "Akku.scm is a language package manager for Scheme. It grabs hold of code and vigorously shakes it until it behaves properly."
    " - Separately declare your dependencies and locked versions."
    " - One command to install everything needed for a project."
-   " - Project-based, installs your locked dependencies to a single
-library directory."
-   " - Scan repositories for R6RS libraries, even multiple per file,
-and copy them to the right file paths for any supported Scheme."
-   " - Resolve all files needed for compilation and scan them for
-license notices.")
+   " - Project-based, installs your locked dependencies to a single library directory."
+   " - Scan repositories for R6RS libraries, even multiple per file, and copy them to the right file paths for any supported Scheme."
+   " - Resolve all files needed for compilation and scan them for license notices.")
   (authors "Göran Weinholt <goran@weinholt.se>")
   (homepage "https://akkuscm.org/")
   (license "(GPL-3.0-or-later AND MIT AND LicenseRef-BSD-3-Clause-New-Style)")
@@ -29,5 +24,6 @@ license notices.")
            ("wak-wt-tree" "~0.0.0-akku")
            ("xitomatl" "~0.0.0-akku")
            ("hashing" "^1.1.0")
-           ("compression" "^0.1.1"))
+           ("compression" "^0.1.1")
+           ("laesare" "^1.0.0-alpha.0"))
 )

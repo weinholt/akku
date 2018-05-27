@@ -41,6 +41,7 @@
     (rnrs (6))
     (only (srfi :1 lists) delete-duplicates)
     (srfi :115 regexp)
+    (laesare reader)
     (wak fmt)
     (xitomatl AS-match)
     (akku lib schemedb)
@@ -130,11 +131,13 @@
 (define (include-reference-read-all include-ref)
   (call-with-input-file (include-reference-realpath include-ref)
     (lambda (port)
-      (let lp ((datum* '()))
-        (let ((datum (read port)))      ;TODO: use a compatible reader
-          (if (eof-object? datum)
-              (reverse datum*)
-              (lp (cons datum datum*))))))))
+      (let ((reader (make-reader port (include-reference-realpath include-ref))))
+        (reader-tolerant?-set! reader #t)
+        (let lp ((datum* '()))
+          (let ((datum (read-datum reader)))
+            (if (eof-object? datum)
+                (reverse datum*)
+                (lp (cons datum datum*)))))))))
 
 (define (artifact-directory artifact)
   (match (string-split (artifact-path artifact) #\/)
@@ -574,7 +577,7 @@
              (else
               ;; TODO: detect modules from various implementations
               #f)))))
-  (define (maybe-program form form-index next-datum port)
+  (define (maybe-program form form-index next-datum reader)
     (match form
       (('import import* ...)
        (cond
@@ -592,7 +595,7 @@
                                 include*
                                 (lp (append (scan-for-includes/r6rs datum realpath)
                                             include*)
-                                    (read port))))))
+                                    (read-datum reader))))))
             (make-r6rs-program path path-list form-index #t parsed-import-spec* include*
                                (or (path->implementation-name path)
                                    (r6rs-library-name*->implementation-name
@@ -604,30 +607,33 @@
                           (condition-message exn) " "
                           (wrt (condition-irritants exn)))
                #f))
-    ;; FIXME: use a reader that handles non-r6rs code
-    (call-with-input-file realpath
-      (lambda (port)
-        (let ((start (port-position port)))
-          (let ((line1 (get-line port)))
-            ;; Skip the shebang
-            (unless (or (string-prefix? "#! " line1)
-                        (string-prefix? "#!/" line1))
-              (set-port-position! port start)))
-          (let lp ((artifact* '()) (form-index 0) (datum (read port)))
-            (let ((next-datum (read port)))
-              (cond ((and (not (eof-object? datum))
-                          (or (maybe-program datum form-index next-datum port)
-                              (maybe-library/module datum form-index next-datum)))
-                     => (lambda (artifact)
-                          (if (r6rs-library? artifact)
-                              (lp (cons artifact artifact*)
-                                  (+ form-index 1)
-                                  next-datum)
-                              (cons artifact artifact*))))
-                    (else
-                     (if (null? artifact*)
-                         #f
-                         artifact*))))))))))
+    (with-exception-handler
+      (lambda (exn)
+        (if (and (warning? exn) (lexical-violation? exn) (source-condition? exn))
+            (log/trace "Ignoring syntax error in " (wrt realpath) ": "
+                       (condition-message exn) " with irritants "
+                       (condition-irritants exn))
+            (raise exn)))
+      (lambda ()
+        (call-with-input-file realpath
+          (lambda (port)
+            (let ((reader (make-reader port realpath)))
+              (reader-tolerant?-set! reader #t)
+              (let lp ((artifact* '()) (form-index 0) (datum (read-datum reader)))
+                (let ((next-datum (read-datum reader)))
+                  (cond ((and (not (eof-object? datum))
+                              (or (maybe-program datum form-index next-datum reader)
+                                  (maybe-library/module datum form-index next-datum)))
+                         => (lambda (artifact)
+                              (if (r6rs-library? artifact)
+                                  (lp (cons artifact artifact*)
+                                      (+ form-index 1)
+                                      next-datum)
+                                  (cons artifact artifact*))))
+                        (else
+                         (if (null? artifact*)
+                             #f
+                             artifact*))))))))))))
 
 ;; Examine files rejected by examine-source-file
 (define (examine-other-file realpath path path-list)
