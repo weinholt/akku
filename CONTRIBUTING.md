@@ -2,27 +2,32 @@
 
 Want to discuss the project? Chat with `weinholt`
 in [`#scheme`](irc://irc.freenode.org/#scheme) on Freenode or open an
-issue. There's also `#akku`.
+issue. There's also `#akku` and some discussion in `#chez`.
 
-Go to [GitHub projects][projects] to see the direction of the project.
+Go to [GitHub projects][projects] to see the direction of the project
+and [GitHub issues][issues] for a list of current trouble.
 
  [projects]: https://github.com/weinholt/akku/projects
+ [issues]: https://github.com/weinholt/akku/issues
 
 ## Setting up a development environment
 
-If you already have a working Akku installation (e.g. by installing
-one of the released versions) then things are simple:
+Akku comes with its dependencies committed to the git repository, so
+you can simply do a checkout:
 
 ```
 $ git clone https://github.com/weinholt/akku
-$ akku install
+$ cd akku
 $ source .akku/bin/activate
 ```
 
-If your development machine can't run Akku yet then the least manual
-way forward is to run Akku on a working machine (e.g. a virtual
-machine) and afterwards move the files. Alternatively you can read
-Akku.lock and install the projects manually.
+Note that this probably will not work on a Windows machine, because
+some filenames contain colon (:) characters. This is a problem caused
+by SRFI libraries being named (srfi :n name) in combination with Chez
+Scheme's simple translation of these to filenames. For now please use
+the [Windows Subsystem for Linux][wsl].
+
+ [wsl]: https://docs.microsoft.com/en-us/windows/wsl/install-win10
 
 ## Building a release
 
