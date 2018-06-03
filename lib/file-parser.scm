@@ -36,7 +36,8 @@
     library-reference-original-import-spec
     library-reference-satisfied?
     include-reference? include-reference-path include-reference-realpath
-    include-reference-conversion include-reference-original-include-spec)
+    include-reference-conversion include-reference-original-include-spec
+    include-reference-read-all)
   (import
     (rnrs (6))
     (only (srfi :1 lists) delete-duplicates)
@@ -44,6 +45,7 @@
     (laesare reader)
     (wak fmt)
     (xitomatl AS-match)
+    (akku lib r7rs)
     (akku lib schemedb)
     (akku lib utils)
     (akku private logging))
@@ -129,6 +131,7 @@
 
 ;; Read all forms in an include-reference.
 (define (include-reference-read-all include-ref)
+  ;; FIXME: handle case folding.
   (call-with-input-file (include-reference-realpath include-ref)
     (lambda (port)
       (let ((reader (make-reader port (include-reference-realpath include-ref))))
@@ -339,84 +342,59 @@
      target-path included-file-realpath
      conversion original-include-spec)))
 
-;; Scan a list of R7RS <library declaration> forms. The filenames are
+;; Scan an r7lib to extract imports, assets and exports. The filenames are
 ;; handled relative to the including file, although it is actually
 ;; implementation-specific and could be anything.
-(define (parse-r7rs-library lib-name realpath decl*)
-  (define visited-files (make-hashtable string-hash string=?))
-  (define (parse-library-declaration decl realpath import* include* export*)
-    (match decl
-      (((or 'include 'include-ci) (? string? fn) (? string? fn*) ...)
-       (log/debug "TODO: Scan R7RS include bodies for assets: " realpath)
-       (let lp ((fn* (cons fn fn*)) (include* include*))
-         (if (null? fn*)
-             (values import* include* export*)
-             (lp (cdr fn*)
-                 (let* ((conversion (if (eq? (car decl) 'include-ci) 'foldcase #f))
-                        (incl (mk-r7rs-include (car fn*) conversion decl lib-name realpath)))
-                   (if (memp (lambda (x) (string=? (include-reference-path x)
-                                                   (include-reference-path incl)))
-                             include*)
-                       include*         ;duplicate
-                       (cons incl include*)))))))
-      (('include-library-declarations (? string? fn) (? string? fn*) ...)
-       (let ((asset* (map (lambda (fn) (mk-r7rs-include fn #f decl lib-name realpath))
-                          (cons fn fn*))))
-         (cond ((exists (lambda (asset)
-                          (let ((fn (include-reference-realpath asset)))
-                            (hashtable-ref visited-files fn #f)))
-                        asset*)
-                => (lambda (fn)
-                     ;; XXX: This is a little arbitrary, and does not
-                     ;; accept certain valid constructions, but this
-                     ;; form is quite rarely used and this mustn't go
-                     ;; into an infinite loop.
-                     (assertion-violation 'parse-r7rs-library
-                                          "File appears in include-library-declaration twice"
-                                          fn))))
-         (for-each (lambda (asset)
-                     (let ((fn (include-reference-realpath asset)))
-                       (hashtable-ref visited-files fn fn)))
-                   asset*)
-         (parse-decls (apply append (map include-reference-read-all asset*))
-                      realpath import* (append asset* include*) export*)))
-      (('export export-spec* ...)
-       (let lp ((export-spec* export-spec*) (export* export*))
-         (if (null? export-spec*)
-             (values import* include* export*)
-             (lp (cdr export-spec*)
-                 (cons (match (car export-spec*)
-                         [('rename from to) to]
-                         [(? symbol? id) id])
-                       export*)))))
-      (('import import-spec* ...)
-       (let lp ((import-spec* import-spec*) (import* import*))
-         (if (null? import-spec*)
-             (values import* include* export*)
-             (lp (cdr import-spec*)
-                 (cons (parse-r7rs-import-spec (car import-spec*))
-                       import*)))))
-      (('cond-expand (_feature-req* decl* ...) ...)
-       (parse-decls (apply append decl*) realpath import* include* export*))
-      (('begin body* ...)
-       ;; The body can contain include, include-ci and load. In
-       ;; practice this feature seems to be unused.
-       (log/debug "TODO: Scan R7RS library bodies for assets: " realpath)
-       (values import* include* export*))
-      (x
-       (log/debug "Unknown declaration in R7RS library: " (wrt x))
+(define (parse-r7lib lib implementation-name)
+  (define (parse-library-declaration decl import* include* export*)
+    (cond
+      ((r7include? decl)
+       (log/debug "TODO: Scan R7RS include bodies for assets: "
+                  (r7include-target-filename decl))
+       (let ((incl (mk-r7rs-include (r7include-target-filename decl)
+                                    (if (r7include-ci? decl) 'foldcase #f)
+                                    decl
+                                    (r7lib-name lib)
+                                    (r7include-source-filename decl))))
+         (values import*
+                 (if (memp (lambda (x) (string=? (include-reference-path x)
+                                                 (include-reference-path incl)))
+                           include*)
+                     include*                ;duplicate
+                     (cons incl include*))
+                 export*)))
+      ((r7export? decl)
+       (values import* include* (cons (r7export-external-name decl) export*)))
+      ((r7import? decl)
+       (values (cons (make-library-reference (r7import-name decl)
+                                             '()
+                                             (r7import-set decl))
+                     import*)
+               include* export*))
+      ((r7condexp? decl)
+       (cond ((r7condexp-eval decl (implementation-features implementation-name)
+                              (lambda (lib-name)
+                                ;; XXX: Should preferably know about
+                                ;; all libraries in the packages.
+                                (or (r7rs-builtin-library? lib-name implementation-name)
+                                    (r6rs-builtin-library? lib-name implementation-name))))
+              => (lambda (new-decl*)
+                   (parse-decls new-decl* import* include* export*)))
+             (else
+              (log/warn "No cond-expand clause matches in " (wrt (r7lib-name lib))
+                        " for the implementation " implementation-name)
+              (values import* include* export*))))
+      (else
        (values import* include* export*))))
-
-  (define (parse-decls decl* realpath import* include* export*)
+  (define (parse-decls decl* import* include* export*)
     (let lp ((decl* decl*))
       (if (null? decl*)
           (values import* include* export*)
           (let-values (((import* include* export*) (lp (cdr decl*))))
-            (parse-library-declaration (car decl*) realpath import* include* export*)))))
+            (parse-library-declaration (car decl*) import* include* export*)))))
+  (parse-decls (r7lib-declaration* lib) '() '() '()))
 
-  (parse-decls decl* realpath '() '() '()))
-
-(define parse-r7rs-import-spec
+(define parse-r7rs-import-spec          ;XXX: also in (akku lib r7rs)
   (match-lambda
    (('only (? list? import-set) _id ...)
     (parse-r7rs-import-spec import-set))
@@ -538,7 +516,11 @@
                              import-set)))
          (cond ((exists (lambda (lib-name) (r6rs-builtin-library? lib-name #f)) lib-name*)
                 #f)
-               ((exists r7rs-builtin-library? lib-name*)
+               ((exists (lambda (lib-name)
+                          (exists (lambda (implementation-name)
+                                    (r7rs-builtin-library? lib-name implementation-name))
+                                  r7rs-implementation-names))
+                        lib-name*)
                 #t)
                (else #f)))))))
 
@@ -547,33 +529,55 @@
 (define (examine-source-file realpath path path-list)
   (define (maybe-library/module form form-index next-datum)
     (match form
-      (('library (name ...)             ;r6rs library
+      (('library (name ...)             ;R6RS library
          ('export export* ...)
          ('import import* ...)
          . body*)
        (let ((ver (find list? name))
              (parsed-import-spec* (map parse-r6rs-import-spec import*)))
          (let ((include* (scan-for-includes/r6rs body* realpath)))
-           (make-r6rs-library path path-list form-index (eof-object? next-datum)
-                              parsed-import-spec* include*
-                              (or (path->implementation-name path)
-                                  (r6rs-library-name*->implementation-name
-                                   (map library-reference-name parsed-import-spec*)))
-                              (if ver (reverse (cdr (reverse name))) name)
-                              (or ver '())
-                              (append-map parse-r6rs-export export*)))))
-      (('define-library (name ...)      ;r7rs library
+           (list (make-r6rs-library path path-list form-index (eof-object? next-datum)
+                                    parsed-import-spec* include*
+                                    (or (path->implementation-name path)
+                                        (r6rs-library-name*->implementation-name
+                                         (map library-reference-name parsed-import-spec*)))
+                                    (if ver (reverse (cdr (reverse name))) name)
+                                    (or ver '())
+                                    (append-map parse-r6rs-export export*))))))
+      (('define-library (name ...)      ;R7RS library
          . declaration*)
        ;; XXX: name can contain <identifier> or <uinteger 10> [sic!].
-       (let-values (((import* include* export*)
-                     (parse-r7rs-library name realpath declaration*)))
-         (make-r7rs-library path path-list form-index (eof-object? next-datum)
-                            import* include* #f name export*)))
+       (let* ((lib (parse-r7rs-define-library
+                    form realpath
+                    (lambda (source-filename target-filename)
+                      (let ((inc
+                             (mk-r7rs-include target-filename #f #f name
+                                              source-filename)))
+                        (include-reference-read-all inc)))))
+              (implementations (if (r7lib-has-generic-implementation? lib)
+                                   (cons #f (r7lib-implementation-names lib))
+                                   (r7lib-implementation-names lib))))
+         (cond
+           ((pair? implementations)
+            (map (lambda (implementation-name)
+                   (let-values (((import* include* export*)
+                                 (parse-r7lib lib implementation-name)))
+                     (make-r7rs-library path path-list form-index (eof-object? next-datum)
+                                        import* include*
+                                        (or implementation-name
+                                            (r7rs-library-name*->implementation-name
+                                             (map library-reference-name import*)))
+                                        name export*)))
+                 implementations))
+           (else
+            (log/debug "R7RS library is not loadable in any implementation: "
+                       (wrt (r7lib-name lib)))
+            #f))))
       (_                           ;some type of module or bare source
        (cond ((path->implementation-name path) =>
               (lambda (impl)
-                (make-module path path-list form-index (eof-object? next-datum)
-                             #f '() impl)))
+                (list (make-module path path-list form-index (eof-object? next-datum)
+                                   #f '() impl))))
              (else
               ;; TODO: detect modules from various implementations
               #f)))))
@@ -582,13 +586,16 @@
       (('import import* ...)
        (cond
          ((r7rs-import-set? import*)
+          ;; R7RS program.
           (let ((parsed-import-spec* (map parse-r7rs-import-spec import*))
                 (include* '()))
             (log/debug "TODO: Scan R7RS program bodies for more imports/assets: " realpath)
-            (make-r7rs-program path path-list form-index #t parsed-import-spec* include*
-                               #f)))
+            (list (make-r7rs-program path path-list form-index #t parsed-import-spec* include*
+                                     (or (path->implementation-name path)
+                                         (r7rs-library-name*->implementation-name
+                                          (map library-reference-name parsed-import-spec*)))))))
          (else
-          ;; R6RS library
+          ;; R6RS program.
           (let ((parsed-import-spec* (map parse-r6rs-import-spec import*))
                 (include* (let lp ((include* '()) (datum next-datum))
                             (if (eof-object? datum)
@@ -596,10 +603,10 @@
                                 (lp (append (scan-for-includes/r6rs datum realpath)
                                             include*)
                                     (read-datum reader))))))
-            (make-r6rs-program path path-list form-index #t parsed-import-spec* include*
-                               (or (path->implementation-name path)
-                                   (r6rs-library-name*->implementation-name
-                                    (map library-reference-name parsed-import-spec*))))))))
+            (list (make-r6rs-program path path-list form-index #t parsed-import-spec* include*
+                                     (or (path->implementation-name path)
+                                         (r6rs-library-name*->implementation-name
+                                          (map library-reference-name parsed-import-spec*)))))))))
       (_ #f)))
   (log/trace "Examining source file: " (wrt realpath))
   (guard (exn (else
@@ -609,10 +616,14 @@
                #f))
     (with-exception-handler
       (lambda (exn)
-        (if (and (warning? exn) (lexical-violation? exn) (source-condition? exn))
+        (if (and (warning? exn) (lexical-violation? exn)
+                 (message-condition? exn) (irritants-condition? exn)
+                 (source-condition? exn))
             (log/trace "Ignoring syntax error in " (wrt realpath) ": "
                        (condition-message exn) " with irritants "
-                       (condition-irritants exn))
+                       (condition-irritants exn)
+                       " at line " (source-line exn)
+                       ", column " (source-column exn))
             (raise exn)))
       (lambda ()
         (call-with-input-file realpath
@@ -624,12 +635,13 @@
                   (cond ((and (not (eof-object? datum))
                               (or (maybe-program datum form-index next-datum reader)
                                   (maybe-library/module datum form-index next-datum)))
-                         => (lambda (artifact)
-                              (if (or (r6rs-library? artifact) (r7rs-library? artifact))
-                                  (lp (cons artifact artifact*)
+                         => (lambda (art*)
+                              (if (or (r6rs-library? (car art*))
+                                      (r7rs-library? (car art*)))
+                                  (lp (append art* artifact*)
                                       (+ form-index 1)
                                       next-datum)
-                                  (cons artifact artifact*))))
+                                  (append art* artifact*))))
                         (else
                          (if (null? artifact*)
                              #f

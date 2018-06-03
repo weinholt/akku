@@ -68,14 +68,16 @@
                                        (equal? (r6rs-library-name file) lib-name))))
                               artifact*)
                       (r6rs-builtin-library? lib-name (artifact-implementation file))
-                      (and (or (r7rs-library? file)
-                               (r7rs-program? file))
-                           (r7rs-builtin-library? lib-name))
+                      (and (or (r7rs-library? file) (r7rs-program? file))
+                           (r7rs-builtin-library? lib-name (artifact-implementation file)))
                       ;; XXX: For now ignore the library dependencies
                       ;; that are only in implementation-specific
                       ;; artifacts.
                       (artifact-implementation file))
-            (log/debug "Adding " lib-name " as external due to " (artifact-path file))
+            (log/debug "Adding " lib-name " as external due to " (artifact-path file)
+                       (if (artifact-implementation file)
+                           (cat " (implementation " (artifact-implementation file) ")")
+                           ""))
             (if (artifact-for-test? file)
                 (hashtable-set! test-deps lib-name #t)
                 (hashtable-set! lib-deps lib-name #t)))))

@@ -31,6 +31,7 @@
     (compression xz)
     (hashing sha-2)
     (laesare reader)
+    (only (wak fmt) wrt)
     (only (xitomatl common) pretty-print)
     (xitomatl alists)
     (xitomatl AS-match)
@@ -42,7 +43,9 @@
     (akku lib git)
     (akku lib lock)
     (akku lib library-name)
+    (akku lib r7rs)
     (akku lib repo-scanner)
+    (akku lib schemedb)
     (akku lib utils)
     (akku private http)
     (akku private logging))
@@ -137,6 +140,16 @@
           (('projects . prj*)
            (lp (append (map parse-project prj*) project*)))
           (_ (lp project*)))))))
+
+;; Position the reader to immediately before the given form
+(define (reader-skip-to-form reader form-index)
+  (let ((tolerant (reader-tolerant? reader)))
+    (reader-tolerant?-set! reader #t)
+    (let lp ((form-index form-index))
+      (unless (zero? form-index)
+        (read-datum reader)
+        (lp (- form-index 1))))
+    (reader-tolerant?-set! reader tolerant)))
 
 ;; Verify that the file contents match whatever the content spec says.
 (define (verify-file-contents filename content-spec)
@@ -381,22 +394,17 @@
     (check-filename target-pathname (support-windows?))
     (call-with-port (open-input-file source-pathname)
       (lambda (inp)
-        (read-shebang inp)
-        (mkdir/recursive target-directory)
-        (when (file-symbolic-link? target-pathname)
-          (delete-file target-pathname))
-        (call-with-port (open-file-output-port target-pathname
-                                               (file-options no-fail)
-                                               (buffer-mode block)
-                                               (native-transcoder))
-          (lambda (outp)
-            ;; Skip forms before the program start.
-            (let ((reader (make-reader inp source-pathname)))
-              (reader-tolerant?-set! reader #t)
-              (let lp ((form-index form-index))
-                (unless (zero? form-index)
-                  (read-datum reader)
-                  (lp (- form-index 1))))
+        (let ((reader (make-reader inp source-pathname)))
+          (reader-tolerant?-set! reader #t)
+          (reader-skip-to-form reader form-index)
+          (mkdir/recursive target-directory)
+          (when (file-symbolic-link? target-pathname)
+            (delete-file target-pathname))
+          (call-with-port (open-file-output-port target-pathname
+                                                 (file-options no-fail)
+                                                 (buffer-mode block)
+                                                 (native-transcoder))
+            (lambda (outp)
               (display "#!/usr/bin/env scheme-script\n" outp)
               (display ";; Copied by Akku from " outp)
               (write source-pathname outp)
@@ -406,7 +414,8 @@
                 ((not r7rs)
                  (pipe-ports outp inp))
                 (else
-                 ;; Convert from R7RS to R6RS.
+                 ;; Convert the program from R7RS to R6RS.
+                 (reader-tolerant?-set! reader #f)
                  (log/warn "TODO: Gather R7RS imports to the start of the file")
                  (newline outp)
                  (match (read-datum reader)
@@ -492,98 +501,81 @@
                                   target-pathname))
                   aliases))))))))
 
-;; Convert an R7RS import set to an R6RS import set.
-(define (r7rs-import-set->r6rs import-set)
-  (define f
-    (match-lambda
-     [((and (or 'only 'except 'prefix 'rename) modifier) set^ x* ...)
-      `(,modifier ,(f set^) ,@x*)]
-     [('scheme 'base)
-      `(rnrs)]
-     [('scheme 'write)
-      `(only (rnrs) write)]
-     [('srfi (? number? x))
-      `(srfi ,(string->symbol (string-append ":" (number->string x))))]
-     [x x]))
-  (f import-set))
-
 ;; Install an R7RS library.
 (define (install-artifact/r7rs-library project artifact srcdir always-symlink?)
-  ;; This procedure converts the library to R6RS. The idea is that
-  ;; define-library can be replaced by library, etc and things will
-  ;; mostly work. Not everything of course, it will be a journey.
-  ;; Self-quoted vectors will not work when it's done this way.
-  (define (r7rs-library-name->r6rs library-name)
-    (map (lambda (id)
-           (if (integer? id)
-               (string->symbol (string-append ":" (number->string id))) ;bad choice?
-               id))
-         library-name))
-  ;; Convert an R7RS export set to an R6RS export set.
-  (define (r7rs-export-set->r6rs export-set)
-    (define f
-      (match-lambda
-       [('rename from to)
-        `(rename (,from ,to))]
-       [x x]))
-    (f export-set))
-  (define (r7rs-library->r6rs-library def-lib lib-dir)
-    (log/warn "Converting lib in " lib-dir)
-    (match def-lib
-      [('define-library library-name
-         ('export export* ...)
-         ('import import* ...)
-         . body)
-       `(library ,(r7rs-library-name->r6rs library-name)
-          (export ,@(map r7rs-export-set->r6rs export*))
-          (import ,@(map r7rs-import-set->r6rs import*))
-          ,@body)]
-      [('define-library library-name lib-decl* ...)
-       (log/error "Unrecognized library form (lazy TODO)")
-       `(library ,(r7rs-library-name->r6rs library-name)
-          (export)
-          (import (akku todo))
-          (TODO))]))
-
-  ;; TODO: Check which implementations appear as part of a cond-expand
-  ;; clause and generate specialized libraries for those.
+  ;; TODO: Install the original for Larceny and Sagittarius.
   (let ((library-locations
          (make-r6rs-library-filenames (r7rs-library-name->r6rs
                                        (r7rs-library-name artifact))
-                                      #f)))
+                                      (artifact-implementation artifact))))
     (cond
       ((null? library-locations)
        (log/warn "Could not construct a filename for " (r7rs-library-name artifact))
        '())
+      ((and (artifact-implementation artifact)
+            (not (memq (artifact-implementation artifact) r6rs-implementation-names)))
+       (log/trace "Skipping " (artifact-implementation artifact)
+                  " implementation of " (r7rs-library-name artifact))
+       '())
       (else
        (let ((target (car library-locations))
              (aliases (cdr library-locations)))
-         (log/warn "TODO: Install the R7RS library "
-                   (r7rs-library-name artifact) " from "
-                   (artifact-path artifact) " (form " (artifact-form-index artifact) ")"
-                   " to " target)
-         (let ((fn (path-join srcdir (artifact-path artifact))))
-           (call-with-input-file fn
-             (lambda (inp)
-               (let ((reader (make-reader inp fn)))
-                 (reader-mode-set! reader 'r7rs)
-                 ;; Skip to the right form.
-                 (let lp ((form-index (artifact-form-index artifact)))
-                   (unless (zero? form-index)
-                     (read-datum reader)
-                     (lp (- form-index 1))))
-                 ;; Get the define-library form and convert it to a
-                 ;; library form.
-                 (let ((def-lib (read-datum reader))
-                       (lib-dir (car (split-path (artifact-path artifact)))))
-                   (pretty-print def-lib)
-                   (let ((lib (r7rs-library->r6rs-library def-lib lib-dir)))
-                     (pretty-print lib)
-                     (list (write-r6rs-library (path-join (libraries-directory) (car target))
-                                               (cdr target)
-                                               (artifact-path artifact)
-                                               lib)))))))))))))
-
+         (guard (exn
+                 ((and (message-condition? exn)
+                       (irritants-condition? exn)
+                       (lexical-violation? exn)
+                       (source-condition? exn))
+                  (log/warn "Not installing " (wrt target)
+                            " due to syntax error: "
+                            (condition-message exn) " with irritants "
+                            (condition-irritants exn)
+                            " at line " (source-line exn)
+                            ", column " (source-column exn))
+                  '()))
+           (let ((target-pathname
+                  (let ((fn (path-join srcdir (artifact-path artifact))))
+                    (call-with-input-file fn
+                      (lambda (inp)
+                        (let ((reader (make-reader inp fn)))
+                          (reader-skip-to-form reader (artifact-form-index artifact))
+                          (reader-mode-set! reader 'r7rs)
+                          ;; Get the define-library form and convert it to a
+                          ;; library form.
+                          (let ((def-lib (read-datum reader))
+                                (lib-dir (car (split-path (artifact-path artifact)))))
+                            ;; (pretty-print def-lib)
+                            (let ((lib (r7rs-library->r6rs-library
+                                        def-lib fn
+                                        (lambda (source-filename target-filename)
+                                          ;; TODO: -ci?
+                                          (let ((inc
+                                                 (find
+                                                  (lambda (art)
+                                                    (let ((decl
+                                                           (include-reference-original-include-spec art)))
+                                                      (and
+                                                        (equal? source-filename
+                                                                (r7include-source-filename decl))
+                                                        (equal? target-filename
+                                                                (r7include-target-filename decl))))
+                                                    )
+                                                  (artifact-assets artifact))))
+                                            (assert inc)
+                                            (include-reference-read-all inc)))
+                                        (artifact-implementation artifact))))
+                              ;; (pretty-print lib)
+                              (write-r6rs-library (path-join (libraries-directory)
+                                                             (car target))
+                                                  (cdr target)
+                                                  (artifact-path artifact)
+                                                  lib)))))))))
+             (cons target-pathname
+                   (map-in-order
+                    (lambda (alias)
+                      (symlink-file (path-join (libraries-directory) (car alias))
+                                    (cdr alias)
+                                    target-pathname))
+                    aliases)))))))))
 
 ;; Install an artifact.
 (define (install-artifact project artifact srcdir always-symlink?)
@@ -707,9 +699,14 @@
               (cond ((hashtable-ref printed-files filename #f)
                      => (match-lambda
                          ((other-project . other-artifact)
-                          (log/info "File " filename  " in "
-                                    (project-name other-project)
-                                    " shadows that from " (project-name project)))))
+                          (letrec ((fmt-name
+                                    (lambda (name)
+                                      (if (string=? name "")
+                                          "the current project"
+                                          name))))
+                            (log/info "File " filename  " in "
+                                      (fmt-name (project-name other-project))
+                                      " shadows that from " (fmt-name (project-name project)))))))
                     (else
                      (hashtable-set! printed-files filename (cons project artifact))
                      (display filename p)

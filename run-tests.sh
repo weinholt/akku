@@ -11,6 +11,7 @@ fi
 tests/test-lockfile1.sh
 tests/test-lockfile2.sh
 tests/test-library-name.sps
+tests/test-r7rs.sps
 tests/test-utils.sps
 
 akku list
