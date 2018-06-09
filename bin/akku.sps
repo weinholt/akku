@@ -32,6 +32,7 @@
   (only (akku format lockfile) lockfile-filename)
   (only (akku format manifest) manifest-filename)
   (only (akku lib archive-maint) archive-scan)
+  (only (akku lib compat) getenv)
   (only (akku lib graph) print-gv-file)
   (only (akku lib scan) scan-repository)
   (only (akku lib install) install logger:akku.install)
@@ -219,8 +220,14 @@ License: GNU GPLv3
     (cmd-help))
   (archive-scan arg*))
 
+(define (get-log-threshold)
+  (let ((level (getenv "AKKU_LOG_LEVEL")))
+    (if level
+        (string->symbol level)
+        'info)))
+
 (set-logger-properties! logger:akku
-                        `((threshold info)
+                        `((threshold ,(get-log-threshold))
                           (handlers
                            ,(lambda (entry)
                               (log-formatter entry (current-error-port))))))
