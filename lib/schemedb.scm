@@ -27,6 +27,7 @@
     r6rs-implementation-names
     r7rs-implementation-names
     rnrs-implementation-name?
+    r7rs-implementation-name?
     implementation-features)
   (import
     (rnrs (6))
@@ -56,9 +57,19 @@
     (else #f)))
 
 (define implementation-specific-libraries
-  '((chezscheme (scheme *)
+  '((chezscheme (scheme)
                 (chezscheme *))
-    (chibi (chibi *)
+    (chibi (chibi)
+           (chibi ast)
+           (chibi filesystem)
+           (chibi io)
+           (chibi iset)
+           (chibi iset optimize)
+           (chibi net)
+           (chibi process)
+           (chibi system)
+           (chibi time)
+           (meta)
            (scheme box)
            (scheme charset)
            (scheme comparator)
@@ -89,7 +100,13 @@
           (nmosh *)
           (primitives *)
           (system))
-    (mzscheme (scheme *))               ;XXX: conflicts with r7rs
+    ;; (mzscheme (scheme *))               ;XXX: conflicts with r7rs
+    (rapid-scheme (rapid)
+                  (rapid base)
+                  (rapid primitive)
+                  (rapid primitives)
+                  (rapid runtime)
+                  (rapid syntax-parameters))
     (sagittarius (sagittarius *))
     (vicare (ikarus *)
             (psyntax *)
@@ -167,14 +184,18 @@
   (exists r6rs-library-name->implementation-name lib-name*))
 
 ;; Takes a library name and returns the name of the implementation
-;; that supports it. If it's a portable library, then returns #f.
+;; that supports it. If it's a portable library, then returns #f. In
+;; particular, it should return #f for packaged libraries.
 (define (r7rs-library-name->implementation-name lib-name)
-  (match lib-name
-    (('chibi . _) 'chibi)
-    (('kawa . _) 'kawa)
-    (('rapid . _) 'rapid-scheme)
-    (('scheme 'cyclone . _) 'cyclone)
-    (else #f)))
+  (let ((guess (match lib-name
+                 (('chibi . _) 'chibi)
+                 (('meta) 'chibi)
+                 (('scheme . _) 'chibi) ;has many extra (scheme *) libs
+                 (('kawa . _) 'kawa)
+                 (('rapid . _) 'rapid-scheme)
+                 (('scheme 'cyclone . _) 'cyclone)
+                 (else #f))))
+    (and guess (is-implementation-specific? lib-name guess) guess)))
 
 ;; Takes a list of library names and determines which implementation
 ;; supports them.

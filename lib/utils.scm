@@ -31,7 +31,9 @@
     running-from-home?
     sanitized-name
     get-terminal-size
-    symlink/relative)
+    symlink/relative
+    resolve-pathname
+    resolve-relative-filename)
   (import
     (rnrs (6))
     (rnrs mutable-pairs (6))
@@ -39,6 +41,7 @@
     (only (srfi :13 strings) string-prefix? string-suffix? string-index string-trim-right
           string-join)
     (only (industria strings) string-split)
+    (xitomatl AS-match)
     (only (akku lib compat) getcwd file-directory? mkdir getenv symlink))
 
 ;; Split directory name and filename components.
@@ -166,4 +169,24 @@
      (let ((rel-from (relativize from to)))
        (unless dry-run?
          (symlink rel-from to))
-       rel-from)))))
+       rel-from))))
+
+;; Get rid of "." and ".." in the path.
+(define (resolve-pathname path)
+  (fold-left path-join
+             ""
+             (let lp ((components (string-split path #\/)))
+               (match components
+                 [("." . rest) (lp rest)]
+                 [(".." . rest)
+                  (assertion-violation 'resolve-pathname
+                                       "Filename goes outside the repo" path)]
+                 [(dir ".." . rest) (lp rest)]
+                 [(x . y) (cons x (lp y))]
+                 [() '()]))))
+
+;; Find the absolute path of the file `to` which is referenced from
+;; the file `from`.
+(define (resolve-relative-filename from to)
+  (resolve-pathname (path-join (car (split-path from))
+                               to))))

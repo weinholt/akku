@@ -362,7 +362,7 @@
                        (pretty-print form outp)))))))))
     target-pathname))
 
-;; Write out a R6RS library form.
+;; Write out an R6RS library form.
 (define (write-r6rs-library target-directory target-filename source-pathname form)
   (let ((target-pathname (path-join target-directory target-filename)))
     (log/debug "Writing R6RS library to " target-pathname)
@@ -376,11 +376,10 @@
                                              (buffer-mode block)
                                              (native-transcoder))
         (lambda (outp)
-          ;; TODO: Only add #!r6rs if it's not in the original source.
-          (display "#!r6rs " outp) ;XXX: required for Racket
+          (display "#!r6rs " outp)      ;XXX: required for Racket
           (display ";; Copyright notices may be found in " outp)
           (write source-pathname outp)
-          (display "\n;; This file was converted by Akku.scm\n" outp)
+          (display "\n;; This file was written by Akku.scm\n" outp)
           (pretty-print form outp))))
     target-pathname))
 
@@ -503,6 +502,8 @@
 
 ;; Install an R7RS library.
 (define (install-artifact/r7rs-library project artifact srcdir always-symlink?)
+  (define (read-include source-filename target-filename)
+    (read-all-forms (resolve-relative-filename source-filename target-filename) #f))
   ;; TODO: Install the original for Larceny and Sagittarius.
   (let ((library-locations
          (make-r6rs-library-filenames (r7rs-library-name->r6rs
@@ -525,12 +526,12 @@
                        (irritants-condition? exn)
                        (lexical-violation? exn)
                        (source-condition? exn))
-                  (log/warn "Not installing " (wrt target)
-                            " due to syntax error: "
-                            (condition-message exn) " with irritants "
-                            (condition-irritants exn)
-                            " at line " (source-line exn)
-                            ", column " (source-column exn))
+                  (log/error "Not installing " (wrt target)
+                             " due to syntax error: "
+                             (condition-message exn) " with irritants "
+                             (condition-irritants exn)
+                             " at line " (source-line exn)
+                             ", column " (source-column exn))
                   '()))
            (let ((target-pathname
                   (let ((fn (path-join srcdir (artifact-path artifact))))
@@ -539,36 +540,30 @@
                         (let ((reader (make-reader inp fn)))
                           (reader-skip-to-form reader (artifact-form-index artifact))
                           (reader-mode-set! reader 'r7rs)
-                          ;; Get the define-library form and convert it to a
-                          ;; library form.
-                          (let ((def-lib (read-datum reader))
-                                (lib-dir (car (split-path (artifact-path artifact)))))
-                            ;; (pretty-print def-lib)
-                            (let ((lib (r7rs-library->r6rs-library
-                                        def-lib fn
-                                        (lambda (source-filename target-filename)
-                                          ;; TODO: -ci?
-                                          (let ((inc
-                                                 (find
-                                                  (lambda (art)
-                                                    (let ((decl
-                                                           (include-reference-original-include-spec art)))
-                                                      (and
-                                                        (equal? source-filename
-                                                                (r7include-source-filename decl))
-                                                        (equal? target-filename
-                                                                (r7include-target-filename decl))))
-                                                    )
-                                                  (artifact-assets artifact))))
-                                            (assert inc)
-                                            (include-reference-read-all inc)))
-                                        (artifact-implementation artifact))))
-                              ;; (pretty-print lib)
-                              (write-r6rs-library (path-join (libraries-directory)
-                                                             (car target))
-                                                  (cdr target)
-                                                  (artifact-path artifact)
-                                                  lib)))))))))
+                          (cond
+                            ((and always-symlink?
+                                  (r7rs-implementation-name? (artifact-implementation artifact))
+                                  (zero? (artifact-form-index artifact))
+                                  (artifact-last-form? artifact))
+                             ;; The implementation can handle
+                             ;; define-library and the file has a
+                             ;; single form.
+                             (symlink-file (path-join (libraries-directory) (car target))
+                                           (cdr target)
+                                           (path-join srcdir (artifact-path artifact))))
+                            (else
+                             ;; Get the define-library form and convert it to a
+                             ;; library form.
+                             (let* ((def-lib (read-datum reader))
+                                    (lib-dir (car (split-path (artifact-path artifact)))))
+                               (let ((lib (r7rs-library->r6rs-library
+                                           def-lib fn read-include
+                                           (artifact-implementation artifact))))
+                                 (write-r6rs-library (path-join (libraries-directory)
+                                                                (car target))
+                                                     (cdr target)
+                                                     (artifact-path artifact)
+                                                     lib)))))))))))
              (cons target-pathname
                    (map-in-order
                     (lambda (alias)

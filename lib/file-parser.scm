@@ -37,7 +37,7 @@
     library-reference-satisfied?
     include-reference? include-reference-path include-reference-realpath
     include-reference-conversion include-reference-original-include-spec
-    include-reference-read-all)
+    include-reference-read-all read-all-forms)
   (import
     (rnrs (6))
     (only (srfi :1 lists) delete-duplicates)
@@ -129,18 +129,22 @@
   (sealed #t)
   (nongenerative))
 
-;; Read all forms in an include-reference.
-(define (include-reference-read-all include-ref)
-  ;; FIXME: handle case folding.
-  (call-with-input-file (include-reference-realpath include-ref)
+;; Get a list of forms.
+(define (read-all-forms filename tolerant?)
+  (call-with-input-file filename
     (lambda (port)
-      (let ((reader (make-reader port (include-reference-realpath include-ref))))
-        (reader-tolerant?-set! reader #t)
+      (let ((reader (make-reader port filename)))
+        (reader-tolerant?-set! reader tolerant?)
         (let lp ((datum* '()))
           (let ((datum (read-datum reader)))
             (if (eof-object? datum)
                 (reverse datum*)
                 (lp (cons datum datum*)))))))))
+
+;; Read all forms in an include-reference.
+(define (include-reference-read-all include-ref)
+  ;; FIXME: handle case folding.
+  (read-all-forms (include-reference-realpath include-ref) #t))
 
 (define (artifact-directory artifact)
   (match (string-split (artifact-path artifact) #\/)
@@ -312,18 +316,6 @@
 
 ;; Makes an include-reference for an R7RS-style include.
 (define (mk-r7rs-include filename conversion original-include-spec from-lib-name from-realpath)
-  (define (resolve-pathname path)       ;get rid of "." and ".."
-    (fold-left path-join
-               ""
-               (let lp ((components (string-split path #\/)))
-                 (match components
-                   [("." . rest) (lp rest)]
-                   [(".." . rest)
-                    (assertion-violation 'mk-r7rs-include
-                                         "Filename goes outside the repo" path)]
-                   [(dir ".." . rest) (lp rest)]
-                   [(x . y) (cons x (lp y))]
-                   [() '()]))))
   (let ((target-path
          (resolve-pathname
           (call-with-string-output-port
@@ -337,10 +329,9 @@
                 (display (car comp*) p)
                 (put-char p #\/))))))
         (included-file-realpath
-         (resolve-pathname (path-join (car (split-path from-realpath)) filename))))
-    (make-include-reference
-     target-path included-file-realpath
-     conversion original-include-spec)))
+         (resolve-relative-filename from-realpath filename)))
+    (make-include-reference target-path included-file-realpath
+                            conversion original-include-spec)))
 
 ;; Scan an r7lib to extract imports, assets and exports. The filenames are
 ;; handled relative to the including file, although it is actually
@@ -550,10 +541,8 @@
        (let* ((lib (parse-r7rs-define-library
                     form realpath
                     (lambda (source-filename target-filename)
-                      (let ((inc
-                             (mk-r7rs-include target-filename #f #f name
-                                              source-filename)))
-                        (include-reference-read-all inc)))))
+                      (read-all-forms (resolve-relative-filename source-filename target-filename)
+                                      #f))))
               (implementations (if (r7lib-has-generic-implementation? lib)
                                    (cons #f (r7lib-implementation-names lib))
                                    (r7lib-implementation-names lib))))

@@ -33,12 +33,10 @@
     r7condexp? r7condexp-clause*
     r7condexp-clause? r7condexp-clause-feature-req r7condexp-clause-declaration*
     r7unknown? r7unknown-declaration
-
     r7lib-referenced-features
     r7lib-implementation-names
     r7lib-has-generic-implementation?
-    r7condexp-eval
-    )
+    r7condexp-eval)
   (import
     (rnrs (6))
     (only (srfi :1 lists) append-map delete-duplicates)
@@ -50,336 +48,21 @@
 (define logger:akku.r7rs (make-logger logger:akku 'r7rs))
 (define log/warn (make-fmt-log logger:akku.r7rs 'warning))
 
-;; Convert an R7RS import set to an R6RS import set.
+;; Convert an R7RS import set to an R6RS import set. Keep library names.
 (define (r7rs-import-set->r6rs import-set)
   (define f
     (match-lambda
      [((and (or 'only 'except 'prefix 'rename) modifier) set^ x* ...)
       `(,modifier ,(f set^) ,@x*)]
-     ;; FIXME: This is a giant mess. Did yuni do something about this?
-     [('scheme 'base)
-      '(only (rnrs)
-             *                        +
-             -                        ...
-             /                        <
-             <=                       =
-             =>                       >
-             >=
-             abs                      and
-             append                   apply
-             assoc                    assq
-             assv                     begin
-             binary-port?             boolean=?
-             boolean?                 #;bytevector
-             #;bytevector-append        bytevector-copy
-             bytevector-copy!         bytevector-length
-             bytevector-u8-ref        bytevector-u8-set!
-             bytevector?              caar
-             cadr
-             call-with-current-continuation
-             call-with-port           call-with-values
-             call/cc                  car
-             case                     cdar
-             cddr                     cdr
-             ceiling                  char->integer
-             #;char-ready?              char<=?
-             char<?                   char=?
-             char>=?                  char>?
-             char?                    close-input-port
-             close-output-port        close-port
-             complex?                 cond
-             #;cond-expand              cons
-             current-error-port       current-input-port
-             current-output-port      define
-             define-record-type       define-syntax
-             #;define-values            denominator
-             do                       dynamic-wind
-             else                   eof-object
-             eof-object?            eq?
-             equal?                 eqv?
-             error                  #;error-object-irritants
-             #;error-object-message   #;error-object?
-             even?                  exact
-             exact-integer-sqrt     #;exact-integer?
-             exact?                 expt
-             #;features               #;file-error?
-             floor                  #;floor-quotient
-             #;floor-remainder        ;#floor/
-             flush-output-port      for-each
-             gcd                    #;get-output-bytevector
-             #;get-output-string      guard
-             if                     #;include
-             #;include-ci             inexact
-             inexact?               #;input-port-open?
-             input-port?            integer->char
-             integer?               lambda
-             lcm                    length
-             let                    let*
-             let*-values            let-syntax
-             let-values             letrec
-             letrec*                letrec-syntax
-             list                   list->string
-             list->vector           #;list-copy
-             list-ref               #;list-set!
-             #;list-tail              list?
-             make-bytevector        #;make-list
-             #;make-parameter         make-string
-             make-vector            map
-             max                    member
-             memq                   memv
-             min                    #;modulo
-             negative?              newline
-             not                    null?
-             number->string         number?
-             numerator              odd?
-             #;open-input-bytevector  #;open-input-string
-             #;open-output-bytevector #;open-output-string
-             or                     #;output-port-open?
-             output-port?           pair?
-             #;parameterize           #;peek-char
-             #;peek-u8                port?
-             positive?              procedure?
-             quasiquote             quote
-             #;quotient               raise
-             raise-continuable      rational?
-             rationalize            #;read-bytevector
-             #;read-bytevector!       #;read-char
-             #;read-error?            #;read-line
-             #;read-string            #;read-u8
-             real?                  #;remainder
-             reverse                round
-             set!                   #;set-car!
-             #;set-cdr!               #;square
-             string                 string->list
-             string->number         string->symbol
-             string->utf8           #;string->vector
-             string-append          string-copy
-             #;string-copy!           #;string-fill!
-             string-for-each        string-length
-             #;string-map             string-ref
-             #;string-set!            string<=?
-             string<?               string=?
-             string>=?              string>?
-             string?                substring
-             symbol->string         symbol=?
-             symbol?                #;syntax-error
-             syntax-rules           textual-port?
-             ;; truncate               truncate-quotient
-             ;; truncate-remainder     truncate/
-             #;u8-ready?              unless
-             unquote                unquote-splicing
-             utf8->string           values
-             vector                 vector->list
-             #;vector->string         #;vector-append
-             #;vector-copy            #;vector-copy!
-             vector-fill!           vector-for-each
-             vector-length          vector-map
-             vector-ref             vector-set!
-             vector?                when
-             with-exception-handler #;write-bytevector
-             #;write-char             #;write-string
-             #;write-u8               zero?)]
-     [('scheme 'case-lambda)
-      '(only (rnrs) case-lambda)]
-     [('scheme 'complex)
-      '(only (rnrs)
-             angle            imag-part
-             magnitude        make-polar
-             make-rectangular real-part)]
-     [('scheme 'eval)
-      ;; TODO: intercept these and translate imports?
-      '(rnrs eval)]
-     [('scheme 'file)
-      '(only (rnrs)
-             call-with-input-file   call-with-output-file
-             delete-file            file-exists?
-             open-binary-input-file open-binary-output-file
-             open-input-file        open-output-file
-             with-input-from-file   with-output-to-file)]
-     [('scheme 'inexact)
-      '(only (rnrs)
-             acos      asin
-             atan      cos
-             exp       finite?
-             infinite? log
-             nan?      sin
-             sqrt      tan)]
-     [('scheme 'lazy)
-      ;; XXX: hmm.
-      '(only (rnrs)
-             delay    #;delay-force
-             force    #;make-promise
-             #;promise?)]
-     [('scheme 'load)
-      ;; XXX: greater hmm.
-      '(only (chezscheme)
-             load)]
-     [('scheme 'process-context)
-      '(only (rnrs)
-             command-line              #;emergency-exit
-             exit
-             #;get-environment-variable
-             #;get-environment-variables)]
-     [('scheme 'read)
-      ;; XXX: should use (laesare reader).
-      '(only (rnrs) read)]
-     [('scheme 'repl)
-      ;; XXX: greater hmm again.
-      '(only (chezscheme) interaction-environment)]
-     [('scheme 'time)
-      '(only (rnrs)
-             ;; current-jiffy      current-second
-             ;; jiffies-per-second
-             )]
-
-     [('scheme 'write)
-      '(only (rnrs)
-             display      write
-             #;write-shared #;write-simple)]
-     [('scheme 'r5rs)
-      '(only (rnrs)
-             *                        +
-             -                        ...
-             /                        <
-             <=                       =
-             =>                       >
-             >=
-             abs                      acos
-             and                      angle
-             append                   apply
-             asin                     assoc
-             assq                     assv
-             atan                     begin
-             boolean?                 caaaar
-             caaadr                   caaar
-             caadar                   caaddr
-             caadr                    caar
-             cadaar                   cadadr
-             cadar                    caddar
-             cadddr                   caddr
-             cadr
-             call-with-current-continuation
-             call-with-input-file     call-with-output-file
-             call-with-values         car
-             case                     cdaaar
-             cdaadr                   cdaar
-             cdadar                   cdaddr
-             cdadr                    cdar
-             cddaar                   cddadr
-             cddar                    cdddar
-             cddddr                   cdddr
-             cddr                     cdr
-             ceiling                  char->integer
-             char-alphabetic?         char-ci<=?
-             char-ci<?                char-ci=?
-             char-ci>=?               char-ci>?
-             char-downcase            char-lower-case?
-             char-numeric?            char-ready?
-             char-upcase              char-upper-case?
-             char-whitespace?         char<=?
-             char<?                   char=?
-             char>=?                  char>?
-             char?                    close-input-port
-             close-output-port        complex?
-             cond                     cons
-             cos                      current-input-port
-             current-output-port      define
-             define-syntax            delay
-             denominator              display
-             do                       dynamic-wind
-             else                     eof-object?
-             eq?                      equal?
-             eqv?                     eval
-             even?                    exact->inexact
-             exact?                   exp
-             expt                     floor
-             for-each                 force
-             gcd                      if
-             imag-part                inexact->exact
-             inexact?                 input-port?
-             integer->char            integer?
-             interaction-environment lambda
-             lcm                       length
-             let                       let*
-             let-syntax                letrec
-             letrec-syntax             list
-             list->string              list->vector
-             list-ref                  list-tail
-             list?                     load
-             log                       magnitude
-             make-polar                make-rectangular
-             make-string               make-vector
-             map                       max
-             member                    memq
-             memv                      min
-             modulo                    negative?
-             newline                   not
-             null-environment          null?
-             number->string            number?
-             numerator                 odd?
-             open-input-file           open-output-file
-             or                        output-port?
-             pair?                     peek-char
-             positive?                 procedure?
-             quasiquote                quote
-             quotient                  rational?
-             rationalize               read
-             read-char                 real-part
-             real?                     remainder
-             reverse                   round
-             scheme-report-environment
-             set!                      set-car!
-             set-cdr!                  sin
-             sqrt                      string
-             string->list              string->number
-             string->symbol            string-append
-             string-ci<=?              string-ci<?
-             string-ci=?               string-ci>=?
-             string-ci>?               string-copy
-             string-fill!              string-length
-             string-ref                string-set!
-             string<=?                 string<?
-             string=?                  string>=?
-             string>?                  string?
-             substring                 symbol->string
-             symbol?                   syntax-rules
-             tan                       truncate
-             values                    vector
-             vector->list              vector-fill!
-             vector-length             vector-ref
-             vector-set!               vector?
-             with-input-from-file      with-output-to-file
-             write                     write-char
-             zero?
-
-             )]
-     [('scheme 'cxr)
-      '(only (rnrs)
-             caaaar caaadr caaar caadar caaddr caadr
-             cadaar cadadr cadar caddar cadddr caddr
-             cdaaar cdaadr cdaar cdadar cdaddr cdadr
-             cddaar cddadr cddar cdddar cddddr cdddr)]
-     [('scheme 'char)
-      '(only (rnrs)
-             char-alphabetic? char-ci<=?
-             char-ci<?        char-ci=?
-             char-ci>=?       char-ci>?
-             char-downcase    char-foldcase
-             char-lower-case? char-numeric?
-             char-upcase      char-upper-case?
-             char-whitespace? ;; digit-value
-             string-ci<=?     string-ci<?
-             string-ci=?      string-ci>=?
-             string-ci>?      string-downcase
-             string-foldcase  string-upcase)]
-     [('srfi (? number? x))
-      ;; This is what chez-srfi uses, but there is also the (srfi sN)
-      ;; convention in e.g. surfage.
-      `(srfi ,(string->symbol (string-append ":" (number->string x))))]
+     [('srfi (? number? x) . rest)
+      ;; XXX: This is what chez-srfi uses, but there is also the (srfi
+      ;; sN) convention in e.g. surfage.
+      `(srfi ,(string->symbol (string-append ":" (number->string x))) . ,rest)]
      [((and (or 'for 'library) id) . x)
-      ;; for and library are special in R6RS imports, wrap in (library ...)
-      `(library (,id . ,x))]
-     [x x]))
+      ;; "for" and "library" are special in R6RS imports, wrap in (library ...)
+      `(library ,(r7rs-library-name->r6rs (cons id x)))]
+     [x
+      (r7rs-library-name->r6rs x)]))
   (f import-set))
 
 ;; R7RS library names can contain numbers; R6RS library names can't.
@@ -406,7 +89,7 @@
 (define (r7rs-library->r6rs-library def-lib filename read-include implementation-name)
   (define (parse-library-declaration decl import* export* body*)
     (cond
-      ((or (r7include? decl) (r7begin? decl))
+      ((or (r7include? decl) (r7begin? decl) (r7unknown? decl))
        (values import* export* (cons decl body*)))
       ((r7export? decl)
        (values import* (cons decl export*) body*))
@@ -444,32 +127,21 @@
           `(rename (,int ,ext)))))
   (define (r7import->r6rs decl)
     (r7rs-import-set->r6rs (r7import-set decl)))
-
   (let ((lib (parse-r7rs-define-library def-lib filename read-include)))
     (let-values (((import* export* body*) (parse-decls (r7lib-declaration* lib) '() '() '())))
       `(library ,(r7rs-library-name->r6rs (r7lib-name lib))
          (export ,@(map r7export->r6rs export*))
-         (import ,@(map r7import->r6rs import*)
-                 (only (rnrs) syntax-case syntax))
-         ;; (define %akku-source-filename% ,filename)
-         (define-syntax cond-expand
-           (lambda (x)
-             (syntax-case x (else)
-               [(_ (else body ...))
-                #'(begin body ...)]
-               [(_ (feature-req body ...)
-                   (feature-req* body* ...) ...)
-                #'(cond-expand (feature-req* body* ...) ...)])))
+         (import ,@(map r7import->r6rs import*))
          ,@(append-map
             (lambda (decl)
               (cond ((r7include? decl)
-                     (read-include (r7include-source-filename decl)
-                                   (r7include-target-filename decl)
-                                   ;; TODO:
-                                   #;(r7include-ci? decl)))
+                     (list (list (if (r7include-ci? decl) 'include-ci 'include)
+                                 (r7include-target-filename decl))))
+                    ((r7unknown? decl)
+                     (list (r7unknown-declaration decl)))
                     (else
                      (r7begin-body* decl))))
-                body*)))))
+            body*)))))
 
 ;;; R7RS define-library record representation
 
@@ -574,6 +246,8 @@
                        (f (cdr feature-req*) (cdr decl**)))))))))
       (('begin body* ...)
        (list (make-r7begin body*)))
+      ((and ('error (? string? message)) x) ;somewhat common extension
+       (list (make-r7unknown x)))
       (x
        (log/warn "Unknown declaration in R7RS library: " (wrt x))
        (list (make-r7unknown x)))))
