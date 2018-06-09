@@ -32,8 +32,8 @@
     library-name->file-name-variants)
   (import
     (rnrs (6))
-    (only (rnrs r5rs) quotient remainder)
-    (only (akku lib utils) string-index string-prefix?))
+    (only (srfi :13 strings) string-index string-prefix?)
+    (only (rnrs r5rs) quotient remainder))
 
 ;; From the psyntax version in r6rs-libraries.
 (define (library-name->file-name/psyntax x)
@@ -60,6 +60,11 @@
              (else
               (display "%" p)
               (let ((n (char->integer c)))
+                (when (> n #xff)
+                  ;; XXX: Without this check, λ turns into a control
+                  ;; character in the filename.
+                  (error 'library-name->file-name/psyntax
+                         "Characters above U+00FF are not supported" c))
                 (display-hex (quotient n 16))
                 (display-hex (remainder n 16))))))
          (string->list
@@ -129,6 +134,11 @@
              (else
               (display "%" p)
               (let ((n (char->integer c)))
+                (when (> n #xff)
+                  ;; XXX: Without this check, λ turns into a control
+                  ;; character in the filename.
+                  (error 'library-name->file-name/ironscheme
+                         "Characters above U+00FF are not supported" c))
                 (display-hex (quotient n 16))
                 (display-hex (remainder n 16))))))
          (string->list
