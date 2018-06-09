@@ -30,6 +30,8 @@
     (prefix (compression tar) tar:)
     (compression xz)
     (hashing sha-2)
+    (laesare reader)
+    (only (wak fmt) wrt)
     (only (xitomatl common) pretty-print)
     (xitomatl alists)
     (xitomatl AS-match)
@@ -41,7 +43,9 @@
     (akku lib git)
     (akku lib lock)
     (akku lib library-name)
+    (akku lib r7rs)
     (akku lib repo-scanner)
+    (akku lib schemedb)
     (akku lib utils)
     (akku private http)
     (akku private logging))
@@ -136,6 +140,16 @@
           (('projects . prj*)
            (lp (append (map parse-project prj*) project*)))
           (_ (lp project*)))))))
+
+;; Position the reader to immediately before the given form
+(define (reader-skip-to-form reader form-index)
+  (let ((tolerant (reader-tolerant? reader)))
+    (reader-tolerant?-set! reader #t)
+    (let lp ((form-index form-index))
+      (unless (zero? form-index)
+        (read-datum reader)
+        (lp (- form-index 1))))
+    (reader-tolerant?-set! reader tolerant)))
 
 ;; Verify that the file contents match whatever the content spec says.
 (define (verify-file-contents filename content-spec)
@@ -348,35 +362,72 @@
                        (pretty-print form outp)))))))))
     target-pathname))
 
-;; Copies an R6RS program from one file to another.
-(define (copy-r6rs-program target-directory target-filename source-pathname form-index)
+;; Write out an R6RS library form.
+(define (write-r6rs-library target-directory target-filename source-pathname form)
   (let ((target-pathname (path-join target-directory target-filename)))
-    (log/debug "Copying R6RS program " source-pathname (if (zero? form-index) "" " ")
+    (log/debug "Writing R6RS library to " target-pathname)
+    (check-filename target-pathname (support-windows?))
+    (let ((target-pathname (path-join target-directory target-filename)))
+      (mkdir/recursive target-directory)
+      (when (file-symbolic-link? target-pathname)
+        (delete-file target-pathname))
+      (call-with-port (open-file-output-port target-pathname
+                                             (file-options no-fail)
+                                             (buffer-mode block)
+                                             (native-transcoder))
+        (lambda (outp)
+          (display "#!r6rs " outp)      ;XXX: required for Racket
+          (display ";; Copyright notices may be found in " outp)
+          (write source-pathname outp)
+          (display "\n;; This file was written by Akku.scm\n" outp)
+          (pretty-print form outp))))
+    target-pathname))
+
+;; Copies a program from one file to another.
+(define (copy-program target-directory target-filename source-pathname form-index r7rs)
+  (let ((target-pathname (path-join target-directory target-filename)))
+    (log/debug (if r7rs "Converting R7RS" "Copying R6RS") " program "
+               source-pathname (if (zero? form-index) "" " ")
                (if (zero? form-index) "" (list 'form form-index))
                " to " target-pathname)
     (check-filename target-pathname (support-windows?))
     (call-with-port (open-input-file source-pathname)
       (lambda (inp)
-        (read-shebang inp)
-        (mkdir/recursive target-directory)
-        (when (file-symbolic-link? target-pathname)
-          (delete-file target-pathname))
-        (call-with-port (open-file-output-port target-pathname
-                                               (file-options no-fail)
-                                               (buffer-mode block)
-                                               (native-transcoder))
-          (lambda (outp)
-            ;; Skip forms before the program start.
-            (let lp ((form-index form-index))
-              (unless (zero? form-index)
-                (read inp)
-                (lp (- form-index 1))))
-            (display "#!/usr/bin/env scheme-script\n" outp)
-            (display ";; Copied by Akku from " outp)
-            (write source-pathname outp)
-            (display " !#" outp) ;XXX: required for GNU Guile
-            (display " #!r6rs " outp) ;XXX: required for Racket
-            (pipe-ports outp inp)))
+        (let ((reader (make-reader inp source-pathname)))
+          (reader-tolerant?-set! reader #t)
+          (reader-skip-to-form reader form-index)
+          (mkdir/recursive target-directory)
+          (when (file-symbolic-link? target-pathname)
+            (delete-file target-pathname))
+          (call-with-port (open-file-output-port target-pathname
+                                                 (file-options no-fail)
+                                                 (buffer-mode block)
+                                                 (native-transcoder))
+            (lambda (outp)
+              (display "#!/usr/bin/env scheme-script\n" outp)
+              (display ";; Copied by Akku from " outp)
+              (write source-pathname outp)
+              (display " !#" outp) ;XXX: required for GNU Guile
+              (display " #!r6rs " outp) ;XXX: required for Racket
+              (cond
+                ((not r7rs)
+                 (pipe-ports outp inp))
+                (else
+                 ;; Convert the program from R7RS to R6RS.
+                 (reader-tolerant?-set! reader #f)
+                 (log/warn "TODO: Gather R7RS imports to the start of the file")
+                 (newline outp)
+                 (match (read-datum reader)
+                   [('import import* ...)
+                    (pretty-print `(import ,@(map r7rs-import-set->r6rs import*))
+                                  outp)]
+                   [x
+                    (pretty-print x outp)])
+                 (let lp ()
+                   (let ((datum (read-datum reader)))
+                     (unless (eof-object? datum)
+                       (pretty-print datum outp)
+                       (lp)))))))))
         (chmod target-pathname #o755)))
     target-pathname))
 
@@ -410,58 +461,142 @@
        (symlink/relative source-pathname target-pathname)
        target-pathname))))
 
+;; Install an R6RS library.
+(define (install-artifact/r6rs-library project artifact srcdir always-symlink?)
+  (let ((library-locations
+         (make-r6rs-library-filenames (r6rs-library-name artifact)
+                                      (artifact-implementation artifact))))
+    (cond
+      ((null? library-locations)
+       (log/warn "Could not construct a filename for "
+                 (r6rs-library-name artifact))
+       '())
+      (else
+       ;; Create each of the locations for the library. The first
+       ;; is a regular file and the rest are symlinks.
+       (let ((target (car library-locations))
+             (aliases (cdr library-locations)))
+         (let ((target-pathname
+                (cond ((and always-symlink? (zero? (artifact-form-index artifact))
+                            (artifact-last-form? artifact))
+                       ;; It's safe to symlink iff the file has a
+                       ;; single form.
+                       (symlink-file (path-join (libraries-directory) (car target))
+                                     (cdr target)
+                                     (path-join srcdir (artifact-path artifact))))
+                      (else
+                       (when always-symlink?
+                         (log/warn "Refusing to symlink multi-form file "
+                                   (artifact-path artifact)))
+                       (copy-r6rs-library (path-join (libraries-directory) (car target))
+                                          (cdr target)
+                                          (path-join srcdir (artifact-path artifact))
+                                          (artifact-form-index artifact))))))
+           (cons target-pathname
+                 (map-in-order
+                  (lambda (alias)
+                    (symlink-file (path-join (libraries-directory) (car alias))
+                                  (cdr alias)
+                                  target-pathname))
+                  aliases))))))))
+
+;; Install an R7RS library.
+(define (install-artifact/r7rs-library project artifact srcdir always-symlink?)
+  (define (read-include source-filename target-filename)
+    (read-all-forms (resolve-relative-filename source-filename target-filename) #f))
+  ;; TODO: Install the original for Larceny and Sagittarius.
+  (let ((library-locations
+         (make-r6rs-library-filenames (r7rs-library-name->r6rs
+                                       (r7rs-library-name artifact))
+                                      (artifact-implementation artifact))))
+    (cond
+      ((null? library-locations)
+       (log/warn "Could not construct a filename for " (r7rs-library-name artifact))
+       '())
+      ((and (artifact-implementation artifact)
+            (not (memq (artifact-implementation artifact) r6rs-implementation-names)))
+       (log/trace "Skipping " (artifact-implementation artifact)
+                  " implementation of " (r7rs-library-name artifact))
+       '())
+      (else
+       (let ((target (car library-locations))
+             (aliases (cdr library-locations)))
+         (guard (exn
+                 ((and (message-condition? exn)
+                       (irritants-condition? exn)
+                       (lexical-violation? exn)
+                       (source-condition? exn))
+                  (log/error "Not installing " (wrt target)
+                             " due to syntax error: "
+                             (condition-message exn) " with irritants "
+                             (condition-irritants exn)
+                             " at line " (source-line exn)
+                             ", column " (source-column exn))
+                  '()))
+           (let ((target-pathname
+                  (let ((fn (path-join srcdir (artifact-path artifact))))
+                    (call-with-input-file fn
+                      (lambda (inp)
+                        (let ((reader (make-reader inp fn)))
+                          (reader-skip-to-form reader (artifact-form-index artifact))
+                          (reader-mode-set! reader 'r7rs)
+                          (cond
+                            ((and always-symlink?
+                                  (r7rs-implementation-name? (artifact-implementation artifact))
+                                  (zero? (artifact-form-index artifact))
+                                  (artifact-last-form? artifact))
+                             ;; The implementation can handle
+                             ;; define-library and the file has a
+                             ;; single form.
+                             (symlink-file (path-join (libraries-directory) (car target))
+                                           (cdr target)
+                                           (path-join srcdir (artifact-path artifact))))
+                            (else
+                             ;; Get the define-library form and convert it to a
+                             ;; library form.
+                             (let* ((def-lib (read-datum reader))
+                                    (lib-dir (car (split-path (artifact-path artifact)))))
+                               (let ((lib (r7rs-library->r6rs-library
+                                           def-lib fn read-include
+                                           (artifact-implementation artifact))))
+                                 (write-r6rs-library (path-join (libraries-directory)
+                                                                (car target))
+                                                     (cdr target)
+                                                     (artifact-path artifact)
+                                                     lib)))))))))))
+             (cons target-pathname
+                   (map-in-order
+                    (lambda (alias)
+                      (symlink-file (path-join (libraries-directory) (car alias))
+                                    (cdr alias)
+                                    target-pathname))
+                    aliases)))))))))
+
 ;; Install an artifact.
 (define (install-artifact project artifact srcdir always-symlink?)
   (cond
     ((r6rs-library? artifact)
-     (let ((library-locations
-            (make-r6rs-library-filenames (r6rs-library-name artifact)
-                                         (artifact-implementation artifact))))
-       (cond
-         ((null? library-locations)
-          (log/warn "Could not construct a filename for "
-                    (r6rs-library-name artifact))
-          '())
-         (else
-          ;; Create each of the locations for the library. The first
-          ;; is a regular file and the rest are symlinks.
-          (let ((target (car library-locations))
-                (aliases (cdr library-locations)))
-            (let ((target-pathname
-                   (cond ((and always-symlink? (zero? (artifact-form-index artifact))
-                               (artifact-last-form? artifact))
-                          ;; It's safe to symlink iff the file has a
-                          ;; single form.
-                          (symlink-file (path-join (libraries-directory) (car target))
-                                        (cdr target)
-                                        (path-join srcdir (artifact-path artifact))))
-                         (else
-                          (when always-symlink?
-                            (log/warn "Refusing to symlink multi-form file "
-                                      (artifact-path artifact)))
-                          (copy-r6rs-library (path-join (libraries-directory) (car target))
-                                             (cdr target)
-                                             (path-join srcdir (artifact-path artifact))
-                                             (artifact-form-index artifact))))))
-              (cons target-pathname
-                    (map-in-order
-                     (lambda (alias)
-                       (symlink-file (path-join (libraries-directory) (car alias))
-                                     (cdr alias)
-                                     target-pathname))
-                     aliases))))))))
-    ((r6rs-program? artifact)
-     (if (or (artifact-internal? artifact) (not (artifact-for-bin? artifact)))
-         '()
-         (let ((target (split-path (artifact-path artifact))))
-           (if always-symlink?
-               (list (symlink-file (binaries-directory)
-                                   (cdr target)
-                                   (path-join srcdir (artifact-path artifact))))
-               (list (copy-r6rs-program (binaries-directory)
-                                        (cdr target)
-                                        (path-join srcdir (artifact-path artifact))
-                                        (artifact-form-index artifact)))))))
+     (install-artifact/r6rs-library project artifact srcdir always-symlink?))
+    ((or (r6rs-program? artifact)
+         (r7rs-program? artifact))      ;TODO: convert the imports in this case
+     (cond
+       ((or (artifact-internal? artifact) (not (artifact-for-bin? artifact)))
+        (log/trace "Skipping the program " (artifact-path artifact))
+        '())
+       (else
+        (let ((target (split-path (artifact-path artifact))))
+          (if (and always-symlink? (zero? (artifact-form-index artifact))
+                   (artifact-last-form? artifact))
+              (list (symlink-file (binaries-directory)
+                                  (cdr target)
+                                  (path-join srcdir (artifact-path artifact))))
+              (list (copy-program (binaries-directory)
+                                  (cdr target)
+                                  (path-join srcdir (artifact-path artifact))
+                                  (artifact-form-index artifact)
+                                  (r7rs-program? artifact))))))))
+    ((r7rs-library? artifact)
+     (install-artifact/r7rs-library project artifact srcdir always-symlink?))
     ((legal-notice-file? artifact)
      (list (copy-file (path-join (notices-directory project) (artifact-directory artifact))
                       (artifact-filename artifact)
@@ -559,9 +694,14 @@
               (cond ((hashtable-ref printed-files filename #f)
                      => (match-lambda
                          ((other-project . other-artifact)
-                          (log/info "File " filename  " in "
-                                    (project-name other-project)
-                                    " shadows that from " (project-name project)))))
+                          (letrec ((fmt-name
+                                    (lambda (name)
+                                      (if (string=? name "")
+                                          "the current project"
+                                          name))))
+                            (log/info "File " filename  " in "
+                                      (fmt-name (project-name other-project))
+                                      " shadows that from " (fmt-name (project-name project)))))))
                     (else
                      (hashtable-set! printed-files filename (cons project artifact))
                      (display filename p)

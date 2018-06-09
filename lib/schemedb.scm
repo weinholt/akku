@@ -21,9 +21,14 @@
 (library (akku lib schemedb)
   (export
     r6rs-builtin-library?
-    r6rs-library-name->implementation-name
     r6rs-library-name*->implementation-name
-    r7rs-builtin-library?)
+    r7rs-builtin-library?
+    r7rs-library-name*->implementation-name
+    r6rs-implementation-names
+    r7rs-implementation-names
+    rnrs-implementation-name?
+    r7rs-implementation-name?
+    implementation-features)
   (import
     (rnrs (6))
     (xitomatl AS-match))
@@ -31,26 +36,57 @@
 ;; True if lib-name is a built-in library provided by the implementation.
 (define (r6rs-builtin-library? lib-name implementation-name)
   (or (member lib-name r6rs-standard-libraries)
-      (cond
-        ((assq implementation-name implementation-specific-libraries)
-         => (lambda (impl-spec)
-              (let ((lib-pattern* (cdr impl-spec)))
-                (exists (lambda (lib-pattern)
-                          (match (list lib-name lib-pattern)
-                            (((name0 . _) (name1 '*))
-                             (eq? name0 name1))
-                            (else
-                             (equal? lib-name lib-pattern))))
-                        lib-pattern*))))
-        (else #f))))
+      (is-implementation-specific? lib-name implementation-name)))
 
-(define (r7rs-builtin-library? lib-name)
-  (member lib-name r7rs-standard-libraries))
+(define (r7rs-builtin-library? lib-name implementation-name)
+  (or (member lib-name r7rs-standard-libraries)
+      (is-implementation-specific? lib-name implementation-name)))
+
+(define (is-implementation-specific? lib-name implementation-name)
+  (cond
+    ((assq implementation-name implementation-specific-libraries)
+     => (lambda (impl-spec)
+          (let ((lib-pattern* (cdr impl-spec)))
+            (exists (lambda (lib-pattern)
+                      (match (list lib-name lib-pattern)
+                        (((name0 . _) (name1 '*))
+                         (eq? name0 name1))
+                        (else
+                         (equal? lib-name lib-pattern))))
+                    lib-pattern*))))
+    (else #f)))
 
 (define implementation-specific-libraries
-  '((chezscheme (scheme *)
+  '((chezscheme (scheme)
                 (chezscheme *))
-    (chibi (chibi))
+    (chibi (chibi)
+           (chibi ast)
+           (chibi filesystem)
+           (chibi io)
+           (chibi iset)
+           (chibi iset optimize)
+           (chibi net)
+           (chibi process)
+           (chibi system)
+           (chibi time)
+           (meta)
+           (scheme box)
+           (scheme charset)
+           (scheme comparator)
+           (scheme division)
+           (scheme ephemeron)
+           (scheme generator)
+           (scheme hash-table)
+           (scheme ilist)
+           (scheme list-queue)
+           (scheme list)
+           (scheme red)
+           (scheme small)
+           (scheme sort)
+           (scheme time tai-to-utc-offset)
+           (scheme time tai)
+           (scheme vector))
+    (cyclone (scheme cyclone *))
     (guile (guile *))
     (ikarus (ikarus *))
     (ironscheme (ironscheme *))
@@ -64,7 +100,13 @@
           (nmosh *)
           (primitives *)
           (system))
-    (mzscheme (scheme *))
+    ;; (mzscheme (scheme *))               ;XXX: conflicts with r7rs
+    (rapid-scheme (rapid)
+                  (rapid base)
+                  (rapid primitive)
+                  (rapid primitives)
+                  (rapid runtime)
+                  (rapid syntax-parameters))
     (sagittarius (sagittarius *))
     (vicare (ikarus *)
             (psyntax *)
@@ -139,6 +181,86 @@
 ;; Takes a list of library names and determines which implementation
 ;; supports them.
 (define (r6rs-library-name*->implementation-name lib-name*)
-  (and (pair? lib-name*)
-       (or (r6rs-library-name->implementation-name (car lib-name*))
-           (r6rs-library-name*->implementation-name (cdr lib-name*))))))
+  (exists r6rs-library-name->implementation-name lib-name*))
+
+;; Takes a library name and returns the name of the implementation
+;; that supports it. If it's a portable library, then returns #f. In
+;; particular, it should return #f for packaged libraries.
+(define (r7rs-library-name->implementation-name lib-name)
+  (let ((guess (match lib-name
+                 (('chibi . _) 'chibi)
+                 (('meta) 'chibi)
+                 (('scheme . _) 'chibi) ;has many extra (scheme *) libs
+                 (('kawa . _) 'kawa)
+                 (('rapid . _) 'rapid-scheme)
+                 (('scheme 'cyclone . _) 'cyclone)
+                 (else #f))))
+    (and guess (is-implementation-specific? lib-name guess) guess)))
+
+;; Takes a list of library names and determines which implementation
+;; supports them.
+(define (r7rs-library-name*->implementation-name lib-name*)
+  (exists r7rs-library-name->implementation-name lib-name*))
+
+;; Implementation names matching <impl>.sls or cond-expand.
+(define r6rs-implementation-names
+  '(chezscheme
+    guile
+    ikarus
+    ironscheme
+    larceny
+    mosh
+    mzscheme
+    sagittarius
+    vicare
+    ypsilon))
+
+;; Implementation names matching cond-expand.
+(define r7rs-implementation-names
+  '(chibi
+    chicken
+    cyclone
+    foment
+    guache
+    kawa
+    larceny
+    rapid-scheme
+    sagittarius))
+
+(define (rnrs-implementation-name? sym)
+  (and (or (memq sym r6rs-implementation-names)
+           (memq sym r7rs-implementation-names))
+       #t))
+
+(define (r7rs-implementation-name? sym)
+  (and (memq sym r7rs-implementation-names) #t))
+
+;; Standard features in R7RS:
+
+;; r7rs
+;; exact-closed
+;; exact-complex
+;; ieee-float
+;; full-unicode
+;; ratios
+;; posix
+;; windows
+;; unix, darwin, gnu-linux, bsd, freebsd, solaris, ...
+;; i386, x86-64, ppc, sparc, jvm, clr, llvm
+;; ilp32, lp64, ilp64, ...
+;; big-endian, little-endian
+
+(define (implementation-features implementation-name)
+  ;; FIXME: Fill in this table. Unfortunately there is a fundamental
+  ;; problem with the target-dependent features like x86-64, which can
+  ;; be detected for the running system, but will result in
+  ;; non-portable files in .akku/lib.
+  (define always-supported
+    '(r7rs exact-closed exact-complex ieee-float full-unicode ratios))
+  (append (case implementation-name
+            [(rapid-scheme)
+             '(posix rapid-scheme)]
+            [else '()])
+          (cons implementation-name always-supported)))
+
+)

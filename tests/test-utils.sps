@@ -1,5 +1,5 @@
 #!/usr/bin/env scheme-script
-;; -*- mode: scheme; coding: utf-8 -*- #!
+;; -*- mode: scheme; coding: utf-8 -*- !#
 ;; Copyright © 2017-2018 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -24,7 +24,7 @@
   (srfi :64 testing)
   (akku lib utils))
 
-(test-begin "symlink/relative")
+(test-begin "symlink-relative")
 
 (test-equal "../../../../private/utils.sls"
             (symlink/relative "./private/utils.sls" ".akku/lib/akku/private/utils.sls" #t))
