@@ -344,7 +344,7 @@
                   (r7include-target-filename decl))
        (let ((incl (mk-r7rs-include (r7include-target-filename decl)
                                     (if (r7include-ci? decl) 'foldcase #f)
-                                    decl
+                                    (r7include-original-expr decl)
                                     (r7lib-name lib)
                                     (r7include-source-filename decl))))
          (values import*

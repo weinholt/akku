@@ -236,13 +236,20 @@ Publishing is meant to be easy and hassle-free after some initial
 setup, so please report any usability problems with the publish
 command.
 .SH BUGS
-Implementation-dependent language constructs (such as module forms and
-non-R6RS lexical syntax) are handled rather poorly.
+Implementation-specific language constructs such as modules and
+lexical syntax are handled rather poorly.
 .PP
 Even though it is designed for R6RS in general it does not run with
 anything except Chez Scheme on Linux. The non-portable constructs have
 been separated from the rest of the code and help with porting is very
 welcome.
+.PP
+The conversion of R7RS code is not complete. It does not add quotes to
+vectors, which are self-quoting in R7RS but not in R6RS. If the R7RS
+code uses shared data at the lexical level, then the written R6RS
+library will also use that and may end up not being loadable by a
+conformant R6RS implementation. The R7RS support needs the akku\-r7rs
+package to be installed.
 .PP
 The lock command (and any command that uses it behind the scenes) does
 not preserve the versions of previously locked packages. This is

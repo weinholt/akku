@@ -261,6 +261,4 @@
             [(rapid-scheme)
              '(posix rapid-scheme)]
             [else '()])
-          (cons implementation-name always-supported)))
-
-)
+          (cons implementation-name always-supported))))

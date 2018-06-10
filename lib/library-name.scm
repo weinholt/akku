@@ -63,8 +63,8 @@
                 (when (> n #xff)
                   ;; XXX: Without this check, λ turns into a control
                   ;; character in the filename.
-                  (error 'library-name->file-name/psyntax
-                         "Characters above U+00FF are not supported" c))
+                  (assertion-violation 'library-name->file-name/psyntax
+                                       "Characters above U+00FF are not supported" c))
                 (display-hex (quotient n 16))
                 (display-hex (remainder n 16))))))
          (string->list
@@ -137,8 +137,8 @@
                 (when (> n #xff)
                   ;; XXX: Without this check, λ turns into a control
                   ;; character in the filename.
-                  (error 'library-name->file-name/ironscheme
-                         "Characters above U+00FF are not supported" c))
+                  (assertion-violation 'library-name->file-name/ironscheme
+                                       "Characters above U+00FF are not supported" c))
                 (display-hex (quotient n 16))
                 (display-hex (remainder n 16))))))
          (string->list
@@ -152,8 +152,8 @@
 ;; Chez Scheme, based on observed behavior.
 (define (library-name->file-name/chezscheme ls)
   (when (string-prefix? "~" (symbol->string (car ls)))
-    (error 'library-name->file-name/chezscheme
-           "Refusing to create an absolute path" ls))
+    (assertion-violation 'library-name->file-name/chezscheme
+                         "Refusing to create an absolute path" ls))
   (call-with-string-output-port
     (lambda (p)
       (for-each
@@ -163,8 +163,8 @@
            (when (string-index str #\/)
              ;; Chez does not have this check, but an extra / would
              ;; make trouble when the library file is written.
-             (error 'library-name->file-name/chezscheme
-                    "Refusing to create a path with an extra /" ls))
+             (assertion-violation 'library-name->file-name/chezscheme
+                                  "Refusing to create a path with an extra /" ls))
            (put-string p str)))
        ls))))
 

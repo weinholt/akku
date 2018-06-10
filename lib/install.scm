@@ -27,6 +27,7 @@
   (import
     (rnrs (6))
     (only (srfi :13 strings) string-index string-prefix?)
+    (only (srfi :67 compare-procedures) <? default-compare)
     (prefix (compression tar) tar:)
     (compression xz)
     (hashing sha-2)
@@ -377,9 +378,11 @@
                                              (native-transcoder))
         (lambda (outp)
           (display "#!r6rs " outp)      ;XXX: required for Racket
-          (display ";; Copyright notices may be found in " outp)
-          (write source-pathname outp)
-          (display "\n;; This file was written by Akku.scm\n" outp)
+          (when source-pathname
+            (display ";; Copyright notices may be found in " outp)
+            (write source-pathname outp)
+            (newline outp))
+          (display ";; This file was written by Akku.scm\n" outp)
           (pretty-print form outp))))
     target-pathname))
 
@@ -408,21 +411,26 @@
               (display ";; Copied by Akku from " outp)
               (write source-pathname outp)
               (display " !#" outp) ;XXX: required for GNU Guile
-              (display " #!r6rs " outp) ;XXX: required for Racket
+              (display "\n#!r6rs\n " outp) ;XXX: required for Racket
               (cond
                 ((not r7rs)
                  (pipe-ports outp inp))
                 (else
-                 ;; Convert the program from R7RS to R6RS.
+                 ;; Convert the program from R7RS to R6RS. R7RS § 5.1
+                 ;; seems to say import can show up multiple times
+                 ;; before the expressions and definitions begin.
                  (reader-tolerant?-set! reader #f)
-                 (log/warn "TODO: Gather R7RS imports to the start of the file")
-                 (newline outp)
-                 (match (read-datum reader)
-                   [('import import* ...)
-                    (pretty-print `(import ,@(map r7rs-import-set->r6rs import*))
-                                  outp)]
-                   [x
-                    (pretty-print x outp)])
+                 (let lp ((gathered-import* '()))
+                   (let ((x (read-datum reader)))
+                     (match x
+                       [('import import* ...)
+                        (lp (append gathered-import* import*))]
+                       [x
+                        (pretty-print `(import ,@(map r7rs-import-set->r6rs
+                                                      gathered-import*))
+                                      outp)
+                        (unless (eof-object? x)
+                          (pretty-print x outp))])))
                  (let lp ()
                    (let ((datum (read-datum reader)))
                      (unless (eof-object? datum)
@@ -504,7 +512,6 @@
 (define (install-artifact/r7rs-library project artifact srcdir always-symlink?)
   (define (read-include source-filename target-filename)
     (read-all-forms (resolve-relative-filename source-filename target-filename) #f))
-  ;; TODO: Install the original for Larceny and Sagittarius.
   (let ((library-locations
          (make-r6rs-library-filenames (r7rs-library-name->r6rs
                                        (r7rs-library-name artifact))
@@ -624,7 +631,11 @@
        (let* ((artifact* (filter (lambda (artifact)
                                    (not (artifact-for-test? artifact)))
                                  (find-artifacts srcdir #f)))
-              (asset* (append-map artifact-assets artifact*))) ;XXX: may have duplicates
+              (asset* (delete-duplicates
+                       (append-map artifact-assets artifact*)
+                       (lambda (x y)
+                         (equal? (include-reference-path x)
+                                 (include-reference-path y))))))
          (let ((artifact-filename*
                 (map-in-order (lambda (artifact)
                                 (map (lambda (fn) (cons artifact fn))
@@ -665,11 +676,78 @@
         (display "export YPSILON_SITELIB=\"$PWD/.akku/lib\"\n" p)
         (display "export PATH=$PWD/.akku/bin:$PATH\n" p)))))
 
+;; Installs a library that contains metadata about all artifacts.
+(define (install-metadata installed-project/artifact*)
+  (define library-name '(akku metadata))
+  (define installed-libraries
+    (delete-duplicates
+     (list-sort
+      (lambda (x y) (<? default-compare x y))
+      (append-map
+       (match-lambda
+        [#(project artifact/fn*)
+         (append-map (match-lambda
+                      [(artifact . _filename)
+                       (cond ((r6rs-library? artifact)
+                              (list (r6rs-library-name artifact)))
+                             ((r7rs-library? artifact)
+                              (list (r7rs-library-name artifact)))
+                             (else '()))])
+                     artifact/fn*)])
+       installed-project/artifact*))))
+  (define installed-assets
+    (list-sort
+     (lambda (x y) (<? default-compare x y))
+     (append-map
+      (match-lambda
+       [#(project artifact/fn*)
+        (append-map
+         (match-lambda
+          [(artifact . _filename)
+           (if (not (artifact? artifact))
+               '()
+               ;; Group by original include form
+               (let ((include-spec*
+                      (delete-duplicates
+                       (map include-reference-original-include-spec
+                            (artifact-assets artifact)))))
+                 (map (lambda (original-include-spec)
+                        (list original-include-spec
+                              (filter-map
+                               (lambda (asset)
+                                 (and (equal? original-include-spec
+                                              (include-reference-original-include-spec asset))
+                                      (include-reference-path asset)))
+                               (artifact-assets artifact))
+                              (cond ((r6rs-library? artifact)
+                                     (r6rs-library-name artifact))
+                                    ((r7rs-library? artifact)
+                                     (r7rs-library-name artifact))
+                                    (else #f))))
+                      include-spec*)))])
+         artifact/fn*)])
+      installed-project/artifact*)))
+  (log/debug "Writing metadata to " library-name)
+  (map-in-order
+   (lambda (target)
+     (cons (make-generic-file "" '())
+           (write-r6rs-library
+            (path-join (libraries-directory) (car target))
+            (cdr target)
+            #f
+            `(library ,library-name
+               (export installed-libraries installed-assets)
+               (import (only (rnrs) define quote))
+               (define installed-libraries ',installed-libraries)
+               (define installed-assets ',installed-assets)))))
+   (make-r6rs-library-filenames library-name #f)))
+
 ;; Create .akku/list
 (define (install-file-list installed-project/artifact*)
   (define printed-files (make-hashtable string-hash string=?))
   (define (installed-type a)
     (cond ((r6rs-library? a) 'r6rs-library)
+          ((r7rs-library? a) 'r7rs-library)
           ((r6rs-program? a) 'r6rs-program)
           ((module? a) 'module)
           ((legal-notice-file? a) 'legal-notice-file)
@@ -701,7 +779,8 @@
                                           name))))
                             (log/info "File " filename  " in "
                                       (fmt-name (project-name other-project))
-                                      " shadows that from " (fmt-name (project-name project)))))))
+                                      " shadows that from "
+                                      (fmt-name (project-name project)))))))
                     (else
                      (hashtable-set! printed-files filename (cons project artifact))
                      (display filename p)
@@ -774,7 +853,11 @@
                 installed-project/artifact*
                 (append installed-project/artifact*
                         (list (vector current-project
-                                      (install-project current-project 'symlink)))))))
-      (install-file-list installed-project/artifact*)
-      (remove-extraneous-files installed-project/artifact*))
+                                      (install-project current-project 'symlink))))))
+           (complete-list (append installed-project/artifact*
+                                  (list
+                                   (vector current-project
+                                           (install-metadata installed-project/artifact*))))))
+      (install-file-list complete-list)
+      (remove-extraneous-files complete-list))
     (install-activate-script))))

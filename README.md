@@ -13,8 +13,8 @@ code and vigorously shakes it until it behaves properly.
 * One command to install everything needed for a project.
 * Project-based, installs your locked dependencies to a single library
   directory.
-* Scan repositories for R6RS libraries, even multiple per file, and
-  copy them to the right file paths for any supported Scheme.
+* Scan repositories for R6RS/R7RS libraries, even multiple per file,
+  and copy them to the right file paths for any supported Scheme.
 * Resolve all files needed for compilation and scan them for license
   notices.
 

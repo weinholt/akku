@@ -30,6 +30,7 @@
     r7import? r7import-name r7import-set
     r7begin? r7begin-body*
     r7include? r7include-source-filename r7include-target-filename r7include-ci?
+    r7include-expr r7include-original-expr
     r7condexp? r7condexp-clause*
     r7condexp-clause? r7condexp-clause-feature-req r7condexp-clause-declaration*
     r7unknown? r7unknown-declaration
@@ -135,8 +136,7 @@
          ,@(append-map
             (lambda (decl)
               (cond ((r7include? decl)
-                     (list (list (if (r7include-ci? decl) 'include-ci 'include)
-                                 (r7include-target-filename decl))))
+                     (list (r7include-expr decl)))
                     ((r7unknown? decl)
                      (list (r7unknown-declaration decl)))
                     (else
@@ -168,7 +168,8 @@
   (sealed #t)
   (fields source-filename
           target-filename
-          ci?))                         ;case-insensitive?
+          ci?                           ;case-insensitive?
+          original-expr))               ;original expression
 
 (define-record-type r7condexp
   (sealed #t)
@@ -182,6 +183,10 @@
 (define-record-type r7unknown
   (sealed #t)
   (fields declaration))
+
+(define (r7include-expr decl)
+  (list (if (r7include-ci? decl) 'include-ci 'include)
+        (r7include-target-filename decl)))
 
 ;; Recordizes an R7RS library declaration.
 (define (parse-r7rs-define-library def-lib filename read-include)
@@ -201,7 +206,7 @@
     (match decl
       (((and (or 'include 'include-ci) incl) (? string? fn*) ...)
        (map (lambda (fn)
-              (make-r7include filename fn (eq? incl 'include-ci)))
+              (make-r7include filename fn (eq? incl 'include-ci) decl))
             fn*))
       (('include-library-declarations (? string? fn*) ...)
        (when (> depth 100)
