@@ -28,6 +28,7 @@
     make-generic-file generic-file?
     make-legal-notice-file legal-notice-file?
     r6rs-library? r6rs-library-name r6rs-library-version r6rs-library-exports
+    r6rs-library-original-name
     r6rs-program?
     r7rs-library? r7rs-library-name r7rs-library-exports
     r7rs-program?
@@ -93,7 +94,8 @@
   (parent artifact)
   (sealed #t)
   (nongenerative)
-  (fields name version exports))
+  (fields name version exports
+          original-name))               ;#f or unmangled name
 
 (define-record-type r6rs-program
   (parent artifact)
@@ -520,21 +522,48 @@
 (define (examine-source-file realpath path path-list)
   (define (maybe-library/module form form-index next-datum)
     (match form
-      (('library (name ...)             ;R6RS library
+      (('library (name+ver ...)             ;R6RS library
          ('export export* ...)
          ('import import* ...)
          . body*)
-       (let ((ver (find list? name))
-             (parsed-import-spec* (map parse-r6rs-import-spec import*)))
-         (let ((include* (scan-for-includes/r6rs body* realpath)))
-           (list (make-r6rs-library path path-list form-index (eof-object? next-datum)
-                                    parsed-import-spec* include*
-                                    (or (path->implementation-name path)
-                                        (r6rs-library-name*->implementation-name
-                                         (map library-reference-name parsed-import-spec*)))
-                                    (if ver (reverse (cdr (reverse name))) name)
-                                    (or ver '())
-                                    (append-map parse-r6rs-export export*))))))
+       (let* ((ver (find list? name+ver))
+              (name (if ver (reverse (cdr (reverse name+ver))) name+ver)))
+         (let* ((parsed-import-spec* (map parse-r6rs-import-spec import*))
+                (implementation-name (or (path->implementation-name path)
+                                         (r6rs-library-name*->implementation-name
+                                          (map library-reference-name parsed-import-spec*))))
+                (parsed-export* (append-map parse-r6rs-export export*)))
+           (let ((include* (scan-for-includes/r6rs body* realpath)))
+             (cons (make-r6rs-library path path-list form-index (eof-object? next-datum)
+                                      parsed-import-spec* include*
+                                      implementation-name name
+                                      (or ver '()) parsed-export* #f)
+                   ;; If an implementation requires libraries to be
+                   ;; mangled then they show up as their own
+                   ;; artifacts.
+                   (append-map
+                    (match-lambda
+                     [(mangle-impl-name . mangled-lib-name)
+                      (cond ((and implementation-name
+                                  (not (eq? implementation-name mangle-impl-name)))
+                             '())
+                            ((or (memq mangle-impl-name
+                                       (r6rs-library-block-for-implementations name))
+                                 (memq mangle-impl-name
+                                       (r6rs-library-omit-for-implementations name)))
+                             (log/debug "Not installing " (wrt name) " for "
+                                        mangle-impl-name)
+                             '())
+                            (else
+                             (log/debug "Mangling " (wrt name) " to "
+                                        (wrt mangled-lib-name) " for "
+                                        mangle-impl-name)
+                             (list (make-r6rs-library path path-list form-index
+                                                      (eof-object? next-datum)
+                                                      parsed-import-spec* include*
+                                                      mangle-impl-name mangled-lib-name
+                                                      (or ver '()) parsed-export* name))))])
+                    (r6rs-library-name-mangle name)))))))
       (('define-library (name ...)      ;R7RS library
          . declaration*)
        ;; XXX: name can contain <identifier> or <uinteger 10> [sic!].

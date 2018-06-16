@@ -26,6 +26,7 @@
     logger:akku.install)
   (import
     (rnrs (6))
+    (only (srfi :1 lists) filter-map append-map lset-difference)
     (only (srfi :13 strings) string-index string-prefix?)
     (only (srfi :67 compare-procedures) <? default-compare)
     (prefix (compression tar) tar:)
@@ -287,29 +288,67 @@
                    filename))))
    (string-split filename #\/)))
 
-;; Makes all known variants of the path for the library.
-(define (make-r6rs-library-filenames name implementation)
-  (delete-duplicates
-   (filter-map
-    (lambda (library-name->file-name)
-      (guard (exn
-              ((serious-condition? exn)
-               (when (and (message-condition? exn)
-                          (irritants-condition? exn))
-                 (log/error (condition-message exn) ": "
-                            (condition-irritants exn)))
-               #f))
-        (let* ((filename (library-name->file-name name))
-               (filename (substring filename 1 (string-length filename)))
-               (filename (if implementation
-                             (string-append filename "."
-                                            (symbol->string implementation))
-                             filename))
-               (filename (string-append filename ".sls")))
-          (check-filename filename (support-windows?))
-          (split-path filename))))
-    (library-name->file-name-variants implementation))
-   equal?))
+;; Makes all known variants of the path and name for the library.
+;; Returns a list of (library-name/#f directory-name file-name).
+(define (make-r6rs-library-filenames name implementation other-impl*)
+  (define (make-filenames name implementation allowed-impl*)
+    (delete-duplicates
+     (filter-map
+      (lambda (library-name->file-name)
+        (guard (exn
+                ((serious-condition? exn)
+                 (when (and (message-condition? exn)
+                            (irritants-condition? exn))
+                   (log/error (condition-message exn) ": "
+                              (condition-irritants exn)))
+                 #f))
+          (let* ((filename (library-name->file-name name))
+                 (filename (substring filename 1 (string-length filename)))
+                 (filename
+                  (if implementation
+                      (let ((suffix (string-append "." (symbol->string implementation))))
+                        (if (string-suffix? suffix filename)
+                            filename   ;already has the suffix
+                            (string-append filename suffix)))
+                      filename))
+                 (filename (string-append filename ".sls")))
+            (check-filename filename (support-windows?))
+            (split-path filename))))
+      (if implementation
+          (list (library-name->file-name-variant implementation))
+          (map library-name->file-name-variant allowed-impl*)))))
+  (let ((block-by-omission (r6rs-library-omit-for-implementations name))
+        (block-by-exclusion (r6rs-library-block-for-implementations name)))
+    (unless (null? block-by-omission)
+      (log/trace "Omitting " name " from implementations " block-by-omission))
+    (unless (null? block-by-exclusion)
+      (log/trace "Excluding " name " from implementations " block-by-exclusion))
+    (cond
+      (implementation
+       ;; Implementation-specific libraries are never blocked.
+       (make-filenames name implementation (list implementation)))
+      ((pair? block-by-omission)
+       ;; Block installation for some implementations. Done by not
+       ;; constructing the special filenames that those
+       ;; implementations use for this library.
+       (make-filenames name #f (lset-difference eq? r6rs-implementation-names
+                                                block-by-omission)))
+      ((pair? block-by-exclusion)
+       ;; Block installation for some implementations. Done by
+       ;; installing with names exclusive to all other known
+       ;; implementations.
+       (let ((allowed-impl* (lset-difference eq? r6rs-implementation-names
+                                             (append other-impl* block-by-exclusion))))
+         (delete-duplicates
+          (append-map (lambda (impl) (make-filenames name impl allowed-impl*))
+                      allowed-impl*))))
+      (else
+       ;; Install and make available to all implementations, but omit
+       ;; special filenames for those that have their own
+       ;; implementation.
+       (make-filenames name implementation
+                       (lset-difference eq? r6rs-implementation-names
+                                        other-impl*))))))
 
 ;; Copies a single R6RS library form from one file to another.
 (define (copy-r6rs-library target-directory target-filename source-pathname form-index)
@@ -363,6 +402,32 @@
                        (pretty-print form outp)))))))))
     target-pathname))
 
+;; Same as call-with-output-file, but with no-fail and rename or
+;; delete depending on if the target already exists and is identical.
+(define (call-with-output-file/renaming filename proc)
+  (define (files-identical? fn0 fn1)
+    (call-with-port (open-file-input-port fn0)
+      (lambda (p0)
+        (call-with-port (open-file-input-port fn1)
+          (lambda (p1)
+            (let lp ()
+              (let ((b0 (get-bytevector-n p0 4096))
+                    (b1 (get-bytevector-n p1 4096)))
+                (cond ((and (eof-object? b0) (eof-object? b1))
+                       #t)
+                      ((not (bytevector=? b0 b1))
+                       #f)
+                      (else (lp))))))))))
+  (let ((tempname (string-append filename ".tmp")))
+    (call-with-port (open-file-output-port tempname
+                                           (file-options no-fail)
+                                           (buffer-mode block)
+                                           (native-transcoder))
+      proc)
+    (if (and (file-exists? filename) (files-identical? filename tempname))
+        (delete-file tempname)
+        (rename-file tempname filename))))
+
 ;; Write out an R6RS library form.
 (define (write-r6rs-library target-directory target-filename source-pathname form)
   (let ((target-pathname (path-join target-directory target-filename)))
@@ -372,10 +437,7 @@
       (mkdir/recursive target-directory)
       (when (file-symbolic-link? target-pathname)
         (delete-file target-pathname))
-      (call-with-port (open-file-output-port target-pathname
-                                             (file-options no-fail)
-                                             (buffer-mode block)
-                                             (native-transcoder))
+      (call-with-output-file/renaming target-pathname
         (lambda (outp)
           (display "#!r6rs " outp)      ;XXX: required for Racket
           (when source-pathname
@@ -470,14 +532,29 @@
        target-pathname))))
 
 ;; Install an R6RS library.
-(define (install-artifact/r6rs-library project artifact srcdir always-symlink?)
-  (let ((library-locations
-         (make-r6rs-library-filenames (r6rs-library-name artifact)
-                                      (artifact-implementation artifact))))
+(define (install-artifact/r6rs-library project artifact related-artifact* srcdir always-symlink?)
+  (let* ((other-impl* (filter-map (lambda (artifact^)
+                                    (and (not (eq? artifact^ artifact))
+                                         (r6rs-library? artifact^)
+                                         (or (equal? (r6rs-library-name artifact^)
+                                                     (r6rs-library-name artifact))
+                                             (equal? (r6rs-library-original-name artifact^)
+                                                     (r6rs-library-name artifact)))
+                                         (artifact-implementation artifact^)))
+                                  related-artifact*))
+         (library-locations
+          (make-r6rs-library-filenames (r6rs-library-name artifact)
+                                       (artifact-implementation artifact)
+                                       other-impl*)))
     (cond
       ((null? library-locations)
        (log/warn "Could not construct a filename for "
                  (r6rs-library-name artifact))
+       '())
+      ((and (r6rs-library-original-name artifact)
+            (memq (artifact-implementation artifact) other-impl*))
+       (log/trace "Not installing mangled " (r6rs-library-name artifact)
+                  ", specific implementation exists")
        '())
       (else
        ;; Create each of the locations for the library. The first
@@ -485,21 +562,36 @@
        (let ((target (car library-locations))
              (aliases (cdr library-locations)))
          (let ((target-pathname
-                (cond ((and always-symlink? (zero? (artifact-form-index artifact))
-                            (artifact-last-form? artifact))
-                       ;; It's safe to symlink iff the file has a
-                       ;; single form.
-                       (symlink-file (path-join (libraries-directory) (car target))
-                                     (cdr target)
-                                     (path-join srcdir (artifact-path artifact))))
-                      (else
-                       (when always-symlink?
-                         (log/warn "Refusing to symlink multi-form file "
-                                   (artifact-path artifact)))
-                       (copy-r6rs-library (path-join (libraries-directory) (car target))
-                                          (cdr target)
-                                          (path-join srcdir (artifact-path artifact))
-                                          (artifact-form-index artifact))))))
+                (cond
+                  ((r6rs-library-original-name artifact)
+                   ;; The library name was mangled; needs a rewrite.
+                   (let ((fn (path-join srcdir (artifact-path artifact))))
+                     (call-with-input-file fn
+                       (lambda (inp)
+                         (let ((reader (make-reader inp fn)))
+                           (reader-skip-to-form reader (artifact-form-index artifact))
+                           (let* ((original-lib (read-datum reader))
+                                  (lib `(library ,(r6rs-library-name artifact)
+                                          ,@(cddr original-lib))))
+                             (write-r6rs-library (path-join (libraries-directory) (car target))
+                                                 (cdr target)
+                                                 (artifact-path artifact)
+                                                 lib)))))))
+                  ((and always-symlink? (zero? (artifact-form-index artifact))
+                        (artifact-last-form? artifact))
+                   ;; It's safe to symlink iff the file has a
+                   ;; single form.
+                   (symlink-file (path-join (libraries-directory) (car target))
+                                 (cdr target)
+                                 (path-join srcdir (artifact-path artifact))))
+                  (else
+                   (when always-symlink?
+                     (log/warn "Refusing to symlink multi-form file "
+                               (artifact-path artifact)))
+                   (copy-r6rs-library (path-join (libraries-directory) (car target))
+                                      (cdr target)
+                                      (path-join srcdir (artifact-path artifact))
+                                      (artifact-form-index artifact))))))
            (cons target-pathname
                  (map-in-order
                   (lambda (alias)
@@ -515,7 +607,8 @@
   (let ((library-locations
          (make-r6rs-library-filenames (r7rs-library-name->r6rs
                                        (r7rs-library-name artifact))
-                                      (artifact-implementation artifact))))
+                                      (artifact-implementation artifact)
+                                      '())))
     (cond
       ((null? library-locations)
        (log/warn "Could not construct a filename for " (r7rs-library-name artifact))
@@ -580,10 +673,10 @@
                     aliases)))))))))
 
 ;; Install an artifact.
-(define (install-artifact project artifact srcdir always-symlink?)
+(define (install-artifact project artifact related-artifact* srcdir always-symlink?)
   (cond
     ((r6rs-library? artifact)
-     (install-artifact/r6rs-library project artifact srcdir always-symlink?))
+     (install-artifact/r6rs-library project artifact related-artifact* srcdir always-symlink?))
     ((or (r6rs-program? artifact)
          (r7rs-program? artifact))      ;TODO: convert the imports in this case
      (cond
@@ -638,8 +731,11 @@
                                  (include-reference-path y))))))
          (let ((artifact-filename*
                 (map-in-order (lambda (artifact)
+                                ;; FIXME: Should filter related
+                                ;; artifacts by library name.
                                 (map (lambda (fn) (cons artifact fn))
-                                     (install-artifact project artifact srcdir always-symlink?)))
+                                     (install-artifact project artifact artifact*
+                                                       srcdir always-symlink?)))
                               artifact*))
                (asset-filename*
                 (map-in-order (lambda (asset)
@@ -689,44 +785,46 @@
          (append-map (match-lambda
                       [(artifact . _filename)
                        (cond ((r6rs-library? artifact)
-                              (list (r6rs-library-name artifact)))
+                              (list (or (r6rs-library-original-name artifact)
+                                        (r6rs-library-name artifact))))
                              ((r7rs-library? artifact)
                               (list (r7rs-library-name artifact)))
                              (else '()))])
                      artifact/fn*)])
        installed-project/artifact*))))
   (define installed-assets
-    (list-sort
-     (lambda (x y) (<? default-compare x y))
-     (append-map
-      (match-lambda
-       [#(project artifact/fn*)
-        (append-map
-         (match-lambda
-          [(artifact . _filename)
-           (if (not (artifact? artifact))
-               '()
-               ;; Group by original include form
-               (let ((include-spec*
-                      (delete-duplicates
-                       (map include-reference-original-include-spec
-                            (artifact-assets artifact)))))
-                 (map (lambda (original-include-spec)
-                        (list original-include-spec
-                              (filter-map
-                               (lambda (asset)
-                                 (and (equal? original-include-spec
-                                              (include-reference-original-include-spec asset))
-                                      (include-reference-path asset)))
-                               (artifact-assets artifact))
-                              (cond ((r6rs-library? artifact)
-                                     (r6rs-library-name artifact))
-                                    ((r7rs-library? artifact)
-                                     (r7rs-library-name artifact))
-                                    (else #f))))
-                      include-spec*)))])
-         artifact/fn*)])
-      installed-project/artifact*)))
+    (delete-duplicates
+     (list-sort
+      (lambda (x y) (<? default-compare x y))
+      (append-map
+       (match-lambda
+        [#(project artifact/fn*)
+         (append-map
+          (match-lambda
+           [(artifact . _filename)
+            (if (not (artifact? artifact))
+                '()
+                ;; Group by original include form
+                (let ((include-spec*
+                       (delete-duplicates
+                        (map include-reference-original-include-spec
+                             (artifact-assets artifact)))))
+                  (map (lambda (original-include-spec)
+                         (list original-include-spec
+                               (filter-map
+                                (lambda (asset)
+                                  (and (equal? original-include-spec
+                                               (include-reference-original-include-spec asset))
+                                       (include-reference-path asset)))
+                                (artifact-assets artifact))
+                               (cond ((r6rs-library? artifact)
+                                      (r6rs-library-name artifact))
+                                     ((r7rs-library? artifact)
+                                      (r7rs-library-name artifact))
+                                     (else #f))))
+                       include-spec*)))])
+          artifact/fn*)])
+       installed-project/artifact*))))
   (log/debug "Writing metadata to " library-name)
   (let-values (((main-package-name main-package-version)
                 (if (file-exists? manifest-filename)
@@ -749,7 +847,7 @@
                  (define main-package-version ',main-package-version)
                  (define installed-libraries ',installed-libraries)
                  (define installed-assets ',installed-assets)))))
-     (make-r6rs-library-filenames library-name #f))))
+     (make-r6rs-library-filenames library-name #f '()))))
 
 ;; Create .akku/list
 (define (install-file-list installed-project/artifact*)

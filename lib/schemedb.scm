@@ -28,7 +28,11 @@
     r7rs-implementation-names
     rnrs-implementation-name?
     r7rs-implementation-name?
-    implementation-features)
+    implementation-features
+    ;; Quirks of library name handling in R6RS implementation.
+    r6rs-library-name-mangle
+    r6rs-library-omit-for-implementations
+    r6rs-library-block-for-implementations)
   (import
     (rnrs (6))
     (xitomatl AS-match))
@@ -261,4 +265,48 @@
             [(rapid-scheme)
              '(posix rapid-scheme)]
             [else '()])
-          (cons implementation-name always-supported))))
+          (cons implementation-name always-supported)))
+
+(define (colon-name? x)
+  (let ((num (symbol->string x)))
+    (and (> (string-length num) 0)
+         (char=? #\: (string-ref num 0)))))
+
+;; Some implementations want library names to be mangled. This returns
+;; an alist mapping implementations to mangled names.
+(define (r6rs-library-name-mangle lib-name)
+  (match lib-name
+    [('srfi (? colon-name? n) . _)
+     ;; GNU Guile wants (srfi :1 lists) to be (srfi srfi-1). It
+     ;; handles mangling the imports all by itself. This requires the
+     ;; (srfi :1) library to be omitted from installation.
+     (let* ((n (symbol->string n))
+            (srfi-n (string->symbol
+                     (string-append "srfi-" (substring n 1 (string-length n))))))
+       (match lib-name
+         [('srfi _n name . x*) (list (cons 'guile `(srfi ,srfi-n ,@x*)))]
+         [else '()]))]
+    [else '()]))
+
+;; Implementations for which the library should be omitted from normal
+;; installation procedures.
+(define (r6rs-library-omit-for-implementations lib-name)
+  (match lib-name
+    ;; The (srfi :<n>) libs will conflict with (srfi :<n> name).
+    [('srfi (? colon-name?))
+     '(guile)]
+    [('srfi srfi-n . _)
+     ;; Some SRFIs are needed during the startup of Guile, so the
+     ;; native versions must be used. Other ones would merely import
+     ;; the native version.
+     (if (memq srfi-n '(:6 :8 :13 :16 :19 :26 :39 :60 :64 :69))
+         '(guile)
+         '())]
+    (else '())))
+
+;; Implementations for which the library should be blocked, by
+;; constructing implementation-specific filenames that exclude these
+;; implementations.
+(define (r6rs-library-block-for-implementations lib-name)
+  (match lib-name
+    [else '()])))

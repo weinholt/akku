@@ -333,6 +333,4 @@
                                    feature-list
                                    library-installed?)
                  (r7condexp-clause-declaration* clause)))
-          (r7condexp-clause* decl)))
-
-)
+          (r7condexp-clause* decl))))

@@ -25,11 +25,12 @@
 (library (akku lib library-name)
   (export
     library-name->file-name/chezscheme
+    library-name->file-name/guile
     library-name->file-name/ikarus
     library-name->file-name/ironscheme
     library-name->file-name/psyntax
     library-name->file-name/racket
-    library-name->file-name-variants)
+    library-name->file-name-variant)
   (import
     (rnrs (6))
     (only (srfi :13 strings) string-index string-prefix?)
@@ -176,21 +177,49 @@
         (string-append name "/main")
         name)))
 
-(define (library-name->file-name-variants implementation)
+;; GNU Guile, based on observed behavior.
+(define (library-name->file-name/guile ls)
+  (cond
+    ;; The libraries (srfi :n) are looked up in srfi/srfi-n.guile.<ext>
+    ((and (pair? ls) (pair? (cdr ls))
+          (eq? (car ls) 'srfi)
+          (let ((num (symbol->string (cadr ls))))
+            (and (> (string-length num) 0)
+                 (char=? #\: (string-ref num 0))
+                 (substring num 1 (string-length num)))))
+     => (lambda (srfi-n)
+          (let ((trailing (cddr ls)))
+            (library-name->file-name/guile
+             `(srfi ,(string->symbol (string-append "srfi-" srfi-n))
+                    ,@(if (null? trailing)
+                          '()
+                          (cdr trailing)))))))
+    (else
+     (call-with-string-output-port
+       (lambda (p)
+         (for-each
+          (lambda (component)
+            (put-char p #\/)
+            (let ((str (symbol->string component)))
+              (when (string-index str #\/)
+                ;; Guile does not have this check, but an extra / would
+                ;; make trouble when the library file is written.
+                (assertion-violation 'library-name->file-name/guile
+                                     "Refusing to create a path with an extra /" ls))
+              (put-string p str)))
+          ls))))))
+
+(define (library-name->file-name-variant implementation)
   (case implementation
     ((chezscheme)
-     (list library-name->file-name/chezscheme))
+     library-name->file-name/chezscheme)
     ((ikarus)
-     (list library-name->file-name/ikarus))
+     library-name->file-name/ikarus)
     ((ironscheme)
-     (list library-name->file-name/ironscheme))
+     library-name->file-name/ironscheme)
     ((mzscheme)
-     (list library-name->file-name/racket))
-    (else
-     ;; If the library is not implementation-dependent, then it
-     ;; could be loaded from any one of these filenames.
-     (list library-name->file-name/chezscheme
-           library-name->file-name/ikarus
-           library-name->file-name/ironscheme
-           library-name->file-name/psyntax
-           library-name->file-name/racket)))))
+     library-name->file-name/racket)
+    ((guile)
+     library-name->file-name/guile)
+    (else                               ;default fallback
+     library-name->file-name/chezscheme))))

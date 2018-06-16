@@ -73,7 +73,7 @@
                  (map (match-lambda
                        ((dir . fn) (path-join lib-dir (path-join dir fn))))
                       (append-map (lambda (impl)
-                                    (make-r6rs-library-filenames lib-name impl))
+                                    (make-r6rs-library-filenames lib-name impl '()))
                                   (append implementations '(#f))))))
            ;; FIXME: if only-first?, then stop on the first hit.
            ;; Otherwise keep going.

@@ -35,4 +35,15 @@
             (library-name->file-name/racket '(foldling shorthand λ)))
 (test-end)
 
+(test-begin "libname-guile")
+(test-equal "/srfi"
+            (library-name->file-name/guile '(srfi)))
+(test-equal "/srfi/srfi-1"
+            (library-name->file-name/guile '(srfi :1)))
+(test-equal "/srfi/srfi-1"
+            (library-name->file-name/guile '(srfi :1 lists)))
+(test-equal "/srfi/srfi-1/foo"
+            (library-name->file-name/guile '(srfi :1 lists foo)))
+(test-end)
+
 (exit (if (zero? (test-runner-fail-count (test-runner-get))) 0 1))
