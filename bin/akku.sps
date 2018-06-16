@@ -42,6 +42,7 @@
   (only (akku lib update) update-index)
   (only (akku lib utils) path-join application-home-directory)
   (only (akku lib publish) publish-packages)
+  #;(only (akku metadata) main-package-version)
   (akku private logging))
 
 (define logger:akku.main (make-logger logger:akku 'main))
@@ -76,7 +77,8 @@
           (else (error 'cmd-lock "Unable to locate the package index")))))
 
 (define (cmd-help)
-  (display "Akku.scm - Scheme package manager
+  (fmt (current-error-port)
+       "Akku.scm" #;main-package-version " - Scheme package manager
 
 Simple usage:
    akku list - list all packages in the index
@@ -108,7 +110,7 @@ Advanced usage:
 Homepage: https://github.com/weinholt/akku
 License: GNU GPLv3
 
-" (current-error-port))
+")
   (exit 0))
 
 (define (parse-package-name package-name)
@@ -159,7 +161,7 @@ License: GNU GPLv3
          ;; Install locked dependencies.
          (unless (file-exists? lockfile-filename)
            (cmd-lock '()))
-         (install lockfile-filename))
+         (install lockfile-filename manifest-filename))
         (else
          ;; All-in-one automatic installation of a package.
          (cmd-add arg*)

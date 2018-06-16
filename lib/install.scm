@@ -36,12 +36,12 @@
     (only (xitomatl common) pretty-print)
     (xitomatl alists)
     (xitomatl AS-match)
-    (only (akku format manifest) manifest-filename)
     (only (akku lib compat) chmod file-directory?
           file-regular? file-symbolic-link? file-exists/no-follow?
           directory-list delete-directory rename-file)
     (akku lib file-parser)
     (akku lib git)
+    (akku lib manifest)
     (akku lib lock)
     (akku lib library-name)
     (akku lib r7rs)
@@ -677,7 +677,7 @@
         (display "export PATH=$PWD/.akku/bin:$PATH\n" p)))))
 
 ;; Installs a library that contains metadata about all artifacts.
-(define (install-metadata installed-project/artifact*)
+(define (install-metadata installed-project/artifact* manifest-filename)
   (define library-name '(akku metadata))
   (define installed-libraries
     (delete-duplicates
@@ -728,19 +728,28 @@
          artifact/fn*)])
       installed-project/artifact*)))
   (log/debug "Writing metadata to " library-name)
-  (map-in-order
-   (lambda (target)
-     (cons (make-generic-file "" '())
-           (write-r6rs-library
-            (path-join (libraries-directory) (car target))
-            (cdr target)
-            #f
-            `(library ,library-name
-               (export installed-libraries installed-assets)
-               (import (only (rnrs) define quote))
-               (define installed-libraries ',installed-libraries)
-               (define installed-assets ',installed-assets)))))
-   (make-r6rs-library-filenames library-name #f)))
+  (let-values (((main-package-name main-package-version)
+                (if (file-exists? manifest-filename)
+                    (let ((pkg* (read-manifest manifest-filename)))
+                      (values (package-name (car pkg*))
+                              (version-number (car (package-version* (car pkg*))))))
+                    (values #f #f))))
+    (map-in-order
+     (lambda (target)
+       (cons (make-generic-file "" '())
+             (write-r6rs-library
+              (path-join (libraries-directory) (car target))
+              (cdr target)
+              #f
+              `(library ,library-name
+                 (export main-package-name main-package-version
+                         installed-libraries installed-assets)
+                 (import (only (rnrs) define quote))
+                 (define main-package-name ',main-package-name)
+                 (define main-package-version ',main-package-version)
+                 (define installed-libraries ',installed-libraries)
+                 (define installed-assets ',installed-assets)))))
+     (make-r6rs-library-filenames library-name #f))))
 
 ;; Create .akku/list
 (define (install-file-list installed-project/artifact*)
@@ -832,7 +841,7 @@
                 (for-each handle-file filename*))))
       (recurse (libraries-directory) (directory-list (libraries-directory))))))
 
-(define (install lockfile-location)
+(define (install lockfile-location manifest-filename)
   (let ((project-list (read-lockfile lockfile-location))
         (current-project (make-project "" #f '(directory ".") '((r6rs)) #f #f #f)))
     (mkdir/recursive (akku-directory))
@@ -857,7 +866,8 @@
            (complete-list (append installed-project/artifact*
                                   (list
                                    (vector current-project
-                                           (install-metadata installed-project/artifact*))))))
+                                           (install-metadata installed-project/artifact*
+                                                             manifest-filename))))))
       (install-file-list complete-list)
       (remove-extraneous-files complete-list))
     (install-activate-script))))
