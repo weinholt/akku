@@ -368,10 +368,7 @@
           (mkdir/recursive target-directory)
           (when (file-symbolic-link? target-pathname)
             (delete-file target-pathname))
-          (call-with-port (open-file-output-port target-pathname
-                                                 (file-options no-fail)
-                                                 (buffer-mode block)
-                                                 (native-transcoder))
+          (call-with-output-file/renaming target-pathname
             (lambda (outp)
               ;; TODO: Only add #!r6rs if it's not in the original source.
               (display "#!r6rs " outp) ;XXX: required for Racket
@@ -405,7 +402,7 @@
 
 ;; Same as call-with-output-file, but with no-fail and rename or
 ;; delete depending on if the target already exists and is identical.
-(define (call-with-output-file/renaming filename proc)
+(define (%call-with-output-file/renaming filename transcoder proc)
   (define (files-identical? fn0 fn1)
     (call-with-port (open-file-input-port fn0)
       (lambda (p0)
@@ -423,11 +420,17 @@
     (call-with-port (open-file-output-port tempname
                                            (file-options no-fail)
                                            (buffer-mode block)
-                                           (native-transcoder))
+                                           transcoder)
       proc)
     (if (and (file-exists? filename) (files-identical? filename tempname))
         (delete-file tempname)
         (rename-file tempname filename))))
+
+(define (call-with-output-file/renaming filename proc)
+  (%call-with-output-file/renaming filename (native-transcoder) proc))
+
+(define (call-with-binary-output-file/renaming filename proc)
+  (%call-with-output-file/renaming filename #f proc))
 
 ;; Write out an R6RS library form.
 (define (write-r6rs-library target-directory target-filename source-pathname form)
@@ -465,10 +468,7 @@
           (mkdir/recursive target-directory)
           (when (file-symbolic-link? target-pathname)
             (delete-file target-pathname))
-          (call-with-port (open-file-output-port target-pathname
-                                                 (file-options no-fail)
-                                                 (buffer-mode block)
-                                                 (native-transcoder))
+          (call-with-output-file/renaming target-pathname
             (lambda (outp)
               (display "#!/usr/bin/env scheme-script\n" outp)
               (display ";; Copied by Akku from " outp)
@@ -512,8 +512,7 @@
         (mkdir/recursive target-directory)
         (when (file-symbolic-link? target-pathname)
           (delete-file target-pathname))
-        (call-with-port (open-file-output-port target-pathname
-                                               (file-options no-fail))
+        (call-with-binary-output-file/renaming target-pathname
           (lambda (outp)
             (pipe-ports outp inp)))))
     target-pathname))

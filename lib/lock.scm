@@ -39,7 +39,7 @@
     (wak fmt color)
     (xitomatl alists)
     (xitomatl AS-match)
-    (only (akku lib compat) pretty-print getcwd)
+    (only (xitomatl common) pretty-print)
     (akku lib manifest)
     (akku lib solver)
     (akku lib solver choice)
