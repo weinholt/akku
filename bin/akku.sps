@@ -176,12 +176,13 @@ License: GNU GPLv3
   (cmd-lock '())
   (cmd-install '()))
 
+(define (get-option arg* long-opt-prefix) ;TODO: again, buy a better cmdline parser
+  (cond ((memp (lambda (x) (string-prefix? long-opt-prefix x)) arg*)
+         => (lambda (arg*) (substring (car arg*) (string-length long-opt-prefix)
+                                      (string-length (car arg*)))))
+        (else #f)))
+
 (define (cmd-publish arg*)
-  (define (get-option arg* long-opt-prefix) ;TODO: again, buy a better cmdline parser
-    (cond ((memp (lambda (x) (string-prefix? long-opt-prefix x)) arg*)
-           => (lambda (arg*) (substring (car arg*) (string-length long-opt-prefix)
-                                        (string-length (car arg*)))))
-          (else #f)))
   (let ((version-override (get-option arg* "--version="))
         (tag-override (get-option arg* "--tag=")))
     (publish-packages manifest-filename "." '("https://akkuscm.org/")
@@ -205,16 +206,24 @@ License: GNU GPLv3
   (print-gv-file "."))
 
 (define (cmd-dependency-scan arg*)
-  (when (null? arg*)
-    (log/error "At least one program or library entry point must be provided")
-    (cmd-help))
-  (dependency-scan arg* '(chezscheme))) ;TODO
+  (let ((impl* (cond ((get-option arg* "--implementation=")
+                      => (lambda (impl) (map string->symbol (string-split impl #\,))))
+                     (else '())))
+        (arg* (filter (lambda (x) (not (string-prefix? "-" x))) arg*)))
+    (when (null? arg*)
+      (log/error "At least one program or library entry point must be provided")
+      (cmd-help))
+    (dependency-scan arg* impl*)))
 
 (define (cmd-license-scan arg*)
-  (when (null? arg*)
-    (log/error "At least one program or library entry point must be provided")
-    (cmd-help))
-  (license-scan arg* '(chezscheme)))    ;TODO
+  (let ((impl* (cond ((get-option arg* "--implementation=")
+                      => (lambda (impl) (map string->symbol (string-split impl #\,))))
+                     (else '())))
+        (arg* (filter (lambda (x) (not (string-prefix? "-" x))) arg*)))
+    (when (null? arg*)
+      (log/error "At least one program or library entry point must be provided")
+      (cmd-help))
+    (license-scan arg* impl*)))
 
 (define (cmd-archive-scan arg*)
   (when (null? arg*)

@@ -72,7 +72,7 @@
     (lambda (outp)
       (let-values (((to-stdin from-stdout from-stderr _process-id)
                     (open-process-ports
-                     (string-append "bin/akku license-scan " source)
+                     (string-append "bin/akku license-scan --implementations=chezscheme " source)
                      (buffer-mode block)
                      (native-transcoder))))
         (when (port-eof? from-stdout)
@@ -191,7 +191,7 @@
 (define (dependency-scan source)
   (let-values (((to-stdin from-stdout from-stderr _process-id)
                 (open-process-ports
-                 (string-append "bin/akku dependency-scan " source)
+                 (string-append "bin/akku dependency-scan --implementations=chezscheme " source)
                  (buffer-mode block)
                  (native-transcoder))))
     (when (port-eof? from-stdout)

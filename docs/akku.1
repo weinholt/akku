@@ -3,7 +3,7 @@
 .SH "NAME"
 akku \- R6RS Scheme language package manager
 .SH "SYNOPSIS"
-\fBakku\fR {list | show \fIpkg\fR | install \fIpkg\fR[@\fIversion-range\fR].\|.\|. | update | add [\-\-\fBdev\fR] \fIpkg\fR[@\fIversion-range\fR] | lock | install | remove \fIpkg\fR.\|.\|. | uninstall \fIpkg\fR.\|.\|. | scan [\fIdirectory\fR] | publish [\-\-\fBversion\fR=\fIversion\fR] [\-\-\fBtag\fR=\fItag\fR] | graph | dependency\-scan \fIfilename\fR.\|.\|. | license\-scan \fIfilename\fR.\|.\|. | archive\-scan \fIdirectory\fR.\|.\|.}
+\fBakku\fR {list | show \fIpkg\fR | install \fIpkg\fR[@\fIversion-range\fR].\|.\|. | update | add [\-\-\fBdev\fR] \fIpkg\fR[@\fIversion-range\fR] | lock | install | remove \fIpkg\fR.\|.\|. | uninstall \fIpkg\fR.\|.\|. | scan [\fIdirectory\fR] | publish [\-\-\fBversion\fR=\fIversion\fR] [\-\-\fBtag\fR=\fItag\fR] | graph | dependency\-scan [\-\-\fBimplementation\fR=\fIimpl\fR] \fIfilename\fR.\|.\|. | license\-scan [\-\-\fBimplementation\fR=\fIimpl\fR] \fIfilename\fR.\|.\|. | archive\-scan \fIdirectory\fR.\|.\|.}
 .SH DESCRIPTION
 \fBAkku.scm\fR is a project-based language package manager for R6RS
 Scheme. It is mainly meant for schemers who develop programs or
@@ -144,11 +144,11 @@ dependencies. It's kind of a proof of concept at this point. Example
 usage: \fCakku graph | dot -Tx11\fR.
 .\" ------------------------------------------
 .TP
-\fBdependency\-scan\fR \fIfilename\fR.\|.\|.
+\fBdependency\-scan\fR [\-\-\fBimplementation\fR=\fIimpl\fR] \fIfilename\fR.\|.\|.
 Traces the dependencies of a set of library of program source files.
 .\" ------------------------------------------
 .TP
-\fBlicense\-scan\fR \fIfilename\fR.\|.\|.
+\fBlicense\-scan\fR [\-\-\fBimplementation\fR=\fIimpl\fR] \fIfilename\fR.\|.\|.
 Does the same dependency scanning as dependency\-scan, but then
 searches through all files it finds to look for license notices and
 similar legal text. This command is useful as a first step in
