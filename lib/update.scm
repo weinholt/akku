@@ -29,12 +29,12 @@
     (hashing sha-2)
     (industria openpgp)
     (semver versions)
-    (only (spells filesys) rename-file)
+    (only (spells filesys) rename-file file-directory?)
     (wak fmt)
     (xitomatl alists)
     (xitomatl AS-match)
     (only (akku lib compat) directory-list pretty-print)
-    (only (akku lib utils) path-join url-join)
+    (only (akku lib utils) path-join url-join mkdir/recursive split-path)
     (akku private http)
     (akku private logging))
 
@@ -52,7 +52,9 @@
                             ;; repository index signature to a
                             ;; particular set of keys.
                             (string-suffix? ".gpg" fn))
-                          (directory-list keys-directory))))
+                          (if (file-directory? keys-directory)
+                              (directory-list keys-directory)
+                              '()))))
     (call-with-port (open-file-input-port signed-filename)
       (lambda (signed-port)
         (call-with-port (open-file-input-port signature-filename)
@@ -68,6 +70,7 @@
                     (let-values (((result key) (verify-openpgp-signature sig keyring signed-port)))
                       (case result
                         ((missing-key)
+                         ;; FIXME: warning makes no sense due to the loop
                          (log/warn "Signed by unknown key with ID "
                                    (pad/left 16 (num key 16))))
                         (else
@@ -86,6 +89,9 @@
                           (hashtable-ref keyring (openpgp-public-key-id key) #f))))
                       (and (eq? result 'good-signature) result))))
                 (cond ((eof-object? sig) #f)
+                      ((null? keyfiles)
+                       (log/warn "Please copy a trusted key to " keys-directory)
+                       #f)
                       ((exists try-verify-with-keyfile keyfiles))
                       (else (lp)))))))))))
 
@@ -101,6 +107,7 @@
         (delete-file temp-filename))
       (when (file-exists? temp-sig-filename)
         (delete-file temp-sig-filename))
+      (mkdir/recursive (car (split-path temp-filename)))
       ;; Fetch the index to e.g. "index.db.0".
       (log/info "Fetching index from " repository-url " ...")
       (download-file (url-join repository-url "Akku-index.scm")
@@ -126,10 +133,11 @@
 
   ;; Download indices.
   (for-each (lambda (i repo)
-              (fetch-index (string-append "." (number->string i))
-                           (assq-ref repo 'tag)
-                           (assq-ref repo 'url)
-                           (assq-ref repo 'keyfile)))
+              (unless (fetch-index (string-append "." (number->string i))
+                                   (assq-ref repo 'tag)
+                                   (assq-ref repo 'url)
+                                   (assq-ref repo 'keyfile))
+                (error 'update-index "Updating index failed" repo)))
             (iota (length repositories)) repositories)
 
   ;; Merge indices.

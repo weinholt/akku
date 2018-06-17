@@ -53,14 +53,13 @@ before_script:
   - wget https://github.com/weinholt/scheme-ci/archive/master.zip -O scheme-ci-master.zip
   - unzip scheme-ci-master.zip
   - eval "$(INSTALL_TARGET=$HOME/opt scheme-ci-master/install-scheme.sh $SCHEME)"
-  # Install Akku.scm and dependencies
-  - gpg --import akku-archive-2018.gpg
-  - curl -A "$TRAVIS_REPO_SLUG" -LO "https://akku.weinholt.se/get-akku.sh{,.asc}"
-  - gpg --verify get-akku.sh.asc get-akku.sh && bash get-akku.sh
-  - ~/bin/akku install
+  - rm -rf build-*/*/
   - source .akku/bin/activate
+  - mkdir -p ~/.akku/share/keys.d
+  - cp akku-archive-*.gpg ~/.akku/share/keys.d
 
 script:
-  - ~/bin/akku update
+  - bin/akku.sps update
+  - bin/akku.sps install
   - private/build.chezscheme.sps </dev/null
   - ./run-tests.sh

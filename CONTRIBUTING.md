@@ -13,12 +13,16 @@ and [GitHub issues][issues] for a list of current trouble.
 ## Setting up a development environment
 
 Akku comes with its dependencies committed to the git repository, so
-you can simply do a checkout:
+you can do a checkout and a slight manual installation:
 
 ```
 $ git clone https://github.com/weinholt/akku
 $ cd akku
 $ source .akku/bin/activate
+$ mkdir -p ~/.akku/share/keys.d
+$ cp akku-archive-*.gpg ~/.akku/share/keys.d
+$ bin/akku.sps update
+$ bin/akku.sps install
 ```
 
 Note that this probably will not work on a Windows machine, because
