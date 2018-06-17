@@ -58,7 +58,9 @@
                            (assertion-violation 'open-http-request "Bad method" req))))
   (putenv "AKKU_URL" (http-request-url req))
   (let-values (((to-stdin from-stdout from-stderr _process-id)
-                (open-process-ports "exec curl -s -X \"$AKKU_METHOD\" -D /dev/stderr \"$AKKU_URL\"")))
+                (open-process-ports "exec curl -s -X \"$AKKU_METHOD\" -D /dev/stderr \"$AKKU_URL\""
+                                    (buffer-mode block)
+                                    #f)))
     (close-port to-stdin)
     (let* ((stderr (transcoded-port from-stderr (make-transcoder (utf-8-codec)
                                                                  (eol-style lf))))

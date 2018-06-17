@@ -28,7 +28,7 @@
     (wak fmt)
     (wak fmt color)
     (only (xitomatl common) pretty-print)
-    (only (akku lib compat) system putenv)
+    (only (akku lib compat) putenv)
     (akku lib git)
     (akku lib manifest)
     (akku lib utils)
@@ -85,8 +85,8 @@
 
 (define (gpg-detach-sign filename)
   (putenv "AKKU_FN" filename)
-  (unless (and (zero? (system "set -x;gpg -sb \"$AKKU_FN\""))
-               (file-exists? (string-append filename ".sig")))
+  (run-command "gpg -sb \"$AKKU_FN\"")
+  (unless (file-exists? (string-append filename ".sig"))
     (error 'gpg-detach-sign "Could not sign with gpg" filename)))
 
 (define (submit package* version base-directory archive-url*)
@@ -132,8 +132,7 @@
                                          (dsp fn)))
                                   filename* ",")))
        (putenv "AKKU_URL" (url-join archive-url "packages/"))
-       (unless (zero? (system "set -x;curl --upload-file \"{$AKKU_FN}\" \"$AKKU_URL\""))
-         (error 'submit "Error submitting" archive-url))
+       (run-command "set -x;curl --upload-file \"{$AKKU_FN}\" \"$AKKU_URL\"")
        archive-url*)
      archive-url*)))
 

@@ -33,16 +33,21 @@
     get-terminal-size
     symlink/relative
     resolve-pathname
-    resolve-relative-filename)
+    resolve-relative-filename
+    get-log-threshold
+    run-command)
   (import
     (rnrs (6))
     (rnrs mutable-pairs (6))
     (only (srfi :1 lists) make-list append-map filter-map map-in-order delete-duplicates last)
     (only (srfi :13 strings) string-prefix? string-suffix? string-index string-trim-right
           string-join)
+    (rename (srfi :98 os-environment-variables) (get-environment-variable getenv))
+    (only (spells filesys) file-directory?)
+    (only (spells process) run-shell-command)
     (only (industria strings) string-split)
     (xitomatl AS-match)
-    (only (akku lib compat) getcwd file-directory? mkdir getenv symlink))
+    (only (akku lib compat) getcwd mkdir symlink))
 
 ;; Split directory name and filename components.
 (define (split-path filename)
@@ -189,4 +194,16 @@
 ;; the file `from`.
 (define (resolve-relative-filename from to)
   (resolve-pathname (path-join (car (split-path from))
-                               to))))
+                               to)))
+
+;; Get the configured log threshold.
+(define (get-log-threshold)
+  (let ((level (getenv "AKKU_LOG_LEVEL")))
+    (if level
+        (string->symbol level)
+        'info)))
+
+(define (run-command cmd)
+  (let-values (((status signal) (run-shell-command cmd)))
+    (unless (eqv? status 0)
+      (error 'run "Shell command returned error" cmd status signal)))))

@@ -23,6 +23,8 @@
 ;; CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ;; SOFTWARE.
 
+;; SPDX-License-Identifier: MIT
+
 ;; Requires: SRFI-1, SRFI-9, SRFI-6. See the documentation for more
 ;; details.
 
@@ -256,7 +258,7 @@
     (get-output-string s)))
 
 (define-syntax packrat-parser
-  (syntax-rules (<- quote ! \x40; /)
+  (syntax-rules (<- quote ! ^ /)
     ((_ start (nonterminal (alternative body0 body ...) ...) ...)
      (let ()
        (define nonterminal
@@ -295,7 +297,7 @@
 			 (lambda (var)
 			   (packrat-parser #f "alt" nt body (rest ...)))))
 
-    ((_ #f "alt" nt body (var <- \x40; rest ...))
+    ((_ #f "alt" nt body (var <- ^ rest ...))
      (lambda (results)
        (let ((var (parse-results-position results)))
 	 ((packrat-parser #f "alt" nt body (rest ...)) results))))
@@ -459,7 +461,7 @@
   (define (parse-simple simple)
     (cond
      ((string? simple) (parse-literal-string simple))
-     ((eq? simple '\x40;) (make-packrat-parse-pattern
+     ((eq? simple '^) (make-packrat-parse-pattern
 		       '()
 		       (lambda (bindings results ks kf)
 			 (ks bindings (make-result (parse-results-position results) results)))))

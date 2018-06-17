@@ -3,8 +3,8 @@
 (import (akku format lockfile))
 (projects
   ((name "chez-srfi")
-    (location (git "https://github.com/arcfide/chez-srfi"))
-    (revision "73bbf95564184140242fa3d806bdb5995af42ae3"))
+    (location (git "https://github.com/weinholt/chez-srfi.git"))
+    (revision "df8c43d5ce5b006abce812bf3f0c1b9b5f94fa91"))
   ((name "compression")
     (location
       (git "https://github.com/weinholt/compression.git"))
@@ -29,7 +29,8 @@
     (revision "f48dfa57a0b0fc4b5d3e74733ec201a0a4256cbf"))
   ((name "packrat")
     (location (git "https://github.com/weinholt/packrat.git"))
-    (revision "ced37d579d9e3d13c0b2e0b5237063d9dd89cf5c"))
+    (tag "v0.1.0")
+    (revision "81b08bc6faed27c069d0ffcc5f31e031c6b2c077"))
   ((name "semver")
     (location (git "https://github.com/weinholt/semver.git"))
     (tag "v1.0.1")
@@ -70,4 +71,4 @@
     (revision "2a2c9335b7e75563e6e037236daffe23da36bb1b"))
   ((name "xitomatl")
     (location (git "https://github.com/weinholt/xitomatl.git"))
-    (revision "b9babf030c13d9fc81fe1482aa49ff0b8fa0fee6")))
+    (revision "62a82439fc802950abb33cd19c5d8c6963cbefda")))

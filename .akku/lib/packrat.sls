@@ -2,7 +2,7 @@
 ;;
 ;; Copyright (c) 2004, 2005 Tony Garnock-Jones <tonyg@kcbbs.gen.nz>
 ;; Copyright (c) 2005 LShift Ltd. <query@lshift.net>
-;; 
+;;
 ;; Permission is hereby granted, free of charge, to any person
 ;; obtaining a copy of this software and associated documentation
 ;; files (the "Software"), to deal in the Software without
@@ -10,10 +10,10 @@
 ;; modify, merge, publish, distribute, sublicense, and/or sell copies
 ;; of the Software, and to permit persons to whom the Software is
 ;; furnished to do so, subject to the following conditions:
-;; 
+;;
 ;; The above copyright notice and this permission notice shall be
 ;; included in all copies or substantial portions of the Software.
-;; 
+;;
 ;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 ;; EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 ;; MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -22,6 +22,8 @@
 ;; ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 ;; CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ;; SOFTWARE.
+
+;; SPDX-License-Identifier: MIT
 
 (library (packrat)
   (export parse-result?
@@ -90,15 +92,16 @@
           packrat-string-results
           packrat-list-results
 
-          <- quote ! \x40; /)
+          <- quote ! ^ /)
 
   (import
-    (except (rnrs) define-record-type)
+    (except (rnrs) define-record-type error)
     (rnrs r5rs)
     (rnrs mutable-pairs)
     (only (srfi :1 lists) lset-union append-map fold)
     (srfi :6 basic-string-ports)
     (srfi :9 records)
+    (srfi :23 error)
     (srfi private include)
     (only (xitomatl common) gensym))
 
@@ -113,7 +116,7 @@
 
   (define-auxiliary-keyword <-)
   (define-auxiliary-keyword !)
-  (define-auxiliary-keyword \x40;)
+  (define-auxiliary-keyword ^)
   ;;(define-auxiliary-keyword /)
-  
+
   (include/resolve ("packrat") "portable-packrat.scm"))

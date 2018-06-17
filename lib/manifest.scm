@@ -33,12 +33,13 @@
   (import
     (rnrs (6))
     (semver versions)
+    (only (spells filesys) rename-file)
     (spdx parser)
     (wak fmt)
     (xitomatl alists)
     (xitomatl AS-match)
     (only (xitomatl common) pretty-print)
-    (only (akku lib compat) rename-file getcwd)
+    (only (akku lib compat) getcwd)
     (only (akku lib utils) split-path))
 
 (define-record-type package

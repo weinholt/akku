@@ -32,7 +32,6 @@
   (only (akku format lockfile) lockfile-filename)
   (only (akku format manifest) manifest-filename)
   (only (akku lib archive-maint) archive-scan)
-  (only (akku lib compat) getenv)
   (only (akku lib graph) print-gv-file)
   (only (akku lib scan) scan-repository)
   (only (akku lib install) install logger:akku.install)
@@ -40,7 +39,8 @@
         add-dependency remove-dependencies list-packages
         show-package)
   (only (akku lib update) update-index)
-  (only (akku lib utils) path-join application-home-directory)
+  (only (akku lib utils) path-join application-home-directory
+        get-log-threshold)
   (only (akku lib publish) publish-packages)
   #;(only (akku metadata) main-package-version)
   (akku private logging))
@@ -221,12 +221,6 @@ License: GNU GPLv3
     (log/error "At least one directory name must be provided")
     (cmd-help))
   (archive-scan arg*))
-
-(define (get-log-threshold)
-  (let ((level (getenv "AKKU_LOG_LEVEL")))
-    (if level
-        (string->symbol level)
-        'info)))
 
 (set-logger-properties! logger:akku
                         `((threshold ,(get-log-threshold))

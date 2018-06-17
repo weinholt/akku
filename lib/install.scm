@@ -33,13 +33,14 @@
     (compression xz)
     (hashing sha-2)
     (laesare reader)
+    (only (spells filesys) file-directory? file-regular?
+          file-symbolic-link? rename-file)
     (only (wak fmt) wrt)
     (only (xitomatl common) pretty-print)
     (xitomatl alists)
     (xitomatl AS-match)
-    (only (akku lib compat) chmod file-directory?
-          file-regular? file-symbolic-link? file-exists/no-follow?
-          directory-list delete-directory rename-file)
+    (only (akku lib compat) chmod file-exists/no-follow?
+          directory-list delete-directory)
     (akku lib file-parser)
     (akku lib git)
     (akku lib manifest)
