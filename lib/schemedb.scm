@@ -300,7 +300,8 @@
      ;; Some SRFIs are needed during the startup of Guile, so the
      ;; native versions must be used. Other ones would merely import
      ;; the native version.
-     (if (memq srfi-n '(:6 :8 :13 :16 :19 :26 :39 :60 :64 :69))
+     (if (memq srfi-n '(:6 :8 :13 :16 :19 :26 :39 :60 :64 :69
+                           :2 :27 :67))
          '(guile)
          '())]
     (else '())))

@@ -55,8 +55,9 @@
     (location (git "https://gitlab.com/wak/wak-fmt.git"))
     (revision "d5b2a5aec60daf66b347d345498584628cd043cd"))
   ((name "wak-foof-loop")
-    (location (git "https://gitlab.com/wak/wak-foof-loop.git"))
-    (revision "57f2cafe2bd1554a94bab448ad9713aa6dce6a9a"))
+    (location
+      (git "https://gitlab.com/weinholt/wak-foof-loop.git"))
+    (revision "a7b9cd8af9d66a16d450f30203c43252b931b31c"))
   ((name "wak-irregex")
     (location (git "https://gitlab.com/wak/wak-irregex.git"))
     (revision "e0304c7ac9b67a1e9dc1e5ec8ec9ceb3ff0ff019"))

@@ -61,5 +61,5 @@ before_script:
 script:
   - bin/akku.sps update
   - bin/akku.sps install
-  - private/build.chezscheme.sps </dev/null
+  - if [[ $SCHEME = chezscheme ]]; then private/build.chezscheme.sps </dev/null; fi
   - ./run-tests.sh

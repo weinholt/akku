@@ -49,7 +49,9 @@
         (display errors (current-error-port)))
       (close-port from-stdout)
       (close-port from-stderr)
-      output)))
+      (if (eof-object? output)
+          ""
+          output))))
 
 (define (is-git-repository? dir)
   (file-directory? (string-append dir "/.git")))
