@@ -310,6 +310,8 @@
                                    (make-pkgpath dir fn #f)
                                    (if (eq? (car form) 'include-file) #f 'downcase)
                                    form)))
+    (('quote _)
+     '())
     ((? list? e*)
      (append-map (lambda (e)
                    (scan-for-includes/r6rs e realpath))

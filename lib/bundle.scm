@@ -54,11 +54,14 @@
                 (member filename filenames))
       (error 'trace-dependencies "Accidentally added a non-artifact" filename))
     (unless (hashtable-ref used-files filename #f)
+      (log/trace "Adding artifact " filename)
       (hashtable-set! used-files filename file)
       ;; Add included files.
       (for-each
        (lambda (asset)
          ;; XXX: Is the artifact really needed?
+         (log/trace "Adding asset " (include-reference-realpath asset)
+                    " for " filename)
          (hashtable-set! used-files
                          (include-reference-realpath asset)
                          (hashtable-ref filename->artifact

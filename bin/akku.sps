@@ -42,7 +42,7 @@
   (only (akku lib utils) path-join application-home-directory
         get-log-threshold)
   (only (akku lib publish) publish-packages)
-  #;(only (akku metadata) main-package-version)
+  (only (akku metadata) main-package-version)
   (akku private logging))
 
 (define logger:akku.main (make-logger logger:akku 'main))
@@ -78,7 +78,7 @@
 
 (define (cmd-help)
   (fmt (current-error-port)
-       "Akku.scm" #;main-package-version " - Scheme package manager
+       "Akku.scm " main-package-version " - Scheme package manager
 
 Simple usage:
    akku list - list all packages in the index
@@ -94,6 +94,7 @@ Basic usage:
  * akku install - install dependencies according to Akku.lock
    akku remove <pkg> - remove a dependency from Akku.manifest
  * akku uninstall <pkg>+ - all-in-one remove/lock/install
+   akku version - print Akku.scm's version number
 
 Creative usage:
  * akku publish [--version=x.y.z] [--tag=v] - publish the current project
@@ -176,6 +177,13 @@ License: GNU GPLv3
   (cmd-lock '())
   (cmd-install '()))
 
+(define (cmd-version arg*)
+  (unless (null? arg*)
+    (log/error "Unrecognized command line arguments")
+    (cmd-help))
+  (display main-package-version)
+  (newline))
+
 (define (get-option arg* long-opt-prefix) ;TODO: again, buy a better cmdline parser
   (cond ((memp (lambda (x) (string-prefix? long-opt-prefix x)) arg*)
          => (lambda (arg*) (substring (car arg*) (string-length long-opt-prefix)
@@ -255,6 +263,8 @@ License: GNU GPLv3
    (cmd-install (cddr (command-line))))
   ((string=? (cadr (command-line)) "uninstall")
    (cmd-uninstall (cddr (command-line))))
+  ((string=? (cadr (command-line)) "version")
+   (cmd-version (cddr (command-line))))
   ((string=? (cadr (command-line)) "publish")
    (cmd-publish (cddr (command-line))))
   ((string=? (cadr (command-line)) "scan")
