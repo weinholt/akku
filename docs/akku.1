@@ -3,7 +3,7 @@
 .SH "NAME"
 akku \- R6RS Scheme language package manager
 .SH "SYNOPSIS"
-\fBakku\fR {list | show \fIpkg\fR | install \fIpkg\fR[@\fIversion-range\fR].\|.\|. | update | add [\-\-\fBdev\fR] \fIpkg\fR[@\fIversion-range\fR] | lock | install | remove \fIpkg\fR.\|.\|. | uninstall \fIpkg\fR.\|.\|. | scan [\fIdirectory\fR] | publish [\-\-\fBversion\fR=\fIversion\fR] [\-\-\fBtag\fR=\fItag\fR] | graph | dependency\-scan [\-\-\fBimplementation\fR=\fIimpl\fR] \fIfilename\fR.\|.\|. | license\-scan [\-\-\fBimplementation\fR=\fIimpl\fR] \fIfilename\fR.\|.\|. | archive\-scan \fIdirectory\fR.\|.\|.}
+\fBakku\fR {list | show \fIpkg\fR | install \fIpkg\fR[@\fIversion-range\fR].\|.\|. | update | add [\-\-\fBdev\fR] \fIpkg\fR[@\fIversion-range\fR] | lock | install | remove \fIpkg\fR.\|.\|. | uninstall \fIpkg\fR.\|.\|. | version | scan [\fIdirectory\fR] | publish [\-\-\fBversion\fR=\fIversion\fR] [\-\-\fBtag\fR=\fItag\fR] | graph | dependency\-scan [\-\-\fBimplementation\fR=\fIimpl\fR] \fIfilename\fR.\|.\|. | license\-scan [\-\-\fBimplementation\fR=\fIimpl\fR] \fIfilename\fR.\|.\|. | archive\-scan \fIdirectory\fR.\|.\|.}
 .SH DESCRIPTION
 \fBAkku.scm\fR is a project-based language package manager for R6RS
 Scheme. It is mainly meant for schemers who develop programs or
@@ -99,6 +99,10 @@ opposite of add.
 Does three things: removes dependencies from the manifest, locks
 dependencies and runs install to remove the files that are no longer
 needed.
+.\" ------------------------------------------
+.TP
+.B version
+Print the Akku.scm version number to standard output.
 .\" ------------------------------------------
 .TP
 \fBscan\fR [directory]
@@ -205,19 +209,19 @@ packages; apply to anyone that receives the software; allow
 modifications and derived works; and that do not exclude certain
 individuals, groups or endeavours.
 .IP 4.
-Prepare your GnuPG key if you do not yet have one. If you're not too
-particular on the details of this and just want a key that works then
-you can run \fCgpg \-\-quick-generate-key "Name Goes Here
-<schemer@example.com>"\fR, filling in the name and email address that
-you want to use. Afterwards you should publish your key to the public
-key servers using the command \fCgpg \-\-send-keys \f[CI]keyID\fR, using
-the key ID associated with your new key.
+Prepare and publish your GnuPG key if you do not yet have one. If
+you're not too particular on the details of this and just want a key
+that works then you can run \fCgpg \-\-quick-generate-key "Name Goes
+Here <schemer@example.com>"\fR, filling in the name and email address
+that you want to use. Afterwards you should publish your key to the
+public key servers using the command \fCgpg \-\-send-keys
+\f[CI]keyID\fR, using the key ID associated with your new key.
 .IP 5.
 Currently all projects need to be in a publicly available git
 repository, but this will change later. The release should preferably
 be tagged using their SemVer version numbers: version 1.0.0 gets
 tagged with \fIv1.0.0\fR. You can use \fCgit tag \-s v1.0.0\fR to make
-a GnuPG signed tag. This makes downloading the code faster.
+a GnuPG signed tag. Tags makes downloading the code faster.
 .
 .PP
 All packages in the index are signed with GnuPG signatures. This
@@ -239,17 +243,13 @@ command.
 Implementation-specific language constructs such as modules and
 lexical syntax are handled rather poorly.
 .PP
-Even though it is designed for R6RS in general it does not run with
-anything except Chez Scheme on Linux. The non-portable constructs have
-been separated from the rest of the code and help with porting is very
-welcome.
-.PP
 The conversion of R7RS code is not complete. It does not add quotes to
 vectors, which are self-quoting in R7RS but not in R6RS. If the R7RS
 code uses shared data at the lexical level, then the written R6RS
 library will also use that and may end up not being loadable by a
 conformant R6RS implementation. The R7RS support needs the akku\-r7rs
-package to be installed.
+package to be installed. Underscores in syntax-rules are not handled
+by the latest akku\-r7rs version at the time of this release.
 .PP
 The lock command (and any command that uses it behind the scenes) does
 not preserve the versions of previously locked packages. This is
@@ -341,5 +341,5 @@ This is free software: you are free to change and redistribute it.
 There is NO WARRANTY, to the extent permitted by law.
 .SH "SEE ALSO"
 The project website:
-.UR https://github.com/weinholt/akku
+.UR https://akkuscm.org/
 .UE
