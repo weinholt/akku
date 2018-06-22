@@ -42,7 +42,7 @@ chmod 0755 $PREFIX/bin/akku.chezscheme
 chmod 0755 $PREFIX/bin/akku.guile
 mkdir -p $HOME/bin
 
-[ -f $HOME/bin/akku ] && mv $HOME/bin/akku $HOME/bin/akku.old
+rm -f $HOME/bin/akku
 if is_executable scheme; then
     export CHEZSCHEMELIBDIRS="$PREFIX/lib"
     unset CHEZSCHEMELIBEXTS

@@ -50,3 +50,29 @@ The `update` and `publish` commands now use https://akkuscm.org/.
 This release also contains a file parser for R7RS code, preliminary
 support for downloading and installing packages from tar.xz files,
 improved console output and a manpage.
+
+## Version 0.3.0
+
+This release introduces support for translating R7RS `define-library`
+forms to R6RS `library` forms. The libraries are made available as
+R6RS libraries and work transparently with other code. The `akku-r7rs`
+package must be installed to get the `(scheme *)` libraries. See the
+akku(1) manpage for a list of limitations.
+
+SRFI libraries named according to the SRFI 97 convention, i.e. `(srfi
+:1 lists)`, are now installed correctly for Guile.
+
+New in this release is support for running under GNU Guile 2.2, which
+greatly increases the portability of Akku.
+
+Source files are now scanned with an error tolerant reader. This means
+that it ignores extensions to Scheme's lexical syntax and is therefore
+happier to process implementation-specific source.
+
+The environment variable `AKKU_LOG_LEVEL` can be set to get more
+verbose log output. See the akku(1) manpage.
+
+Project metadata is available in `(akku metadata)`. This library will
+have the name and version of the main package, but the primary purpose
+is to support `akku-r7rs` in its implementations of `cond-expand` and
+`include`.

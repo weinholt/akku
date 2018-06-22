@@ -176,7 +176,8 @@
             (format p "EOF~%")
             (format p "chmod 0755 $PREFIX/bin/akku~%")
             (format p "mkdir -p $HOME/bin~%")
-            (format p "test -f $HOME/bin/akku || ln -s $PREFIX/bin/akku $HOME/bin/~%")
+            (format p "rm -f $HOME/bin/akku~%")
+            (format p "ln -s $PREFIX/bin/akku $HOME/bin/~%")
             (format p "echo You can now run '~~/bin/akku'~%")))
         (chmod "dist/install.sh" #o755)
         ;; Build a tarball.
