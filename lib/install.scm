@@ -462,6 +462,7 @@
     (check-filename target-pathname (support-windows?))
     (call-with-port (open-input-file source-pathname)
       (lambda (inp)
+        (read-shebang inp)
         (let ((reader (make-reader inp source-pathname)))
           (reader-tolerant?-set! reader #t)
           (reader-skip-to-form reader form-index)
@@ -470,11 +471,11 @@
             (delete-file target-pathname))
           (call-with-output-file/renaming target-pathname
             (lambda (outp)
-              (display "#!/usr/bin/env scheme-script\n" outp)
+              (display "#!/usr/bin/env scheme-script\n" outp) ;XXX: not liked by plt-r6rs
               (display ";; Copied by Akku from " outp)
               (write source-pathname outp)
               (display " !#" outp) ;XXX: required for GNU Guile
-              (display "\n#!r6rs\n " outp) ;XXX: required for Racket
+              (display "\n#!r6rs\n" outp) ;XXX: required for Racket
               (cond
                 ((not r7rs)
                  (pipe-ports outp inp))
