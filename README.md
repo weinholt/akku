@@ -37,9 +37,9 @@ There are two options:
 
  - Download the source bundle
    from [GitHub](https://github.com/weinholt/akku/releases) (files
-   ending with `.src.tar.xz`). This version is a little slower to
-   start, because it is recompiled each time, but it may run on more
-   types of systems. It requires Chez Scheme 9.5 or later.
+   ending with `+src.tar.xz`). This version is a little slower and
+   takes longer to install, but runs on more types of systems. It
+   requires Chez Scheme 9.5+ or GNU Guile 2.2+.
 
 Please remember to verify the OpenPGP signatures. The releases are
 signed with [E33E61A2E9B8C3A2][key].

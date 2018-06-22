@@ -8,6 +8,7 @@
 
 (import
   (chezscheme)
+  (only (srfi :1 lists) delete-duplicates)
   (only (akku lib utils) string-split path-join mkdir/recursive
         application-home-directory)
   (semver versions))
@@ -106,17 +107,17 @@
 
 (define (copy-common-files)
   ;; Licenses, copyrights, etc
-  (mkdir/recursive "dist/doc")
-  (copy-chez-notice "dist/doc/ChezScheme.txt")
+  (mkdir/recursive "dist/docs")
+  (copy-chez-notice "dist/docs/ChezScheme.txt")
   (guard (exn
           ((and (who-condition? exn)
                 (eq? (condition-who exn) 'copy-notices))
            (display "WARNING: Could not gather copyright notices\n"
                     (current-error-port))))
-    (copy-notices "dist/doc/copyright.txt" "bin/akku.sps"))
-  (cp "README.md" "dist/doc")
-  (cp "CONTRIBUTING.md" "dist/doc")
-  (cp "docs/akku.1" "dist/doc")
+    (copy-notices "dist/docs/copyright.txt" "bin/akku.sps"))
+  (cp "README.md" "dist/docs")
+  (cp "CONTRIBUTING.md" "dist/docs")
+  (cp "docs/akku.1" "dist/docs")
   ;; Bootstrap data
   (mkdir/recursive "dist/share")
   (cp (path-join (application-home-directory) "share/index.db")
@@ -188,25 +189,28 @@
           (system "tar --numeric-owner --owner 0 --group 0 -caf \"$FILENAME\" --transform s,^dist,akku-$DISTVER, dist/")
           (format #t "built ~d~%" tarfile))))))
 
-(define (dependency-scan source)
-  (let-values (((to-stdin from-stdout from-stderr _process-id)
-                (open-process-ports
-                 (string-append "bin/akku dependency-scan --implementation=chezscheme " source)
-                 (buffer-mode block)
-                 (native-transcoder))))
-    (when (port-eof? from-stdout)
-      (error 'copy-notices "Blank output from dependency-scan" source
-             (get-string-all from-stderr)))
-    (close-port to-stdin)
-    (let lp ((line* '()))
-      (cond ((port-eof? from-stdout)
-             (unless (port-eof? from-stderr)
-               (display (get-string-all from-stderr)))
-             (close-port from-stderr)
-             (close-port from-stdout)
-             (reverse line*))
-            (else
-             (lp (cons (get-line from-stdout) line*)))))))
+(define (dependency-scan source impl*)
+  (define (scan1 impl)
+    (let-values (((to-stdin from-stdout from-stderr _process-id)
+                  (open-process-ports
+                   (string-append "bin/akku dependency-scan --implementation=" impl " " source)
+                   (buffer-mode block)
+                   (native-transcoder))))
+      (when (port-eof? from-stdout)
+        (error 'copy-notices "Blank output from dependency-scan" source
+               (get-string-all from-stderr)))
+      (close-port to-stdin)
+      (let lp ((line* '()))
+        (cond ((port-eof? from-stdout)
+               (unless (port-eof? from-stderr)
+                 (display (get-string-all from-stderr)))
+               (close-port from-stderr)
+               (close-port from-stdout)
+               (reverse line*))
+              (else
+               (lp (cons (get-line from-stdout) line*)))))))
+  (delete-duplicates
+   (list-sort string-ci<=? (apply append (map scan1 impl*)))))
 
 (define (build-source-distribution)
   (let ((akku-version (get-version "Akku.manifest")))
@@ -216,28 +220,10 @@
                 (let ((dir (path-parent (string-append "dist/" fn))))
                   (mkdir/recursive dir)
                   (cp fn dir)))
-              (dependency-scan ".akku/bin/akku.sps"))
+              (dependency-scan ".akku/bin/akku.sps" '("chezscheme" "guile")))
     (cp ".akku/bin/activate" "dist/.akku/bin")
     ;; Install script
-    (call-with-output-file "dist/install.sh"
-      (lambda (p)
-        (format p "#!/bin/sh~%")
-        (format p "PREFIX=$HOME/.akku~%")
-        (format p "mkdir -p $PREFIX~%")
-        (format p "cp -a share .akku/* $PREFIX/~%")
-        (format p "cat > $PREFIX/bin/akku << EOF~%")
-        (format p "#!/bin/sh~%")
-        (format p "export CHEZSCHEMELIBDIRS=\"$PREFIX/lib\"~%")
-        (format p "unset CHEZSCHEMELIBEXTS~%")
-        (format p "exec scheme-script $PREFIX/bin/akku.sps \\$*~%")
-        (format p "EOF~%")
-        (format p "export CHEZSCHEMELIBDIRS=\"$PREFIX/lib\"~%")
-        (format p "unset CHEZSCHEMELIBEXTS~%")
-        (format p "scheme --compile-imported-libraries --program $PREFIX/bin/akku.sps 2>/dev/null~%")
-        (format p "chmod 0755 $PREFIX/bin/akku~%")
-        (format p "mkdir -p $HOME/bin~%")
-        (format p "test -f $HOME/bin/akku || ln -s $PREFIX/bin/akku $HOME/bin/~%")
-        (format p "echo You can now run '~~/bin/akku'~%")))
+    (cp "private/install-src.sh" "dist/install.sh")
     (chmod "dist/install.sh" #o755)
     (let* ((build-version (format #f "~d+src" akku-version))
            (tarfile (format #f "akku-~d.tar.xz" build-version)))
