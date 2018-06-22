@@ -290,7 +290,7 @@
    (string-split filename #\/)))
 
 ;; Makes all known variants of the path and name for the library.
-;; Returns a list of (library-name/#f directory-name file-name).
+;; Returns a list of (directory-name file-name).
 (define (make-r6rs-library-filenames name implementation other-impl*)
   (define (make-filenames name implementation allowed-impl*)
     (delete-duplicates
@@ -348,8 +348,8 @@
        ;; special filenames for those that have their own
        ;; implementation.
        (make-filenames name implementation
-                       (lset-difference eq? r6rs-implementation-names
-                                        other-impl*))))))
+                       (cons #f (lset-difference eq? r6rs-implementation-names
+                                                 other-impl*)))))))
 
 ;; Copies a single R6RS library form from one file to another.
 (define (copy-r6rs-library target-directory target-filename source-pathname form-index)
@@ -551,6 +551,10 @@
       ((null? library-locations)
        (log/warn "Could not construct a filename for "
                  (r6rs-library-name artifact))
+       (log/trace "Empty result from "
+                  `(make-r6rs-library-filenames ',(r6rs-library-name artifact)
+                                                ',(artifact-implementation artifact)
+                                                ',other-impl*))
        '())
       ((and (r6rs-library-original-name artifact)
             (memq (artifact-implementation artifact) other-impl*))
