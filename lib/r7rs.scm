@@ -326,7 +326,7 @@
       (else #t)))
   (for-all walk (r7lib-declaration* lib)))
 
-;; Return the declarations in the first true clause; otherwise #f;
+;; Return the declarations in the first true clause; otherwise #f.
 (define (r7condexp-eval decl feature-list library-installed?)
   (exists (lambda (clause)
             (and (eval-cond-expand (r7condexp-clause-feature-req clause)

@@ -236,6 +236,7 @@
       (format #t "built ~d~%" tarfile))))
 
 (assert (not (petite?)))
+(system "akku.sps install")
 (compile-akku)
 (build-binary-distribution)
 (build-source-distribution)

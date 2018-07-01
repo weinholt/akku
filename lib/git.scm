@@ -37,7 +37,7 @@
     (rnrs (6))
     (only (spells filesys) file-directory?)
     (only (akku lib compat) open-process-ports putenv)
-    (only (akku lib utils) string-split run-command))
+    (only (akku lib utils) string-split path-join run-command))
 
 (define (get-command-output cmd)
   (let-values (((to-stdin from-stdout from-stderr _process-id)
@@ -71,6 +71,9 @@
 (define (git-fetch directory)
   (putenv "GIT_DIR" ".git")
   (putenv "AKKU_DIR" directory)
+  (when (file-exists? (path-join directory ".git/shallow"))
+    ;; Undo the cleverness of git-fetch-tag
+    (run-command "cd \"$AKKU_DIR\" && exec git fetch -q --unshallow origin '+refs/heads/*:refs/remotes/origin/*'"))
   (run-command "cd \"$AKKU_DIR\" && exec git fetch -q origin"))
 
 (define (git-fetch-tag directory tag)
