@@ -231,7 +231,17 @@
 
 (define (semver-range->matcher range)
   (let* ((range (if (string? range) (string->semver-range range) range))
-         (range (semver-range-desugar range)))
+         (range (semver-range-desugar range))
+         (allowed-pre-releases
+          (let lp ((range range))
+            (match range
+              [((or 'or 'and) e0 e1)
+               (append (lp e0) (lp e1))]
+              [(_op #(x y z p b))
+               (if (null? p)
+                   '()
+                   (list (make-semver x y z)))]
+              [x (error 'semver-range->matcher "Invalid range" x range)]))))
     (let ((m (let lp ((range range))
                (match range
                  [('or e0 e1)
@@ -250,15 +260,15 @@
                               (else (error 'semver-range->matcher
                                            "Invalid op" op range)))))
                     (let ((semver (make-semver x y z p b)))
-                      (if (null? p)
-                          (lambda (version)
-                            (=? semver-compare version semver))
-                          (lambda (version)
-                            (and (=? semver-compare version semver)
-                                 (or (null? (semver-pre-release-ids version))
-                                     (and (= (semver-major version) x)
-                                          (= (semver-minor version) y)
-                                          (= (semver-patch version) z))))))))]
+                      (lambda (version)
+                        (and (=? semver-compare version semver)
+                             (or (null? (semver-pre-release-ids version))
+                                 (exists
+                                  (lambda (allowed)
+                                    (and (= (semver-major version) (semver-major allowed))
+                                         (= (semver-minor version) (semver-minor allowed))
+                                         (= (semver-patch version) (semver-patch allowed))))
+                                  allowed-pre-releases))))))]
                  [x
                   (error 'semver-range->matcher "Invalid range" x range)]))))
       (lambda (version)
