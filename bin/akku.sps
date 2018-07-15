@@ -78,40 +78,39 @@
 
 (define (cmd-help)
   (fmt (current-error-port)
-       "Akku.scm " main-package-version " - Scheme package manager
-
-Simple usage:
-   akku list - list all packages in the index
-   akku show <pkg> - show package information
- * akku install <pkg>+ - all-in-one add/lock/install a package
- * akku update - update the package index
-
-Basic usage:
-   akku add <pkg> - add a dependency to Akku.manifest
-   akku add <pkg>@<range> - add a versioned dependency
-   akku add --dev <pkg> - add a development dependency
-   akku lock - generate Akku.lock from Akku.manifest and the index
- * akku install - install dependencies according to Akku.lock
-   akku remove <pkg> - remove a dependency from Akku.manifest
- * akku uninstall <pkg>+ - all-in-one remove/lock/install
-   akku version - print Akku.scm's version number
-
-Creative usage:
- * akku publish [--version=x.y.z] [--tag=v] - publish the current project
-   akku scan [directory] - scan a repository and print what Akku sees
-
-Advanced usage:
-   akku graph - print a graphviz file showing library dependencies
-   akku dependency-scan <filename>+ - print source code dependencies
-   akku license-scan <filename>+ - scan dependencies for notices
-   akku archive-scan <directory>+ - generate a package index
-
- [*]: This command may make network requests.
-
-Homepage: https://github.com/weinholt/akku
-License: GNU GPLv3
-
-")
+       (fmt-yellow ",") (fmt-green "()") (fmt-white "´")
+       " Akku.scm " main-package-version " - Scheme package manager" nl
+       nl
+       (fmt-underline "Simple usage") nl
+       "   akku list - list all packages in the index" nl
+       "   akku show <pkg> - show package information" nl
+       " * akku install <pkg>+ - all-in-one add/lock/install a package" nl
+       " * akku update - update the package index" nl
+       nl
+       (fmt-underline "Basic usage") nl
+       "   akku add <pkg> - add a dependency to Akku.manifest" nl
+       "   akku add <pkg>@<range> - add a versioned dependency" nl
+       "   akku add --dev <pkg> - add a development dependency" nl
+       "   akku lock - generate Akku.lock from Akku.manifest and the index" nl
+       " * akku install - install dependencies according to Akku.lock" nl
+       "   akku remove <pkg> - remove a dependency from Akku.manifest" nl
+       " * akku uninstall <pkg>+ - all-in-one remove/lock/install" nl
+       "   akku version - print Akku.scm's version number" nl
+       nl
+       (fmt-underline "Creative usage") nl
+       " * akku publish [--version=x.y.z] [--tag=v] - publish the current project" nl
+       "   akku scan [directory] - scan a repository and print what Akku sees" nl
+       nl
+       (fmt-underline "Advanced usage") nl
+       "   akku graph - print a graphviz file showing library dependencies" nl
+       "   akku dependency-scan <filename>+ - print source code dependencies" nl
+       "   akku license-scan <filename>+ - scan dependencies for notices" nl
+       "   akku archive-scan <directory>+ - generate a package index" nl
+       nl
+       " [*]: This command may make network requests." nl
+       nl
+       "Homepage: https://akkuscm.org/" nl
+       "License: GNU GPLv3" nl nl)
   (exit 0))
 
 (define (parse-package-name package-name)
