@@ -691,7 +691,8 @@
        (else
         (let ((target (split-path (artifact-path artifact))))
           (if (and always-symlink? (zero? (artifact-form-index artifact))
-                   (artifact-last-form? artifact))
+                   (artifact-last-form? artifact)
+                   (r6rs-program? artifact))
               (list (symlink-file (binaries-directory)
                                   (cdr target)
                                   (path-join srcdir (artifact-path artifact))))
