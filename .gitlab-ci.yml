@@ -1,0 +1,60 @@
+image: "weinholt/chezscheme"
+
+variables:
+  AKKU_LOG_LEVEL: "debug"
+
+build:
+  stage: build
+  before_script:
+    - apt-get update -qq
+    - apt-get install -qq curl git xz-utils
+    - source .akku/bin/activate
+    - mkdir -p ~/.akku/share/keys.d
+    - cp akku-archive-*.gpg ~/.akku/share/keys.d
+  script:
+    - bin/akku.sps update
+    - bin/akku.sps install
+    - private/build.chezscheme.sps
+    - ./run-tests.sh
+  artifacts:
+    paths:
+      - akku-*.tar.xz
+
+# Tests the newly built Akku under Chez and Guile.
+
+.job_template: &job_definition
+  stage: test
+  script:
+    - export PATH=$HOME/bin:$PATH
+    - akku version
+    - akku update
+    - mkdir new-project
+    - cd new-project
+    - akku install packrat
+
+test:chezscheme:
+  <<: *job_definition
+  image: "debian:stretch"
+  before_script:
+    - apt-get update -qq
+    - apt-get install -qq curl git xz-utils
+    - tar xvaf akku-*linux*.tar.xz
+    - (cd akku-*linux; ./install.sh)
+
+test:guile:
+  <<: *job_definition
+  image: "debian:buster"
+  before_script:
+    - apt-get update -qq
+    - apt-get install -qq guile-2.2 curl git xz-utils
+    - tar xvaf akku-*src*.tar.xz
+    - (cd akku-*src; ./install.sh)
+
+# Check the Chez-bundled version on CentOS.
+test:chezscheme-centos:
+  <<: *job_definition
+  image: "centos"
+  before_script:
+    - yum install -y curl git xz
+    - tar xvaf akku-*linux*.tar.xz
+    - (cd akku-*linux; ./install.sh)
