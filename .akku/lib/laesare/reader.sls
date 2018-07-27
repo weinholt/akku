@@ -33,6 +33,7 @@
     detect-scheme-file-type
     make-reader reader-warning
     reader-mode reader-mode-set!
+    reader-fold-case? reader-fold-case?-set!
     reader-tolerant? reader-tolerant?-set!
     reader-line reader-column
     reader-saved-line reader-saved-column
@@ -97,9 +98,9 @@
   (fields port filename
           (mutable line) (mutable column)
           (mutable saved-line) (mutable saved-column)
-          (mutable fold-case)         ;boolean
-          (mutable mode)              ;a symbol: rnrs, r5rs, r6rs, r7rs
-          (mutable tolerant?))        ;tolerant to errors?
+          (mutable fold-case?)       ;boolean
+          (mutable mode)             ;a symbol: rnrs, r5rs, r6rs, r7rs
+          (mutable tolerant?))       ;tolerant to errors?
   (sealed #t) (opaque #f)
   (nongenerative reader-v0-eec5b78f-a766-4be4-9cd0-fbb52ec572dc)
   (protocol
@@ -265,7 +266,7 @@
          (when (eqv? c #\|)
            (get-char p))
          (let ((id (list->string (reverse chars))))
-           (if (reader-fold-case p)
+           (if (reader-fold-case? p)
                (values 'identifier (string->symbol (string-foldcase id)))
                (values 'identifier (string->symbol id)))))
         ((char=? c #\\)           ;\xUUUU;
@@ -407,6 +408,21 @@
                 (rnrs:put-char out c0)
                 (lp levels c1))))))))
 
+;; Gets a #! !# comment from the reader.
+(define (get-!-comment reader)
+  ;; The reader is immediately after "#!".
+  (rnrs:call-with-string-output-port
+   (lambda (out)
+     (let lp ((c0 (get-char reader)))
+       (let ((c1 (get-char reader)))
+         (cond ((eof-object? c0)
+                (eof-warning reader))
+               ((and (eqv? c0 #\!) (eqv? c1 #\#))
+                #f)
+               (else
+                (rnrs:put-char out c0)
+                (lp c1))))))))
+
 ;; Get a comment from the reader (including the terminating whitespace).
 (define (get-comment reader)
   ;; The reader is immediately after #\;.
@@ -494,39 +510,48 @@
            ((#\|)                     ;nested comment
             (values 'nested-comment (get-nested-comment p)))
            ((#\!)                     ;#!r6rs etc
-            (if (memv (lookahead-char p) '(#\/ #\space))
-                (let ((line (reader-saved-line p))
-                      (column (reader-saved-column p)))
-                  (values 'shebang `(,line ,column ,(get-line p))))
-                (let-values (((type id) (get-token p)))
-                  (cond
-                    ((eq? type 'identifier)
-                     (case id
-                       ((r6rs)          ;r6rs.pdf
-                        (assert-mode p "#!r6rs" '(rnrs r6rs))
-                        (reader-mode-set! p 'r6rs))
-                       ((fold-case)     ;r6rs-app.pdf
-                        (assert-mode p "#!fold-case" '(rnrs r6rs r7rs))
-                        (reader-fold-case-set! p #t))
-                       ((no-fold-case)  ;r6rs-app.pdf
-                        (assert-mode p "#!no-fold-case" '(rnrs r6rs r7rs))
-                        (reader-fold-case-set! p #f))
-                       ((r7rs)          ;oddly missing in r7rs
-                        (assert-mode p "#!r7rs" '(rnrs))
-                        (reader-mode-set! p 'r7rs))
-                       ((false)         ;r2rs
-                        (assert-mode p "#!false" '(rnrs r2rs)))
-                       ((true)          ;r2rs
-                        (assert-mode p "#!true" '(rnrs r2rs)))
-                       (else
-                        (reader-warning p "Invalid directive" type id)))
-                     (cond ((assq id '((false . #f) (true . #t)))
-                            => (lambda (x) (values 'value (cdr x))))
-                           (else
-                            (values 'directive id))))
+            (let ((next-char (lookahead-char p)))
+              (cond ((and (= (reader-saved-line p) 1) (memv next-char '(#\/ #\space)))
+                     (let ((line (reader-saved-line p))
+                           (column (reader-saved-column p)))
+                       (values 'shebang `(,line ,column ,(get-line p)))))
+                    ((and (char? next-char) (char-alphabetic? next-char))
+                     (let-values (((type id) (get-token p)))
+                       (cond
+                         ((eq? type 'identifier)
+                          (case id
+                            ((r6rs)          ;r6rs.pdf
+                             (assert-mode p "#!r6rs" '(rnrs r6rs))
+                             (reader-mode-set! p 'r6rs))
+                            ((fold-case)     ;r6rs-app.pdf
+                             (assert-mode p "#!fold-case" '(rnrs r6rs r7rs))
+                             (reader-fold-case?-set! p #t))
+                            ((no-fold-case)  ;r6rs-app.pdf
+                             (assert-mode p "#!no-fold-case" '(rnrs r6rs r7rs))
+                             (reader-fold-case?-set! p #f))
+                            ((r7rs)          ;oddly missing in r7rs
+                             (assert-mode p "#!r7rs" '(rnrs))
+                             (reader-mode-set! p 'r7rs))
+                            ((false)         ;r2rs
+                             (assert-mode p "#!false" '(rnrs r2rs)))
+                            ((true)          ;r2rs
+                             (assert-mode p "#!true" '(rnrs r2rs)))
+                            (else
+                             (reader-warning p "Invalid directive" type id)))
+                          (cond ((assq id '((false . #f) (true . #t)))
+                                 => (lambda (x) (values 'value (cdr x))))
+                                (else
+                                 (values 'directive id))))
+                         (else
+                          (reader-warning p "Expected an identifier after #!")
+                          (get-token p)))))
+                    ((eq? (reader-mode p) 'rnrs)
+                     ;; Guile compat.
+                     (get-token p)
+                     (values 'comment (get-!-comment p)))
                     (else
                      (reader-warning p "Expected an identifier after #!")
-                     (get-token p))))))
+                     (get-token p)))))
            ((#\b #\B #\o #\O #\d #\D #\x #\X #\i #\I #\e #\E)
             (get-number p (list c #\#)))
            ((#\t #\T)
@@ -592,7 +617,7 @@
                                                     ("delete" #\delete r6rs r7rs))))
                                   (cond
                                     ((or (assoc char-name char-names)
-                                         (and (reader-fold-case p)
+                                         (and (reader-fold-case? p)
                                               (assoc (string-foldcase char-name)
                                                      char-names)))
                                      => (lambda (char-data)

@@ -32,7 +32,7 @@
     r6rs-program?
     r7rs-library? r7rs-library-name r7rs-library-exports
     r7rs-program?
-    module?
+    module? module-name
     library-reference? library-reference-name library-reference-version-reference
     library-reference-original-import-spec
     library-reference-satisfied?
@@ -116,7 +116,8 @@
 (define-record-type module
   (parent artifact)
   (sealed #t)
-  (nongenerative))
+  (nongenerative)
+  (fields name))
 
 (define-record-type library-reference
   (fields name version-reference original-import-spec)
@@ -232,6 +233,10 @@
                fl "Exports: "
                (fmt-join (lambda (exp) (cat fl "- " exp))
                          (r7rs-library-exports a))))
+         ((module? a)
+          (if (module-name a)
+              (cat fl "Name: " (wrt (module-name a)))
+              fmt-null))
          (else fmt-null))
 
    (cond ((pair? (artifact-imports a))
@@ -310,6 +315,11 @@
                                    (make-pkgpath dir fn #f)
                                    (if (eq? (car form) 'include-file) #f 'downcase)
                                    form)))
+    ;; Chez Scheme
+    (('include (? string? fn))
+     (list (make-include-reference (make-path '() fn #f)
+                                   (make-pkgpath '() fn #f)
+                                   #f form)))
     (('quote _)
      '())
     ((? list? e*)
@@ -593,11 +603,48 @@
             (log/debug "R7RS library is not loadable in any implementation: "
                        (wrt (r7lib-name lib)))
             #f))))
+      (('define-module (name ...)
+         . option*)
+       ;; Guile module.
+       (let ((imports (let lp ((option* option*))
+                        (match option*
+                          [('use-module interface-spec . rest*)
+                           (cond ((match interface-spec
+                                    [((? symbol? name*) ...)
+                                     (make-library-reference name* '() interface-spec)]
+                                    [(((? symbol? name*) ...) opt* ...)
+                                     (let lp ((opt* opt*))
+                                       (match opt*
+                                         [('version (? list? ver))
+                                          (make-library-reference name* ver interface-spec)]
+                                         [(_ _ . rest*)
+                                          (lp rest*)]
+                                         [else
+                                          (make-library-reference name* '() interface-spec)]))]
+                                    [_ #f])
+                                  => (lambda (lib-ref) (cons lib-ref (lp rest*))))
+                                 (else
+                                  (log/debug "Guile use-module not understood: " option*)
+                                  (lp rest*)))]
+                          [('autoload _ _ . rest*) (lp rest*)]
+                          [('pure . rest*) (lp rest*)]
+                          [(_ _ . rest*) (lp rest*)]
+                          [else '()]))))
+         (list (make-module path path-list form-index #t
+                            imports '() 'guile name))))
+      (('module (? symbol? name) (export* ...) body* ...)
+       ;; Named Chez Scheme module. Imports and exports can appear
+       ;; basically anywhere, making them very difficult to support
+       ;; completely.
+       (let ((import* '())
+             (include* (scan-for-includes/r6rs body* realpath)))
+         (list (make-module path path-list form-index (eof-object? next-datum)
+                            import* include* 'chezscheme name))))
       (_                           ;some type of module or bare source
        (cond ((path->implementation-name path) =>
               (lambda (impl)
                 (list (make-module path path-list form-index (eof-object? next-datum)
-                                   #f '() impl))))
+                                   #f '() impl #f))))
              (else
               ;; TODO: detect modules from various implementations
               #f)))))
