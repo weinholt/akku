@@ -352,7 +352,7 @@
                                                  other-impl*)))))))
 
 ;; Copies a single R6RS library form from one file to another.
-(define (copy-r6rs-library target-directory target-filename source-pathname form-index)
+(define (copy-r6rs-library target-directory target-filename source-pathname form-index last-form?)
   (let ((target-pathname (path-join target-directory target-filename)))
     (log/debug "Copying R6RS library " source-pathname (if (zero? form-index) "" " ")
            (if (zero? form-index) "" (list 'form form-index))
@@ -362,8 +362,6 @@
       (lambda (inp)
         (read-shebang inp)
         (let* ((start (port-position inp))
-               (f0 (read inp))
-               (f1 (read inp))
                (target-pathname (path-join target-directory target-filename)))
           (mkdir/recursive target-directory)
           (when (file-symbolic-link? target-pathname)
@@ -372,12 +370,9 @@
             (lambda (outp)
               ;; TODO: Only add #!r6rs if it's not in the original source.
               (display "#!r6rs " outp) ;XXX: required for Racket
-              (cond ((and (= form-index 0) (eof-object? f1))
+              (cond ((and (= form-index 0) last-form?)
                      ;; The source has a single form, so it's safe to
-                     ;; copy the text. TODO: Hardlink in this case. If
-                     ;; hardlinks are used then file-symbolic-links?
-                     ;; needs to be file-exists/no-follow? everywhere.
-                     (set-port-position! inp start)
+                     ;; copy the text.
                      (pipe-ports outp inp))
                     (else
                      ;; TODO: Include comments and original formatting
@@ -385,19 +380,98 @@
                      ;; license compliance if form 0 is not used in a
                      ;; compiled program, but form 1 is.
                      (log/debug "Reformatting " target-pathname)
-                     (let ((form (case form-index
-                                   ((0) f0)
-                                   ((1) f1)
-                                   (else
-                                    (let lp ((form-index (- form-index 2)))
-                                      (let ((form (read inp)))
-                                        (if (zero? form-index)
-                                            form
-                                            (lp (- form-index 1)))))))))
-                       (display ";; Copyright notices may be found in " outp)
-                       (write source-pathname outp)
-                       (display "\n;; This file was copied by Akku.scm\n" outp)
-                       (pretty-print form outp)))))))))
+                     (let* ((f0 (read inp))
+                            (f1 (read inp)))
+                       (let ((form (case form-index
+                                     ((0) f0)
+                                     ((1) f1)
+                                     (else
+                                      (let lp ((form-index (- form-index 2)))
+                                        (let ((form (read inp)))
+                                          (if (zero? form-index)
+                                              form
+                                              (lp (- form-index 1)))))))))
+                         (display ";; Copyright notices may be found in " outp)
+                         (write source-pathname outp)
+                         (display "\n;; This file was copied by Akku.scm\n" outp)
+                         (pretty-print form outp))))))))))
+    target-pathname))
+
+;; Copies a single form from one file to another.
+(define (copy-source-form target-directory target-filename source-pathname form-index last-form?)
+  (let ((target-pathname (path-join target-directory target-filename)))
+    (log/debug "Copying module " source-pathname (if (zero? form-index) "" " ")
+           (if (zero? form-index) "" (list 'form form-index))
+           " to " target-pathname)
+    (check-filename target-pathname (support-windows?))
+    (call-with-port (open-input-file source-pathname)
+      (lambda (inp)
+        (let ((start (port-position inp))
+              (reader (make-reader inp source-pathname)))
+          ;; This code works with modules using a foreign lexical
+          ;; notation. The general idea is: 1) assume that the reader
+          ;; still understands the structure of the file 2) record the
+          ;; positions of the start and end of the module form 3)
+          ;; seek and copy the characters of the module.
+          (reader-tolerant?-set! reader #t)
+          (let* ((target-pathname (path-join target-directory target-filename)))
+            (mkdir/recursive target-directory)
+            (when (file-symbolic-link? target-pathname)
+              (delete-file target-pathname))
+            (call-with-output-file/renaming target-pathname
+              (lambda (outp)
+                (cond
+                  (last-form?
+                   ;; The last form is easy to copy.
+                   (reader-skip-to-form reader form-index)
+                   (pipe-ports outp inp))
+                  (else
+                   (log/debug "Reformatting " target-pathname)
+                   (display ";; Copyright notices may be found in " outp)
+                   (write source-pathname outp)
+                   (display "\n;; This file was copied by Akku.scm\n" outp)
+                   (let lp ((start-line 1)
+                            (start-column 0)
+                            (form-index form-index))
+                     ;; Read a datum in order to find the start and
+                     ;; end positions of the form.
+                     (with-exception-handler
+                       (lambda (exn)
+                         (if (and (warning? exn) (lexical-violation? exn)
+                                  (message-condition? exn) (irritants-condition? exn)
+                                  (source-condition? exn))
+                             (log/trace "Ignoring syntax error in " (wrt source-pathname) ": "
+                                        (condition-message exn) " with irritants "
+                                        (condition-irritants exn)
+                                        " at line " (source-line exn)
+                                        ", column " (source-column exn))
+                             (raise exn)))
+                       (lambda () (read-datum reader)))
+                     (let* ((end-line (reader-line reader))
+                            (end-column (reader-column reader)))
+                       (cond
+                         ((= form-index 0)
+                          ;; This juggling is necessary because textual
+                          ;; port positions can't portably be compared.
+                          (log/trace "Copying range " start-line ":" start-column
+                                     "-" end-line ":" end-column)
+                          (set-port-position! inp start)
+                          (let lp ((line 1) (column 0))
+                            (unless (and (= line start-line) (= column start-column))
+                              (let ((ch (get-char inp)))
+                                (if (eqv? ch #\linefeed)
+                                    (lp (+ line 1) 0)
+                                    (lp line (+ column 1))))))
+                          (let lp ((line start-line) (column start-column))
+                            (unless (and (= line end-line) (= column end-column))
+                              (let ((ch (get-char inp)))
+                                (put-char outp ch)
+                                (if (eqv? ch #\linefeed)
+                                    (lp (+ line 1) 0)
+                                    (lp line (+ column 1))))))
+                          (newline outp))
+                         (else
+                          (lp end-line end-column (- form-index 1))))))))))))))
     target-pathname))
 
 ;; Same as call-with-output-file, but with no-fail and rename or
@@ -596,7 +670,8 @@
                    (copy-r6rs-library (path-join (libraries-directory) (car target))
                                       (cdr target)
                                       (path-join srcdir (artifact-path artifact))
-                                      (artifact-form-index artifact))))))
+                                      (artifact-form-index artifact)
+                                      (artifact-last-form? artifact))))))
            (cons target-pathname
                  (map-in-order
                   (lambda (alias)
@@ -677,6 +752,47 @@
                                     target-pathname))
                     aliases)))))))))
 
+;; Install an implementation-specific module.
+(define (install-artifact/module project artifact srcdir always-symlink?)
+  (let ((library-locations
+         (make-r6rs-library-filenames (module-name artifact)
+                                      (artifact-implementation artifact)
+                                      '())))
+    (cond
+      ((null? library-locations)
+       (log/warn "Could not construct a filename for " (module-name artifact))
+       '())
+      (else
+       (let ((target (car library-locations))
+             (aliases (cdr library-locations)))
+         (let ((target-pathname
+                (let ((fn (path-join srcdir (artifact-path artifact))))
+                  (cond
+                    ((and always-symlink?
+                          (zero? (artifact-form-index artifact))
+                          (artifact-last-form? artifact))
+                     ;; The file has a single form.
+                     (symlink-file (path-join (libraries-directory) (car target))
+                                   (cdr target)
+                                   (path-join srcdir (artifact-path artifact))))
+                    (else
+                     ;; Copy only the module form.
+                     (when always-symlink?
+                       (log/warn "Refusing to symlink multi-form module "
+                                 (artifact-path artifact)))
+                     (copy-source-form (path-join (libraries-directory) (car target))
+                                       (cdr target)
+                                       (path-join srcdir (artifact-path artifact))
+                                       (artifact-form-index artifact)
+                                       (artifact-last-form? artifact)))))))
+           (cons target-pathname
+                 (map-in-order          ;FIXME: duplicate code
+                  (lambda (alias)
+                    (symlink-file (path-join (libraries-directory) (car alias))
+                                  (cdr alias)
+                                  target-pathname))
+                  aliases))))))))
+
 ;; Install an artifact.
 (define (install-artifact project artifact related-artifact* srcdir always-symlink?)
   (cond
@@ -703,6 +819,10 @@
                                   (r7rs-program? artifact))))))))
     ((r7rs-library? artifact)
      (install-artifact/r7rs-library project artifact srcdir always-symlink?))
+    ((and (module? artifact)
+          (memq (artifact-implementation artifact)
+                '(guile)))
+     (install-artifact/module project artifact srcdir always-symlink?))
     ((legal-notice-file? artifact)
      (list (copy-file (path-join (notices-directory project) (artifact-directory artifact))
                       (artifact-filename artifact)

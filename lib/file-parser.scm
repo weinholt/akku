@@ -290,7 +290,7 @@
               pkgpath
               (if (null? dir^)
                   (cond ((member real-pkgroot '("" "."))
-                         (unless (and (equal? dir '("no" "where")) ;oddness in xitomatl
+                         (unless (and (member dir '(() ("no" "where"))) ;oddness in xitomatl
                                       (equal? fn "doesnt-exist"))
                            (log/warn "Could not resolve include: " (list dir fn ext)))
                          #f)
