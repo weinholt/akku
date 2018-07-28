@@ -847,9 +847,13 @@
                                 (project-name project)))
     (cond
       ((equal? (project-installer project) '((r6rs)))
-       (let* ((artifact* (filter (lambda (artifact)
-                                   (not (artifact-for-test? artifact)))
-                                 (find-artifacts srcdir #f)))
+       (let* ((artifact* (find-artifacts srcdir #f))
+              (artifact*
+               (if (string=? (project-name project) "")
+                   artifact*
+                   (filter (lambda (artifact)
+                             (not (artifact-for-test? artifact)))
+                           artifact*)))
               (asset* (delete-duplicates
                        (append-map artifact-assets artifact*)
                        (lambda (x y)
