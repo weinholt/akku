@@ -1,5 +1,5 @@
 .\" HTML output: groff -man -Thtml docs/akku.1
-.TH AKKU "1" "April 2018" "Akku.scm" "User Commands"
+.TH AKKU "1" "July 2018" "Akku.scm" "User Commands"
 .SH "NAME"
 akku \- R6RS Scheme language package manager
 .SH "SYNOPSIS"
@@ -13,7 +13,7 @@ those programs.
 Project-based means that dependencies are local to each project you
 manage with Akku. The idea is that each project will specify its
 dependencies through a manifest and a lockfile. When developing on a
-project you set your environment variables by sourcing that project's
+project, you set your environment variables by sourcing that project's
 activate script into your shell (\fCsource .akku/bin/activate\fR).
 This ensures that the code you load into your program is that of your
 direct or indirect dependencies, instead of something that just
@@ -171,70 +171,54 @@ into a single index file. This is used at repository servers as part
 of maintaining the archive.
 .\" ------------------------------------------
 .SH "PUBLISHING PACKAGES"
-Akku.scm is associated with a package index that you can upload to.
-This will make your package available for others for easily discover
-and use. You can perform the necessary steps with the \fBpublish\fR
-command described above. Here is a checklist of items to consider
-before publishing:
+You can make packages available to other users through the central
+Akku.scm registry with the \fBpublish\fR command described above. Here
+is a checklist of items to consider before publishing:
 .
 .IP 1.
-Ensure that your manifest is up to date and contains at least the
+Check that your manifest is up to date and contains at least the
 right package name, version, synopsis, at least one author and a
-license identifier. The homepage or author fields are useful if you
-want to show users where to send feedback. If you don't have a
-manifest yet, then use \fIpublish\fR to get a draft.
+license identifier. If you don't have a manifest yet, then run
+\fCakku publish\fR to get a draft.
 .IP 2.
-If there are missing dependencies then don't forget to \fIadd\fR them
-to the manifest.
-.IP 3.
 Version numbers must follow the
 .UR https://semver.org/
 SemVer specification
-.UE ,
-because this is used to determine which package versions are
-compatible with each other. If you are packaging software that does
-not follow the SemVer rules then adjust the version numbers so that
-they follow the rules. It is not strictly necessary that they match
-the original version numbers of the software.
-.IP 4.
+.UE .
+If you are packaging software that does not follow the SemVer rules
+then adjust the version numbers so that they follow the rules (they don't
+need to match the original software exactly).
+.IP 3.
 Please pay some attention to the license field to make sure that it is
 accurate. Use the identifiers from
-.UR https://spdx.org/licenses/
+.UR https://\:spdx.org/\:licenses/
 the SPDX project
-.UE .
-The maintainers of the package index are keen on not being sued for
-copyright infringement and will only accept packages under irrevocable
-licenses that: allow free redistribution even together with any other
-packages; apply to anyone that receives the software; allow
-modifications and derived works; and that do not exclude certain
-individuals, groups or endeavours.
+.UE ,
+making sure to use an open source license.
 .IP 4.
 Prepare and publish your GnuPG key if you do not yet have one. If
 you're not too particular on the details of this and just want a key
 that works then you can run \fCgpg \-\-quick-generate-key "Name Goes
 Here <schemer@example.com>"\fR, filling in the name and email address
-that you want to use. Afterwards you should publish your key to the
-public key servers using the command \fCgpg \-\-send-keys
-\f[CI]keyID\fR, using the key ID associated with your new key.
+that you want to use. Afterwards you need to publish your key to the
+public key servers using the command \fCgpg \-\-keyserver pgp.mit.edu
+\-\-send-keys \f[CI]keyID\fR, using the key ID associated with your
+new key.
 .IP 5.
 Currently all projects need to be in a publicly available git
 repository, but this will change later. The release should preferably
 be tagged using their SemVer version numbers: version 1.0.0 gets
 tagged with \fIv1.0.0\fR. You can use \fCgit tag \-s v1.0.0\fR to make
-a GnuPG signed tag. Tags makes downloading the code faster.
+a signed tag (and don't forget to use \fCgit push --tags\fR).
 .
 .PP
 All packages in the index are signed with GnuPG signatures. This
-provides several important benefits: through the OpenPGP Web of Trust
-it is possible to independently verify the veracity of the package
-index; it is possible to verify that a newly uploaded version came
-from same author as previously uploaded versions; it is possible to
-detect if uploaded packages have been tampered with or corrupted; and
-ownership of a package name can be assigned to the owner of a GnuPG
-key.
+provides important benefits: third parties can verify the package
+index and the archive software can verify that a newly uploaded
+version came from same author as previously uploaded versions.
 .PP
 Packages are manually reviewed before they are accepted into the
-package index.
+package index. Ask in #akku on Freenode if there are problems.
 .PP
 Publishing is meant to be easy and hassle-free after some initial
 setup, so please report any usability problems with the publish
@@ -254,9 +238,14 @@ The lock command (and any command that uses it behind the scenes) does
 not preserve the versions of previously locked packages. This is
 planned to be fixed.
 .PP
-Please report bugs to:
-.UR https://github.com/weinholt/akku/issues
+Please report bugs to
+.UR https://\:gitlab.com/\:akkuscm/\:akku/\:issues
+GitLab issues
 .UE
+or by
+.MT bugs@\:akkuscm.org
+email
+.ME .
 .SH EXAMPLES
 .\" ------------------------------------------
 .SS "Updating the local package index"
@@ -333,7 +322,7 @@ earlier package manager, and he ported it from the solver in
 .SH COPYRIGHT
 Copyright \(co 2018 G\[:o]ran Weinholt.
 License GPLv3+: GNU GPL version 3 or later
-.UR http://gnu.org/licenses/gpl.html
+.UR http://\:gnu.org/\:licenses/\:gpl.html
 .UE
 .br
 This is free software: you are free to change and redistribute it.

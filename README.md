@@ -1,6 +1,7 @@
 # Akku.scm
 
 [![Build Status](https://travis-ci.org/weinholt/akku.svg?branch=master)](https://travis-ci.org/weinholt/akku)
+[![pipeline status](https://gitlab.com/akkuscm/akku/badges/master/pipeline.svg)](https://gitlab.com/akkuscm/akku/commits/master)
 
 > "The purpose of the machine is to make drudgery unnecessary."
 >
@@ -61,8 +62,8 @@ Here's a high level view of how to get started:
 
 The installed libraries and programs should now be available to you,
 assuming you use one of these Schemes: Chez Scheme, GNU Guile (with
-R6RS settings), Ikarus, Mosh, Racket (plt-r6rs), Sagittarius, Vicare
-or Ypsilon.
+R6RS settings), Ikarus, Larceny, Mosh, Racket (plt-r6rs), Sagittarius,
+Vicare or Ypsilon.
 
 More details are in the manpage: `man docs/akku.1`.
 

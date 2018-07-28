@@ -76,3 +76,29 @@ Project metadata is available in `(akku metadata)`. This library will
 have the name and version of the main package, but the primary purpose
 is to support `akku-r7rs` in its implementations of `cond-expand` and
 `include`.
+
+## Version 0.3.1
+
+This release fixes an bug with updating cloned git repositories. When
+a project was cloned using a git tag, it could then later not be
+updated to a newer version that was not using a tag. A workaround was
+to remove its directory under `.akku/src`.
+
+A bug in the semver library meant that version ranges that did not
+allow pre-releases could still match a pre-release.
+
+The file parser recognizes Chez and Guile modules and the installer
+also installs Guile modules.
+
+This release adds support for Larceny. The library path is now set by
+`.akku/bin/activate` and Larceny's special library file mangling works
+so that SRFIs are usable again.
+
+The Chez library path is now split into `.akku/lib` and `.akku/libobj`
+(compiled objects are placed in the latter directory).
+
+The installer no longer skips test libraries when they come from
+the current project.
+
+Some limitations of the R7RS support are no longer applicable. See
+this example: https://gitlab.com/akkuscm/akku/wikis/R7RS-example
