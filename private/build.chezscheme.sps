@@ -172,7 +172,7 @@
             (format p "cp -a bin boot share \"$PREFIX/\"~%")
             (format p "cat > \"$PREFIX/bin/akku\" << EOF~%")
             (format p "#!/bin/sh~%")
-            (format p "exec \"$PREFIX/bin/$MACHINE/petite\" -b \"$PREFIX/boot/$MACHINE/petite.boot\" --program \"$PREFIX/bin/$MACHINE/akku\" \\$*~%")
+            (format p "exec \"$PREFIX/bin/$MACHINE/petite\" -b \"$PREFIX/boot/$MACHINE/petite.boot\" --program \"$PREFIX/bin/$MACHINE/akku\" \"\\$@\"~%")
             (format p "EOF~%")
             (format p "chmod 0755 \"$PREFIX/bin/akku\"~%")
             (format p "mkdir -p \"$HOME/bin\"~%")
