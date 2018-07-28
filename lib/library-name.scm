@@ -28,6 +28,7 @@
     library-name->file-name/guile
     library-name->file-name/ikarus
     library-name->file-name/ironscheme
+    library-name->file-name/larceny
     library-name->file-name/psyntax
     library-name->file-name/racket
     library-name->file-name-variant)
@@ -209,6 +210,35 @@
               (put-string p str)))
           ls))))))
 
+;; Larceny, based on observed behavior.
+(define (library-name->file-name/larceny x)
+  (let-values (((p extract) (open-string-output-port)))
+    (define (display-hex n)
+      (cond
+        ((<= 0 n 9) (display n p))
+        (else (display
+               (integer->char
+                (+ (char->integer #\a)
+                   (- n 10)))
+               p))))
+    (let f ((ls x))
+      (unless (null? ls)
+        (display "/" p)
+        (for-each
+         (lambda (c)
+           (cond
+             ((not (eqv? c #\:))
+              (display c p))
+             (else
+              (display "%" p)
+              (let ((n (char->integer c)))
+                (display-hex (quotient n 16))
+                (display-hex (remainder n 16))))))
+         (string->list
+          (symbol->string (car ls))))
+        (f (cdr ls))))
+    (extract)))
+
 (define (library-name->file-name-variant implementation)
   (case implementation
     ((chezscheme)
@@ -221,5 +251,7 @@
      library-name->file-name/racket)
     ((guile)
      library-name->file-name/guile)
+    ((larceny)
+     library-name->file-name/larceny)
     (else                               ;default fallback
      library-name->file-name/chezscheme))))

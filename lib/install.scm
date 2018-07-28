@@ -35,7 +35,7 @@
     (laesare reader)
     (only (spells filesys) file-directory? file-regular?
           file-symbolic-link? rename-file)
-    (only (wak fmt) wrt)
+    (wak fmt)
     (only (xitomatl common) pretty-print)
     (xitomatl alists)
     (xitomatl AS-match)
@@ -877,7 +877,7 @@
 ;; Installs an activation script, like Python's virtualenv.
 (define (install-activate-script)
   ;; TODO: Setup routines for more Schemes, perhaps take the wrappers
-  ;; from scheme-ci. Larceny is missing.
+  ;; from scheme-ci.
   (let ((filename (path-join (binaries-directory) "activate")))
     (log/info "Installing " filename)
     (mkdir/recursive (binaries-directory))
@@ -886,17 +886,19 @@
                                            (buffer-mode block)
                                            (native-transcoder))
       (lambda (p)
-        (display "# Load this with \"source .akku/bin/activate\" in bash\n" p)
-        (display "export CHEZSCHEMELIBDIRS=\"$PWD/.akku/lib\"\n" p)
-        (display "unset CHEZSCHEMELIBEXTS\n" p)
-        (display "export GUILE_LOAD_PATH=\"$PWD/.akku/lib\"\n" p)
-        (display "export IKARUS_LIBRARY_PATH=\"$PWD/.akku/lib\"\n" p)
-        (display "export MOSH_LOADPATH=\"$PWD/.akku/lib\"\n" p)
-        (display "export PLTCOLLECTS=\":$PWD/.akku/lib\"\n" p)
-        (display "export SAGITTARIUS_LOADPATH=\"$PWD/.akku/lib\"\n" p)
-        (display "export VICARE_SOURCE_PATH=\"$PWD/.akku/lib\"\n" p)
-        (display "export YPSILON_SITELIB=\"$PWD/.akku/lib\"\n" p)
-        (display "export PATH=$PWD/.akku/bin:$PATH\n" p)))))
+        (fmt p
+             "# Load this with \"source .akku/bin/activate\" in bash" nl
+             "export CHEZSCHEMELIBDIRS=\"$PWD/.akku/lib::$PWD/.akku/libobj\"" nl
+             "unset CHEZSCHEMELIBEXTS" nl
+             "export GUILE_LOAD_PATH=\"$PWD/.akku/lib\"" nl
+             "export IKARUS_LIBRARY_PATH=\"$PWD/.akku/lib\"" nl
+             "export MOSH_LOADPATH=\"$PWD/.akku/lib\"" nl
+             "export PLTCOLLECTS=\":$PWD/.akku/lib\"" nl
+             "export SAGITTARIUS_LOADPATH=\"$PWD/.akku/lib\"" nl
+             "export VICARE_SOURCE_PATH=\"$PWD/.akku/lib\"" nl
+             "export YPSILON_SITELIB=\"$PWD/.akku/lib\"" nl
+             "export LARCENY_LIBPATH=\"$PWD/.akku/lib\"" nl
+             "export PATH=$PWD/.akku/bin:$PATH" nl)))))
 
 ;; Installs a library that contains metadata about all artifacts.
 (define (install-metadata installed-project/artifact* manifest-filename)

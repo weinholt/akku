@@ -46,4 +46,18 @@
             (library-name->file-name/guile '(srfi :1 lists foo)))
 (test-end)
 
+(test-begin "libname-larceny")
+(test-equal "/srfi"
+            (library-name->file-name/larceny '(srfi)))
+(test-equal "/srfi/%3a1"
+            (library-name->file-name/larceny '(srfi :1)))
+(test-equal "/srfi/%3a1/lists"
+            (library-name->file-name/larceny '(srfi :1 lists)))
+(test-equal "/srfi/%3a1/lists/foo"
+            (library-name->file-name/larceny '(srfi :1 lists foo)))
+(test-equal "/foldling/shorthand/λ"
+            (library-name->file-name/larceny '(foldling shorthand λ)))
+(test-end)
+
+
 (exit (if (zero? (test-runner-fail-count (test-runner-get))) 0 1))
