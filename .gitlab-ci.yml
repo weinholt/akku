@@ -1,7 +1,7 @@
 image: "weinholt/chezscheme"
 
 variables:
-  AKKU_LOG_LEVEL: "debug"
+  AKKU_LOG_LEVEL: "info"
 
 build:
   stage: build

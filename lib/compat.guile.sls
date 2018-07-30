@@ -32,7 +32,8 @@
     open-process-ports
     directory-list
     file-exists/no-follow?
-    pretty-print)
+    pretty-print
+    get-passwd-realname)
   (import
     (except (rnrs (6)) file-exists?)
     (only (ice-9 pretty-print) pretty-print)
@@ -41,7 +42,8 @@
           mkdir chmod rename-file rmdir
           lstat stat:type
           symlink readlink
-          opendir readdir closedir)
+          opendir readdir closedir
+          string-split passwd:gecos getpwnam getlogin)
     (prefix (only (guile) putenv) guile:)
     (prefix (spells process) spells:))
 
@@ -71,4 +73,8 @@
             (spells:process-id p))))
 
 (define (putenv name value)
-  (guile:putenv (string-append name "=" value))))
+  (guile:putenv (string-append name "=" value)))
+
+(define (get-passwd-realname)
+  (car (string-split (passwd:gecos (getpwnam (getlogin)))
+                     #\,))))

@@ -3,7 +3,7 @@
 .SH "NAME"
 akku \- R6RS Scheme language package manager
 .SH "SYNOPSIS"
-\fBakku\fR {list | show \fIpkg\fR | install \fIpkg\fR[@\fIversion-range\fR].\|.\|. | update | add [\-\-\fBdev\fR] \fIpkg\fR[@\fIversion-range\fR] | lock | install | remove \fIpkg\fR.\|.\|. | uninstall \fIpkg\fR.\|.\|. | version | scan [\fIdirectory\fR] | publish [\-\-\fBversion\fR=\fIversion\fR] [\-\-\fBtag\fR=\fItag\fR] | graph | dependency\-scan [\-\-\fBimplementation\fR=\fIimpl\fR] \fIfilename\fR.\|.\|. | license\-scan [\-\-\fBimplementation\fR=\fIimpl\fR] \fIfilename\fR.\|.\|. | archive\-scan \fIdirectory\fR.\|.\|.}
+\fBakku\fR {init \fIdirectory\fR | list | show \fIpkg\fR | install \fIpkg\fR[@\fIversion-range\fR].\|.\|. | update | add [\-\-\fBdev\fR] \fIpkg\fR[@\fIversion-range\fR] | lock | install | remove \fIpkg\fR.\|.\|. | uninstall \fIpkg\fR.\|.\|. | version | scan [\fIdirectory\fR] | publish [\-\-\fBversion\fR=\fIversion\fR] [\-\-\fBtag\fR=\fItag\fR] | graph | dependency\-scan [\-\-\fBimplementation\fR=\fIimpl\fR] \fIfilename\fR.\|.\|. | license\-scan [\-\-\fBimplementation\fR=\fIimpl\fR] \fIfilename\fR.\|.\|. | archive\-scan \fIdirectory\fR.\|.\|.}
 .SH DESCRIPTION
 \fBAkku.scm\fR is a project-based language package manager for R6RS
 Scheme. It is mainly meant for schemers who develop programs or
@@ -27,6 +27,13 @@ developing.
 .PP
 This manpage mostly goes over the details of the command line
 interface, where these command are available:
+.\" ------------------------------------------
+.TP
+\fBinit\fR \fIdirectory\fR
+Initialize a new project with a simple template that demonstrates
+a program, a library and a test. This is not necessary to start
+using Akku in an existing project. In that case you simply go
+to the root directory of the project and start running akku.
 .\" ------------------------------------------
 .TP
 .B list
@@ -105,7 +112,7 @@ needed.
 Print the Akku.scm version number to standard output.
 .\" ------------------------------------------
 .TP
-\fBscan\fR [directory]
+\fBscan\fR [\fIdirectory\fR]
 Scans a directory recursively and analyses all files. The result of
 the analysis is printed as a series of YAML documents (syntax might
 be a bit off: send bug reports). Useful for figuring out what type

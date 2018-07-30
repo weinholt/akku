@@ -34,13 +34,14 @@
   (only (akku lib archive-maint) archive-scan)
   (only (akku lib graph) print-gv-file)
   (only (akku lib scan) scan-repository)
+  (only (akku lib init) init-project)
   (only (akku lib install) install logger:akku.install)
   (only (akku lib lock) logger:akku.lock lock-dependencies
         add-dependency remove-dependencies list-packages
         show-package)
   (only (akku lib update) update-index)
   (only (akku lib utils) path-join application-home-directory
-        get-log-threshold)
+        get-log-threshold get-index-filename)
   (only (akku lib publish) publish-packages)
   (only (akku metadata) main-package-version)
   (akku private logging))
@@ -69,19 +70,13 @@
   (newline port)
   (flush-output-port port))
 
-(define (get-index-filename)
-  (let ((index (path-join (application-home-directory) "share/index.db"))
-        (bootstrap (path-join (application-home-directory) "share/bootstrap.db")))
-    (cond ((file-exists? index) index)
-          ((file-exists? bootstrap) bootstrap)
-          (else (error 'cmd-lock "Unable to locate the package index")))))
-
 (define (cmd-help)
   (fmt (current-error-port)
        (fmt-yellow ",") (fmt-green "()") (fmt-white "´")
        " Akku.scm " main-package-version " - Scheme package manager" nl
        nl
        (fmt-underline "Simple usage") nl
+       "   akku init <directory> - initialize a new project from a template" nl
        "   akku list - list all packages in the index" nl
        "   akku show <pkg> - show package information" nl
        " * akku install <pkg>+ - all-in-one add/lock/install a package" nl
@@ -117,6 +112,24 @@
   (if (char=? (string-ref package-name 0) #\()
       (read (open-string-input-port package-name))
       package-name))
+
+(define (cmd-init arg*)
+  (when (or (null? arg*) (not (null? (cdr arg*))))
+    (cmd-help))
+  (init-project (car arg*))
+  (fmt #t nl
+       "To start developing in the new project, type this in your shell:" nl
+       nl
+       " cd " (car arg*) nl
+       " akku install" nl
+       " source .akku/bin/activate" nl
+       nl
+       ;; TODO: This caveat should not be needed.
+       (wrap-lines
+        "The programs will work out of the box if Chez Scheme is
+installed. Other implementations may require small adjustments to run
+R6RS programs (e.g. guile -x .guile.sls -x .sls). See the manual for
+your implementation.") nl))
 
 (define (cmd-add arg*)
   (when (null? arg*)
@@ -248,6 +261,8 @@
 (cond
   ((null? (cdr (command-line)))
    (cmd-help))
+  ((string=? (cadr (command-line)) "init")
+   (cmd-init (cddr (command-line))))
   ((string=? (cadr (command-line)) "add")
    (cmd-add (cddr (command-line))))
   ((string=? (cadr (command-line)) "remove")

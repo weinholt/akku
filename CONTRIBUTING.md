@@ -5,10 +5,10 @@ in [`#scheme`](irc://irc.freenode.org/#scheme) on Freenode or open an
 issue. There's also `#akku` and some discussion in `#chez`.
 
 Go to [GitHub projects][projects] to see the direction of the project
-and [GitHub issues][issues] for a list of current trouble.
+and [GitLab issues][issues] for a list of current trouble.
 
  [projects]: https://github.com/weinholt/akku/projects
- [issues]: https://github.com/weinholt/akku/issues
+ [issues]: https://gitlab.com/akkuscm/akku/issues
 
 ## Setting up a development environment
 
@@ -41,12 +41,13 @@ hopefully it will generate a binary and a source release tarball.
 
 ## Submitting patches
 
-Fork the project on GitHub. Please consider using `git commit -s` when
-you create patches, to get an automatic sign-off in the commit
-message. Please write explanatory commit messages. When you feel
-comfortable with your commits, submit a pull request through GitHub.
+Fork the project on GitHub or GitLab. Please consider using `git
+commit -s` when you create patches, to get an automatic sign-off in
+the commit message. Please write explanatory commit messages. When you
+feel comfortable with your commits, submit a pull request through
+GitHub, a merge request through GitLab or format a patch and email it.
 For larger changes it will be better to discuss the changes ahead of
-time, either through a GitHub issue or IRC.
+time, either through an issue or IRC.
 
 The
 [Developer Certificate of Origin](https://developercertificate.org/)

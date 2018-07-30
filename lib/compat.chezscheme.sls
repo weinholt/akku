@@ -29,12 +29,12 @@
     open-process-ports
     directory-list
     file-exists/no-follow?
-    pretty-print)
+    pretty-print
+    get-passwd-realname)
   (import
     (except (rnrs (6)) file-exists?)
     (only (chezscheme) cd mkdir chmod putenv rename-file delete-directory
           system process open-process-ports directory-list
-          file-regular? file-directory? file-symbolic-link?
           pretty-print file-exists?
           machine-type load-shared-object foreign-procedure))
 
@@ -55,6 +55,9 @@
           (error 'readlink "Could not read symbolic link" pathname)
           (utf8->string
            (get-bytevector-n (open-bytevector-input-port buf) ret)))))
+
+  (define (get-passwd-realname)
+    "Guy Q. Schemer")
 
   (case (machine-type)
     ((i3le ti3le a6le ta6le arm32le tarm32le) (load-shared-object "libc.so.6"))

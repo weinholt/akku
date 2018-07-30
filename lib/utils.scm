@@ -35,7 +35,9 @@
     resolve-pathname
     resolve-relative-filename
     get-log-threshold
-    run-command)
+    run-command
+    get-realname
+    get-index-filename)
   (import
     (rnrs (6))
     (rnrs mutable-pairs (6))
@@ -47,7 +49,7 @@
     (only (spells process) run-shell-command)
     (only (industria strings) string-split)
     (xitomatl AS-match)
-    (only (akku lib compat) getcwd mkdir symlink))
+    (only (akku lib compat) getcwd mkdir symlink get-passwd-realname))
 
 ;; Split directory name and filename components.
 (define (split-path filename)
@@ -206,4 +208,14 @@
 (define (run-command cmd)
   (let-values (((status signal) (run-shell-command cmd)))
     (unless (eqv? status 0)
-      (error 'run "Shell command returned error" cmd status signal)))))
+      (error 'run "Shell command returned error" cmd status signal))))
+
+(define (get-realname)
+  (get-passwd-realname))
+
+(define (get-index-filename)
+  (let ((index (path-join (application-home-directory) "share/index.db"))
+        (bootstrap (path-join (application-home-directory) "share/bootstrap.db")))
+    (cond ((file-exists? index) index)
+          ((file-exists? bootstrap) bootstrap)
+          (else (error 'cmd-lock "Unable to locate the package index"))))))

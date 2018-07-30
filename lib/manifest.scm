@@ -20,6 +20,10 @@
 
 (library (akku lib manifest)
   (export
+    default-manifest-name
+    default-manifest-version
+    default-manifest-license
+
     make-package package?
     package-name package-version*
     package->index-package
@@ -32,6 +36,7 @@
     draft-akku-package)
   (import
     (rnrs (6))
+    (srfi :39 parameters)
     (semver versions)
     (only (spells filesys) rename-file)
     (spdx parser)
@@ -40,7 +45,16 @@
     (xitomatl AS-match)
     (only (xitomatl common) pretty-print)
     (only (akku lib compat) getcwd)
-    (only (akku lib utils) split-path))
+    (only (akku lib utils) split-path get-realname))
+
+(define default-manifest-name
+  (make-parameter (string-downcase (cdr (split-path (getcwd))))))
+
+(define default-manifest-version
+  (make-parameter "0.0.0-alpha.0"))
+
+(define default-manifest-license
+  (make-parameter "NOASSERTION"))
 
 (define-record-type package
   (nongenerative)
@@ -146,12 +160,9 @@
   (rename-file (string-append manifest-filename ".tmp") manifest-filename))
 
 (define (draft-akku-package version . extra*)
-  `(akku-package (,(string-downcase (cdr (split-path (getcwd))))
-                  ,(or version "0.0.0-alpha.0"))
+  `(akku-package (,(default-manifest-name)
+                  ,(or version (default-manifest-version)))
                  (synopsis "I did not edit Akku.manifest")
-                 ;; TODO: Try to get this from git
-                 (authors "K. Programistova <schemer@example.com>")
-                 (license "NOASSERTION")
-                 ,@extra*))
-
-  )
+                 (authors ,(get-realname))
+                 (license ,(default-manifest-license))
+                 ,@extra*)))
