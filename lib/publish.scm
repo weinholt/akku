@@ -50,6 +50,9 @@
             ;; https://github.com/weinholt/akku.git
             ((regexp-matches (rx "https://" ($ (+ any))) url)
              => (lambda (m) url))
+            ;; git://github.com/weinholt/akku.git
+            ((regexp-matches (rx "git://" ($ (+ any))) url)
+             => (lambda (m) url))
             ;; git@github.com:weinholt/akku.git
             ((regexp-matches (rx "git@" ($ (or "github.com" "gitlab.com"))
                                  ":" ($ (+ any))) url)
