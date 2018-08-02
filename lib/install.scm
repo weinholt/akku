@@ -90,6 +90,9 @@
 (define (libraries-directory)
   (path-join (akku-directory) "lib"))
 
+(define (r7rs-libraries-directory)
+  (path-join (akku-directory) "lib"))
+
 (define (notices-directory project)
   (path-join (path-join (akku-directory) "notices")
              (project-sanitized-name project)))
@@ -351,6 +354,26 @@
                        (cons #f (lset-difference eq? r6rs-implementation-names
                                                  other-impl*)))))))
 
+;; Makes all known variants of the path and name for the library.
+;; Returns a list of (directory-name file-name).
+(define (make-r7rs-library-filenames name)
+  (delete-duplicates
+   (filter-map
+    (lambda (library-name->file-name)
+      (guard (exn
+              ((serious-condition? exn)
+               (when (and (message-condition? exn)
+                          (irritants-condition? exn))
+                 (log/error (condition-message exn) ": "
+                            (condition-irritants exn)))
+               #f))
+        (let* ((filename (library-name->file-name name))
+               (filename (substring filename 1 (string-length filename)))
+               (filename (string-append filename ".sld")))
+          (check-filename filename (support-windows?))
+          (split-path filename))))
+    (map library-name->file-name-variant/r7rs r7rs-implementation-names))))
+
 ;; Copies a single R6RS library form from one file to another.
 (define (copy-r6rs-library target-directory target-filename source-pathname form-index last-form?)
   (let ((target-pathname (path-join target-directory target-filename)))
@@ -606,6 +629,17 @@
        (symlink/relative source-pathname target-pathname)
        target-pathname))))
 
+;; Creates symlinks to target-pathname from dir + alias-target.
+;; Returns the created pathnames, including the target.
+(define (make-alias-symlinks target-pathname dir alias-targets)
+  (cons target-pathname
+        (map-in-order
+         (lambda (alias)
+           (symlink-file (path-join dir (car alias))
+                         (cdr alias)
+                         target-pathname))
+         alias-targets)))
+
 ;; Install an R6RS library.
 (define (install-artifact/r6rs-library project artifact related-artifact* srcdir always-symlink?)
   (let* ((other-impl* (filter-map (lambda (artifact^)
@@ -672,13 +706,9 @@
                                       (path-join srcdir (artifact-path artifact))
                                       (artifact-form-index artifact)
                                       (artifact-last-form? artifact))))))
-           (cons target-pathname
-                 (map-in-order
-                  (lambda (alias)
-                    (symlink-file (path-join (libraries-directory) (car alias))
-                                  (cdr alias)
-                                  target-pathname))
-                  aliases))))))))
+           (make-alias-symlinks target-pathname
+                                (libraries-directory)
+                                aliases)))))))
 
 ;; Install an R7RS library.
 (define (install-artifact/r7rs-library project artifact srcdir always-symlink?)
@@ -744,13 +774,39 @@
                                                      (cdr target)
                                                      (artifact-path artifact)
                                                      lib)))))))))))
-             (cons target-pathname
-                   (map-in-order
-                    (lambda (alias)
-                      (symlink-file (path-join (libraries-directory) (car alias))
-                                    (cdr alias)
-                                    target-pathname))
-                    aliases)))))))))
+             (make-alias-symlinks target-pathname
+                                  (libraries-directory)
+                                  aliases))))))))
+
+;; Install an R7RS library for use in native R7RS implementations.
+(define (install-artifact/r7rs-library/native project artifact srcdir always-symlink?)
+  (let ((library-locations (make-r7rs-library-filenames (r7rs-library-name artifact))))
+    (cond
+      ((null? library-locations)
+       (log/warn "Could not construct a filename for " (r7rs-library-name artifact))
+       '())
+      (else
+       (let ((target (car library-locations))
+             (aliases (cdr library-locations)))
+         (let ((target-pathname
+                (let ((fn (path-join srcdir (artifact-path artifact))))
+                  (cond
+                    ((and always-symlink?
+                          (zero? (artifact-form-index artifact))
+                          (artifact-last-form? artifact))
+                     (symlink-file (path-join (r7rs-libraries-directory) (car target))
+                                   (cdr target)
+                                   (path-join srcdir (artifact-path artifact))))
+                    (else
+                     (copy-source-form (path-join (r7rs-libraries-directory)
+                                                  (car target))
+                                       (cdr target)
+                                       (artifact-path artifact)
+                                       (artifact-form-index artifact)
+                                       (artifact-last-form? artifact)))))))
+           (make-alias-symlinks target-pathname
+                                (r7rs-libraries-directory)
+                                aliases)))))))
 
 ;; Install an implementation-specific module.
 (define (install-artifact/module project artifact srcdir always-symlink?)
@@ -785,13 +841,9 @@
                                        (path-join srcdir (artifact-path artifact))
                                        (artifact-form-index artifact)
                                        (artifact-last-form? artifact)))))))
-           (cons target-pathname
-                 (map-in-order          ;FIXME: duplicate code
-                  (lambda (alias)
-                    (symlink-file (path-join (libraries-directory) (car alias))
-                                  (cdr alias)
-                                  target-pathname))
-                  aliases))))))))
+           (make-alias-symlinks target-pathname
+                                (libraries-directory)
+                                aliases)))))))
 
 ;; Install an artifact.
 (define (install-artifact project artifact related-artifact* srcdir always-symlink?)
@@ -818,7 +870,10 @@
                                   (artifact-form-index artifact)
                                   (r7rs-program? artifact))))))))
     ((r7rs-library? artifact)
-     (install-artifact/r7rs-library project artifact srcdir always-symlink?))
+     (append (if (not (artifact-implementation artifact))
+                 (install-artifact/r7rs-library/native project artifact srcdir always-symlink?)
+                 '())
+             (install-artifact/r7rs-library project artifact srcdir always-symlink?)))
     ((and (module? artifact)
           (memq (artifact-implementation artifact)
                 '(guile)))
@@ -890,19 +945,24 @@
                                            (buffer-mode block)
                                            (native-transcoder))
       (lambda (p)
-        (fmt p
-             "# Load this with \"source .akku/bin/activate\" in bash" nl
-             "export CHEZSCHEMELIBDIRS=\"$PWD/.akku/lib::$PWD/.akku/libobj\"" nl
-             "unset CHEZSCHEMELIBEXTS" nl
-             "export GUILE_LOAD_PATH=\"$PWD/.akku/lib\"" nl
-             "export IKARUS_LIBRARY_PATH=\"$PWD/.akku/lib\"" nl
-             "export MOSH_LOADPATH=\"$PWD/.akku/lib\"" nl
-             "export PLTCOLLECTS=\":$PWD/.akku/lib\"" nl
-             "export SAGITTARIUS_LOADPATH=\"$PWD/.akku/lib\"" nl
-             "export VICARE_SOURCE_PATH=\"$PWD/.akku/lib\"" nl
-             "export YPSILON_SITELIB=\"$PWD/.akku/lib\"" nl
-             "export LARCENY_LIBPATH=\"$PWD/.akku/lib\"" nl
-             "export PATH=$PWD/.akku/bin:$PATH" nl)))))
+        (let ((lib (libraries-directory))
+              (lib7 (r7rs-libraries-directory)))
+          (fmt p
+               "# Load this with \"source .akku/bin/activate\" in bash" nl
+               ;; R6RS
+               "export CHEZSCHEMELIBDIRS=\"$PWD/.akku/lib::$PWD/.akku/libobj\"" nl
+               "unset CHEZSCHEMELIBEXTS" nl
+               "export GUILE_LOAD_PATH=\"$PWD/.akku/lib\"" nl
+               "export IKARUS_LIBRARY_PATH=\"$PWD/.akku/lib\"" nl
+               "export MOSH_LOADPATH=\"$PWD/.akku/lib\"" nl
+               "export PLTCOLLECTS=\":$PWD/.akku/lib\"" nl
+               "export SAGITTARIUS_LOADPATH=\"$PWD/.akku/lib\"" nl
+               "export VICARE_SOURCE_PATH=\"$PWD/.akku/lib\"" nl
+               "export YPSILON_SITELIB=\"$PWD/.akku/lib\"" nl
+               "export LARCENY_LIBPATH=\"$PWD/" lib "\"" nl
+               ;; R7RS
+               "export CHIBI_MODULE_PATH=\"$PWD/" lib7 "\"" nl
+               "export PATH=$PWD/.akku/bin:$PATH" nl))))))
 
 ;; Installs a library that contains metadata about all artifacts.
 (define (install-metadata installed-project/artifact* manifest-filename)

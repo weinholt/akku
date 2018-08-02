@@ -31,7 +31,8 @@
     library-name->file-name/larceny
     library-name->file-name/psyntax
     library-name->file-name/racket
-    library-name->file-name-variant)
+    library-name->file-name-variant
+    library-name->file-name-variant/r7rs)
   (import
     (rnrs (6))
     (only (srfi :13 strings) string-index string-prefix?)
@@ -254,4 +255,20 @@
     ((larceny)
      library-name->file-name/larceny)
     (else                               ;default fallback
-     library-name->file-name/chezscheme))))
+     library-name->file-name/chezscheme)))
+
+(define (library-name->file-name-variant/r7rs implementation)
+  (define (wrap converter)
+    (lambda (lib-name)
+      ;; R7RS library names may contain exact decimal integers.
+      (converter (map (lambda (x)
+                        (if (number? x)
+                            (string->symbol (number->string x))
+                            x))
+                      lib-name))))
+  (wrap
+   (case implementation
+     ((larceny)
+      library-name->file-name/larceny)
+     (else                               ;default fallback
+      library-name->file-name/chezscheme)))))
