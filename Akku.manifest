@@ -12,7 +12,7 @@
    " - Resolve all files needed for compilation and scan them for license notices.")
   (authors "Göran Weinholt <goran@weinholt.se>")
   (homepage "https://akkuscm.org/")
-  (license "(GPL-3.0-or-later AND MIT AND LicenseRef-BSD-3-Clause-New-Style)")
+  (license "GPL-3.0-or-later")
   (depends ("chez-srfi" "~0.0.0-akku")
            ("industria" "^2.0.0")
            ("spells" "~0.0.0-akku")
