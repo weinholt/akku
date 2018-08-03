@@ -377,18 +377,31 @@
                      import*)
                include* export*))
       ((r7condexp? decl)
-       (cond ((r7condexp-eval decl (implementation-features implementation-name)
-                              (lambda (lib-name)
-                                ;; XXX: Should preferably know about
-                                ;; all libraries in the packages.
-                                (or (r7rs-builtin-library? lib-name implementation-name)
-                                    (r6rs-builtin-library? lib-name implementation-name))))
-              => (lambda (new-decl*)
-                   (parse-decls new-decl* import* include* export*)))
-             (else
-              (log/warn "No cond-expand clause matches in " (wrt (r7lib-name lib))
-                        " for the implementation " implementation-name)
-              (values import* include* export*))))
+       (let ((all-include*
+              (if implementation-name
+                  '()
+                  (append-map
+                   (lambda (clause)
+                     ;; This is a generic parsing of the file and one
+                     ;; of the includes from the other branches may be
+                     ;; needed.
+                     (let-values (((_i* include* _e*)
+                                   (parse-decls (r7condexp-clause-declaration* clause)
+                                                '() '() '())))
+                       include*))
+                   (r7condexp-clause* decl)))))
+         (cond ((r7condexp-eval decl (implementation-features implementation-name)
+                                (lambda (lib-name)
+                                  ;; XXX: Should preferably know about
+                                  ;; all libraries in the packages.
+                                  (or (r7rs-builtin-library? lib-name implementation-name)
+                                      (r6rs-builtin-library? lib-name implementation-name))))
+                => (lambda (new-decl*)
+                     (parse-decls new-decl* import* (append all-include* include*) export*)))
+               (else
+                (log/warn "No cond-expand clause matches in " (wrt (r7lib-name lib))
+                          " for the implementation " implementation-name)
+                (values import* (append all-include* include*) export*)))))
       (else
        (values import* include* export*))))
   (define (parse-decls decl* import* include* export*)
