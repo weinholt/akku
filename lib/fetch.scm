@@ -26,9 +26,11 @@
   (import
     (rnrs (6))
     (prefix (compression tar) tar:)
+    (compression gzip)
     (compression xz)
     (hashing sha-2)
     (only (spells filesys) file-directory? file-symbolic-link? rename-file)
+    (wak fmt)
     (xitomatl AS-match)
     (akku lib git)
     (akku lib lock)
@@ -78,12 +80,26 @@
               (lp))))))
     (let ((expected-digest (cadr (assq 'sha256 content-spec)))
           (computed-digest (sha-256->string (sha-256-finish s))))
-      (string-ci=? expected-digest
-                   computed-digest))))
+      (let ((result (if (string-ci=? expected-digest
+                                     computed-digest)
+                        'ok 'bad)))
+        (log/debug "verify-file-contents"
+                   " filename=" filename
+                   " expected=" expected-digest " computed=" computed-digest
+                   " result=" result)
+        result))))
 
 ;; Extracts a tarball into a directory.
 (define (extract-tarball tarball directory)
-  (call-with-port (open-xz-file-input-port tarball)
+  (call-with-port (cond ((is-gzip-file? tarball)
+                         (log/trace "Detected gzip: " (wrt tarball))
+                         (open-gzip-file-input-port tarball))
+                        ((is-xz-file? tarball)
+                         (log/trace "Detected xz: " (wrt tarball))
+                         (open-xz-file-input-port tarball))
+                        (else
+                         (error 'extract-tarball
+                                "Unsupported compression method" tarball directory)))
     (lambda (tarp)
       (let loop ()
         (let ((hdr (tar:get-header-record tarp)))
@@ -147,7 +163,7 @@
          (let retry ((i 2))
            (cond
              ((and (file-exists? cached-file)
-                   (verify-file-contents cached-file (project-content project)))
+                   (eq? 'ok (verify-file-contents cached-file (project-content project))))
               (log/info "Extracting " cached-file)
               (extract-tarball cached-file srcdir))
              ((zero? i)
