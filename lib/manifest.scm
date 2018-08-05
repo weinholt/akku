@@ -65,7 +65,7 @@
   (nongenerative)
   (sealed #t)
   (fields number semver (mutable lock) depends depends/dev conflicts
-          synopsis description authors homepage license))
+          synopsis description authors homepage license scripts))
 
 ;; Converts a package record to the format used in package indices.
 (define (package->index-package package)
@@ -82,6 +82,9 @@
                               `((homepage ,@(version-homepage version)))
                               '())
                         (license ,@(version-license version))
+                        ,@(if (version-scripts version)
+                              `((scripts ,@(version-scripts version)))
+                              '())
                         (lock ,@(version-lock version))
                         (depends ,@(version-depends version))
                         (depends/dev ,@(version-depends/dev version))
@@ -103,7 +106,9 @@
                   (assq-ref version-spec 'authors #f)
                   (assq-ref version-spec 'homepage #f)
                   ;; For someone
-                  (assq-ref version-spec 'license #f))))
+                  (assq-ref version-spec 'license #f)
+                  ;; For various parts of the system
+                  (assq-ref version-spec 'scripts #f))))
 
 ;; Read the packages in the manifest. Optionally mangle names so they
 ;; don't get mixed up with names in the index. Optionally override the

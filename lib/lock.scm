@@ -25,6 +25,20 @@
     lock-dependencies
     list-packages
     show-package
+
+    ;; Lockfile parsing
+    read-lockfile
+    make-project project?
+    project-name
+    project-packages
+    project-source
+    project-installer
+    project-tag
+    project-revision
+    project-content
+    project-sanitized-name
+
+    ;; Logging
     logger:akku.lock)
   (import
     (rnrs (6))
@@ -46,7 +60,7 @@
     (akku lib solver dummy-db)          ;TODO: Make a proper database
     (only (akku lib solver internals) make-universe)
     (only (akku lib solver logging) dsp-universe)
-    (only (akku lib utils) split-path get-terminal-size)
+    (only (akku lib utils) split-path get-terminal-size sanitized-name)
     (prefix (akku lib solver universe) universe-)
     (akku private logging))
 
@@ -55,6 +69,51 @@
 (define log/warn (make-fmt-log logger:akku.lock 'warning))
 (define log/debug (make-fmt-log logger:akku.lock 'debug))
 (define log/trace (make-fmt-log logger:akku.lock 'trace))
+
+(define-record-type project
+  (fields name packages source
+          installer                     ;for future extensions
+          ;; one of these:
+          tag revision content)
+  (sealed #t)
+  (nongenerative))
+
+;; Turns a project name into something that works as a directory name.
+(define (project-sanitized-name project)
+  (sanitized-name (project-name project)))
+
+(define (parse-project spec)
+  (let ((name (car (assq-ref spec 'name)))
+        (tag (cond ((assq 'tag spec) => cadr) (else #f)))
+        (revision (cond ((assq-ref spec 'revision #f) => car) (else #f)))
+        (location (assq 'location spec))
+        (content (assq-ref spec 'content #f)))
+    (assert (not (char=? (string-ref name 0) #\()))
+    (match location
+      (('location ('directory _))
+       #f)
+      (else #f))
+    (make-project name
+                  (cond ((assq 'install spec) => cdr) (else #f))
+                  (car (assq-ref spec 'location))
+                  (assq-ref spec 'installer '((r6rs)))
+                  tag revision content)))
+
+;; Parse a lockfile, returning a list of project records.
+(define (read-lockfile lockfile-location)
+  (call-with-input-file lockfile-location
+    (lambda (p)
+      (unless (equal? (read p) '(import (akku format lockfile)))
+        (error 'read-lockfile "Invalid lockfile (wrong import)" lockfile-location))
+      ;; TODO: More sanity checking. The names need to be
+      ;; case-insensitively unique.
+      (let lp ((project* '()))
+        (match (read p)
+          ((? eof-object?)
+           project*)
+          (('projects . prj*)
+           (lp (append (map parse-project prj*) project*)))
+          (_ (lp project*)))))))
 
 (define (read-package-index index-filename manifest-packages)
   (let ((db (make-dummy-db))

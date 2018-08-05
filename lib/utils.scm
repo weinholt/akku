@@ -37,7 +37,8 @@
     get-log-threshold
     run-command
     get-realname
-    get-index-filename)
+    get-index-filename
+    check-filename)
   (import
     (rnrs (6))
     (rnrs mutable-pairs (6))
@@ -218,4 +219,42 @@
         (bootstrap (path-join (application-home-directory) "share/bootstrap.db")))
     (cond ((file-exists? index) index)
           ((file-exists? bootstrap) bootstrap)
-          (else (error 'cmd-lock "Unable to locate the package index"))))))
+          (else (error 'cmd-lock "Unable to locate the package index")))))
+
+(define (check-filename filename windows?)
+  ;; Protection against path traversal attacks and other types of
+  ;; names that would break on some systems. For one particularly
+  ;; difficult system, see:
+  ;; https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx
+  ;; TODO: Check for unicode names that break under Windows.
+  (define reserved-names
+    '("CON" "PRN" "AUX" "NUL" "COM1" "COM2" "COM3" "COM4" "COM5" "COM6" "COM7" "COM8"
+      "COM9" "LPT1" "LPT2" "LPT3" "LPT4" "LPT5" "LPT6" "LPT7" "LPT8" "LPT9"))
+  (define reserved-chars
+    "<>:\"/\\|?*")
+  (for-each
+   (lambda (component)
+     (cond ((string=? component "") ;// does nothing
+            (error 'check-filename "Empty path component" filename))
+           ((member component '("." ".."))
+            (error 'check-filename "Path component is . or .." filename))
+           ((string-index component #\nul)
+            (error 'check-filename "Path component contains NUL" filename))
+           ((and windows?
+                 (exists (lambda (part)
+                           (exists (lambda (reserved) (string-ci=? part reserved))
+                                   reserved-names))
+                         (string-split component #\.)))
+            (error 'check-filename "Path contains component reserved on MS Windows"
+                   filename))
+           ((and windows?
+                 (exists (lambda (c) (string-index reserved-chars c))
+                         (string->list component)))
+            (error 'check-filename "Path contains character reserved on MS Windows"
+                   filename))
+           ((and windows?
+                 (exists (lambda (c) (<= 1 (char->integer c) 31))
+                         (string->list component)))
+            (error 'check-filename "Path contains character disallowed on MS Windows"
+                   filename))))
+   (string-split filename #\/))))

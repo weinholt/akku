@@ -41,6 +41,7 @@
     (xitomatl AS-match)
     (only (akku lib compat) chmod file-exists/no-follow?
           directory-list delete-directory)
+    (akku lib fetch)
     (akku lib file-parser)
     (akku lib git)
     (akku lib manifest)
@@ -66,24 +67,6 @@
 (define (akku-directory)
   ".akku")
 
-(define (sources-directory*) "src")
-
-(define (sources-directory)
-  (path-join (akku-directory) (sources-directory*)))
-
-;; Turns a project name into that works as a directory name.
-(define (project-sanitized-name project)
-  (sanitized-name (project-name project)))
-
-(define (project-source-directory project)
-  (match (project-source project)
-    (('directory dir)
-     ;; For sources in directories, refer directly to that directory.
-     dir)
-    (else
-     ;; Otherwise a local src directory must be created.
-     (path-join (sources-directory) (project-sanitized-name project)))))
-
 (define (binaries-directory)
   (path-join (akku-directory) "bin"))
 
@@ -100,53 +83,6 @@
 (define (file-list-filename)
   (path-join (akku-directory) "list"))
 
-(define (project-cache-file project)
-  (path-join (cache-directory)
-             (string-append (project-sanitized-name project)
-                            "-"
-                            (cadr (assq 'sha256 (project-content project))))))
-
-(define-record-type project
-  (fields name packages source
-          installer                     ;for future extensions
-          ;; one of these:
-          tag revision content)
-  (sealed #t)
-  (nongenerative))
-
-(define (parse-project spec)
-  (let ((name (car (assq-ref spec 'name)))
-        (tag (cond ((assq 'tag spec) => cadr) (else #f)))
-        (revision (cond ((assq-ref spec 'revision #f) => car) (else #f)))
-        (location (assq 'location spec))
-        (content (assq-ref spec 'content #f)))
-    (assert (not (char=? (string-ref name 0) #\()))
-    (match location
-      (('location ('directory _))
-       #f)
-      (else #f))
-    (make-project name
-                  (cond ((assq 'install spec) => cdr) (else #f))
-                  (car (assq-ref spec 'location))
-                  (assq-ref spec 'installer '((r6rs)))
-                  tag revision content)))
-
-;; Parse a lockfile, returning a list of project records.
-(define (read-lockfile lockfile-location)
-  (call-with-input-file lockfile-location
-    (lambda (p)
-      (unless (equal? (read p) '(import (akku format lockfile)))
-        (error 'read-lockfile "Invalid lockfile (wrong import)" lockfile-location))
-      ;; TODO: More sanity checking. The names need to be
-      ;; case-insensitively unique.
-      (let lp ((project* '()))
-        (match (read p)
-          ((? eof-object?)
-           project*)
-          (('projects . prj*)
-           (lp (append (map parse-project prj*) project*)))
-          (_ (lp project*)))))))
-
 ;; Position the reader to immediately before the given form
 (define (reader-skip-to-form reader form-index)
   (let ((tolerant (reader-tolerant? reader)))
@@ -156,141 +92,6 @@
         (read-datum reader)
         (lp (- form-index 1))))
     (reader-tolerant?-set! reader tolerant)))
-
-;; Verify that the file contents match whatever the content spec says.
-(define (verify-file-contents filename content-spec)
-  (let ((s (make-sha-256)))
-    (call-with-port (open-file-input-port filename)
-      (lambda (inp)
-        (let lp ()
-          (let ((buf (get-bytevector-n inp (* 16 1024))))
-            (unless (eof-object? buf)
-              (sha-256-update! s buf)
-              (lp))))))
-    (let ((expected-digest (cadr (assq 'sha256 content-spec)))
-          (computed-digest (sha-256->string (sha-256-finish s))))
-      (string-ci=? expected-digest
-                   computed-digest))))
-
-;; Extracts a tarball into a directory.
-(define (extract-tarball tarball directory)
-  (call-with-port (open-xz-file-input-port tarball)
-    (lambda (tarp)
-      (let loop ()
-        (let ((hdr (tar:get-header-record tarp)))
-          (unless (eof-object? hdr)
-            (case (tar:header-typeflag hdr)
-              ((regular)
-               (check-filename (tar:header-name hdr) #f)
-               (let ((output-filename (path-join directory (tar:header-name hdr))))
-                 (log/debug "Writing " output-filename)
-                 (mkdir/recursive (car (split-path output-filename)))
-                 (call-with-port (open-file-output-port output-filename (file-options no-fail))
-                   (lambda (outp)
-                     (tar:extract-to-port tarp hdr outp)))))
-              ((directory)
-               (tar:skip-file tarp hdr))
-              (else
-               (log/trace "Ignoring the entry " (tar:header-name hdr) " of type "
-                          (tar:header-typeflag hdr))
-               (tar:skip-file tarp hdr)))
-            (loop)))))))
-
-;; Fetch a project so that it's available locally.
-(define (fetch-project project)
-  (let ((srcdir (project-source-directory project)))
-    ;; Get the code.
-    (log/info "Fetching " (project-name project))
-    (match (project-source project)
-      (('git repository)
-       ;; Git repository
-       (cond ((file-directory? srcdir)
-              (git-remote-set-url srcdir "origin" repository))
-             (else
-              (if (project-tag project)
-                  (git-shallow-clone srcdir repository)
-                  (git-clone srcdir repository))))
-       (let ((current-revision (git-rev-parse srcdir "HEAD")))
-         (cond ((equal? current-revision (project-revision project)))
-               ((project-tag project)
-                (git-fetch-tag srcdir (project-tag project))
-                (git-checkout-tag srcdir (project-tag project)))
-               ((project-revision project)
-                (git-fetch srcdir)
-                (git-checkout-commit srcdir (project-revision project)))
-               (else
-                (error 'install "No revision" project))))
-       (let ((current-revision (git-rev-parse srcdir "HEAD")))
-         (log/info "Fetched revision " current-revision)
-         (unless (or (not (project-revision project))
-                     (equal? current-revision (project-revision project)))
-           (error 'install "Tag does not match revision" (project-tag project)
-                  (project-revision project)))))
-      (('directory dir)
-       ;; Local directory
-       (unless (file-directory? dir)
-         (error 'install "Directory does not exist" project)))
-      (('url url)
-       ;; Internet download
-       (mkdir/recursive (cache-directory))
-       (let* ((cached-file (project-cache-file project))
-              (temp-filename (string-append cached-file ".partial")))
-         (let retry ((i 2))
-           (cond
-             ((and (file-exists? cached-file)
-                   (verify-file-contents cached-file (project-content project)))
-              (log/info "Extracting " cached-file)
-              (extract-tarball cached-file srcdir))
-             ((zero? i)
-              (error 'install "Download failed" url (project-name project)))
-             (else
-              (log/info "Downloading " url)
-              (when (file-exists? temp-filename)
-                (delete-file temp-filename))
-              (download-file url temp-filename #f)
-              (rename-file temp-filename cached-file)
-              (retry (- i 1)))))))
-      (else
-       (error 'install "Unsupported project source: upgrade Akku.scm"
-              (project-source project) (project-name project))))))
-
-(define (check-filename filename windows?)
-  ;; Protection against path traversal attacks and other types of
-  ;; names that would break on some systems. For one particularly
-  ;; difficult system, see:
-  ;; https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx
-  ;; TODO: Check for unicode names that break under Windows.
-  (define reserved-names
-    '("CON" "PRN" "AUX" "NUL" "COM1" "COM2" "COM3" "COM4" "COM5" "COM6" "COM7" "COM8"
-      "COM9" "LPT1" "LPT2" "LPT3" "LPT4" "LPT5" "LPT6" "LPT7" "LPT8" "LPT9"))
-  (define reserved-chars
-    "<>:\"/\\|?*")
-  (for-each
-   (lambda (component)
-     (cond ((string=? component "") ;// does nothing
-            (error 'check-filename "Empty path component" filename))
-           ((member component '("." ".."))
-            (error 'check-filename "Path component is . or .." filename))
-           ((string-index component #\nul)
-            (error 'check-filename "Path component contains NUL" filename))
-           ((and windows?
-                 (exists (lambda (part)
-                           (exists (lambda (reserved) (string-ci=? part reserved))
-                                   reserved-names))
-                         (string-split component #\.)))
-            (error 'check-filename "Path contains component reserved on MS Windows"
-                   filename))
-           ((and windows?
-                 (exists (lambda (c) (string-index reserved-chars c))
-                         (string->list component)))
-            (error 'check-filename "Path contains character reserved on MS Windows"
-                   filename))
-           ((and windows?
-                 (exists (lambda (c) (<= 1 (char->integer c) 31))
-                         (string->list component)))
-            (error 'check-filename "Path contains character disallowed on MS Windows"
-                   filename))))
-   (string-split filename #\/)))
 
 ;; Makes all known variants of the path and name for the library.
 ;; Returns a list of (directory-name file-name).
@@ -1131,18 +932,11 @@
                 (for-each handle-file filename*))))
       (recurse (libraries-directory) (directory-list (libraries-directory))))))
 
+;; Install all projects, assuming that fetch already ran.
 (define (install lockfile-location manifest-filename)
   (let ((project-list (read-lockfile lockfile-location))
         (current-project (make-project "" #f '(directory ".") '((r6rs)) #f #f #f)))
-    (mkdir/recursive (akku-directory))
     (mkdir/recursive (libraries-directory))
-    (let ((gitignore (path-join (akku-directory) ".gitignore")))
-      (unless (file-exists? gitignore)
-        (call-with-output-file gitignore
-          (lambda (p)
-            (display (sources-directory*) p)
-            (newline p)))))
-    (for-each fetch-project project-list)
     (let* ((installed-project/artifact*
             (map-in-order (lambda (project)
                             (vector project (install-project project #f)))

@@ -32,17 +32,18 @@
   (only (akku format lockfile) lockfile-filename)
   (only (akku format manifest) manifest-filename)
   (only (akku lib archive-maint) archive-scan)
+  (only (akku lib fetch) fetch)
   (only (akku lib graph) print-gv-file)
-  (only (akku lib scan) scan-repository)
   (only (akku lib init) init-project)
   (only (akku lib install) install logger:akku.install)
   (only (akku lib lock) logger:akku.lock lock-dependencies
         add-dependency remove-dependencies list-packages
         show-package)
+  (only (akku lib publish) publish-packages)
+  (only (akku lib scan) scan-repository)
   (only (akku lib update) update-index)
   (only (akku lib utils) path-join application-home-directory
         get-log-threshold get-index-filename)
-  (only (akku lib publish) publish-packages)
   (only (akku metadata) main-package-version)
   (akku private logging))
 
@@ -174,6 +175,7 @@ your implementation.") nl))
          ;; Install locked dependencies.
          (unless (file-exists? lockfile-filename)
            (cmd-lock '()))
+         (fetch lockfile-filename)
          (install lockfile-filename manifest-filename))
         (else
          ;; All-in-one automatic installation of a package.
