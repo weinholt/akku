@@ -224,7 +224,7 @@
 ;; Copies a single form from one file to another.
 (define (copy-source-form target-directory target-filename source-pathname form-index last-form?)
   (let ((target-pathname (path-join target-directory target-filename)))
-    (log/debug "Copying module " source-pathname (if (zero? form-index) "" " ")
+    (log/debug "Copying source form " source-pathname (if (zero? form-index) "" " ")
            (if (zero? form-index) "" (list 'form form-index))
            " to " target-pathname)
     (check-filename target-pathname (support-windows?))
@@ -602,7 +602,7 @@
                      (copy-source-form (path-join (r7rs-libraries-directory)
                                                   (car target))
                                        (cdr target)
-                                       (artifact-path artifact)
+                                       (path-join srcdir (artifact-path artifact))
                                        (artifact-form-index artifact)
                                        (artifact-last-form? artifact)))))))
            (make-alias-symlinks target-pathname
