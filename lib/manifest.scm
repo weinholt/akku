@@ -44,7 +44,7 @@
     (xitomatl alists)
     (xitomatl AS-match)
     (only (xitomatl common) pretty-print)
-    (only (akku lib compat) getcwd)
+    (only (akku private compat) getcwd)
     (only (akku lib utils) split-path get-realname))
 
 (define default-manifest-name

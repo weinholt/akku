@@ -29,7 +29,7 @@
     (only (spells filesys) file-directory?)
     (wak fmt)
     (only (akku format manifest) manifest-filename)
-    (only (akku lib compat) chmod)
+    (only (akku private compat) chmod)
     (only (akku lib manifest) default-manifest-name
           default-manifest-version default-manifest-license)
     (only (akku lib lock) add-dependency)

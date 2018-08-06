@@ -26,7 +26,7 @@
     (only (srfi :67 compare-procedures) <? default-compare)
     (wak fmt)
     (xitomatl AS-match)
-    (akku lib compat)
+    (akku private compat)
     (akku lib file-parser)
     (akku lib repo-scanner)
     (akku lib schemedb)

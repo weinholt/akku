@@ -181,6 +181,7 @@
 
 ;; Fetch all projects in the lockfile.
 (define (fetch lockfile-location)
+  (log/trace "Fetching projects for " (wrt lockfile-location))
   (let ((project-list (read-lockfile lockfile-location)))
     (mkdir/recursive (akku-directory))
     (let ((gitignore (path-join (akku-directory) ".gitignore")))

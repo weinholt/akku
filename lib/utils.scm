@@ -50,7 +50,7 @@
     (only (spells process) run-shell-command)
     (only (industria strings) string-split)
     (xitomatl AS-match)
-    (only (akku lib compat) getcwd mkdir symlink get-passwd-realname))
+    (only (akku private compat) getcwd mkdir symlink get-passwd-realname))
 
 ;; Split directory name and filename components.
 (define (split-path filename)

@@ -28,7 +28,7 @@
     (wak fmt)
     (wak fmt color)
     (only (xitomatl common) pretty-print)
-    (only (akku lib compat) putenv)
+    (only (akku private compat) putenv)
     (akku lib git)
     (akku lib manifest)
     (akku lib utils)

@@ -31,7 +31,7 @@
     (only (spells filesys) file-regular? file-directory? file-symbolic-link?)
     (wak fmt)
     (xitomatl AS-match)
-    (only (akku lib compat) readlink directory-list)
+    (only (akku private compat) readlink directory-list)
     (akku lib git)
     (akku lib file-parser)
     (akku lib utils)

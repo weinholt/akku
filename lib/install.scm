@@ -39,7 +39,7 @@
     (only (xitomatl common) pretty-print)
     (xitomatl alists)
     (xitomatl AS-match)
-    (only (akku lib compat) chmod file-exists/no-follow?
+    (only (akku private compat) chmod file-exists/no-follow?
           directory-list delete-directory)
     (akku lib fetch)
     (akku lib file-parser)

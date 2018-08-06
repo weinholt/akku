@@ -32,7 +32,7 @@
     (rnrs (6))
     (only (srfi :13 strings) string-prefix?)
     (srfi :115 regexp)
-    (akku lib compat))
+    (akku private compat))
 
 (define-record-type http-request
   (nongenerative)

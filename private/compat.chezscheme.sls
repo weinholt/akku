@@ -16,7 +16,7 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #!r6rs
 
-(library (akku lib compat)
+(library (akku private compat)
   (export
     cd
     (rename (cd getcwd))

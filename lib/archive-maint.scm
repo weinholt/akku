@@ -29,7 +29,7 @@
     (wak fmt)
     (xitomatl AS-match)
     (only (xitomatl common) pretty-print)
-    (only (akku lib compat) directory-list)
+    (only (akku private compat) directory-list)
     (only (akku lib utils) path-join))
 
 ;; Scan a list of directories and print an archive index. It is
