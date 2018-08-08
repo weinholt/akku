@@ -31,6 +31,7 @@
     version-number version-semver version-lock version-lock-set! version-depends
     version-depends/dev version-conflicts
     version-synopsis version-description version-authors version-homepage version-license
+    version-scripts
     read-manifest
     write-manifest
     draft-akku-package)

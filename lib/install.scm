@@ -763,7 +763,12 @@
                "export LARCENY_LIBPATH=\"$PWD/" lib "\"" nl
                ;; R7RS
                "export CHIBI_MODULE_PATH=\"$PWD/" lib7 "\"" nl
-               "export PATH=$PWD/.akku/bin:$PATH" nl))))))
+               "export PATH=$PWD/.akku/bin:$PATH" nl
+               "if [[ $LD_LIBRARY_PATH == \"\" ]]; then" nl
+               " export LD_LIBRARY_PATH=$PWD/.akku/ffi" nl
+               "else" nl
+               " export LD_LIBRARY_PATH=$PWD/.akku/ffi:$LD_LIBRARY_PATH" nl
+               "fi"))))))
 
 ;; Installs a library that contains metadata about all artifacts.
 (define (install-metadata installed-project/artifact* manifest-filename)

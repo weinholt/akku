@@ -41,6 +41,7 @@
         show-package)
   (only (akku lib publish) publish-packages)
   (only (akku lib scan) scan-repository)
+  (only (akku lib scripts) run-scripts)
   (only (akku lib update) update-index)
   (only (akku lib utils) path-join application-home-directory
         get-log-threshold get-index-filename)
@@ -176,7 +177,9 @@ your implementation.") nl))
          (unless (file-exists? lockfile-filename)
            (cmd-lock '()))
          (fetch lockfile-filename)
-         (install lockfile-filename manifest-filename))
+         (run-scripts lockfile-filename manifest-filename '(pre-install))
+         (install lockfile-filename manifest-filename)
+         (run-scripts lockfile-filename manifest-filename '(post-install)))
         (else
          ;; All-in-one automatic installation of a package.
          (cmd-add arg*)
