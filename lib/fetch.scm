@@ -158,6 +158,9 @@
       (('url url)
        ;; Internet download
        (mkdir/recursive (cache-directory))
+       (let ((cachetag (path-join (cache-directory) "CACHEDIR.TAG")))
+         (unless (file-exists? cachetag)
+           (call-with-output-file cachetag (lambda (p) #f))))
        (let* ((cached-file (project-cache-file project))
               (temp-filename (string-append cached-file ".partial")))
          (let retry ((i 2))
