@@ -18,6 +18,18 @@
 
 ;; Script invocation.
 
+#|
+
+Security goals for scripts
+
+* If a script appears in the lockfile but that script does not match
+  what is in the index, then the user is alerted and asked for ok.
+
+* If the current project has scripts then the user is asked for ok.
+  This should be possible to override with a command line argument.
+
+|#
+
 (library (akku lib scripts)
   (export
     run-scripts
@@ -27,10 +39,15 @@
     (only (srfi :1 lists) append-map delete-duplicates)
     (wak fmt)
     (xitomatl AS-match)
-    (akku private compat)
+    (only (akku lib fetch) project-source-directory)
+    (only (akku lib install) akku-directory ffi-libraries-directory
+          libraries-directory r7rs-libraries-directory
+          binaries-directory)
     (akku lib lock)
     (akku lib manifest)
     (akku lib schemedb)
+    (akku lib utils)
+    (akku private compat)
     (akku private logging))
 
 (define logger:akku.scripts (make-logger logger:akku 'scripts))
@@ -91,11 +108,6 @@
       (else '())))
   (delete-duplicates (extract scripts) eq?))
 
-;; Get all implementation names that show up in cond-expand feature
-;; requirements.
-(define (scripts-implementation-names scripts)
-  (filter rnrs-implementation-name? (scripts-referenced-features scripts)))
-
 (define (scripts-expand scripts feature-list)
   (define ev
     (match-lambda
@@ -120,13 +132,49 @@
       (else (list script))))
   (append-map expand scripts))
 
+(define (prompt-user-y/n? prompt)
+  (let lp ()
+    (display prompt)
+    (display " (y/N)? ")
+    (flush-output-port (current-output-port))
+    (let ((line (get-line (current-input-port))))
+      (cond ((eof-object? line) #f)
+            ((string=? line "") #f)
+            ((memv (char-downcase (string-ref line 0)) '(#\y #\j #\д)) #t)
+            ((memv (char-downcase (string-ref line 0)) '(#\n #\н)) #f)
+            (else (lp))))))
+
+(define (projects->scripts project*)
+  (append-map
+   (lambda (project)
+     (if (null? (project-scripts project))
+         '()
+         (list (cons project (project-scripts project)))))
+   project*))
+
+(define (packages->scripts package*)
+  (append-map
+   (lambda (pkg)
+     (append-map
+      (lambda (version)
+        (if (null? (version-scripts version))
+            '()
+            (list (cons #f (version-scripts version)))))
+      (package-version* pkg)))
+   package*))
+
 (define (run-scripts lockfile-location manifest-filename feature-list)
-  (define (run-cmd cmd)
+  (define (run-cmd cmd env)
     (cond
-      ((cmd-nop? cmd)
-       (log/debug "Script: NOP"))
+      ((cmd-nop? cmd))
       ((cmd-run? cmd)
-       ;; Shell command. FIXME: should check the error status.
+       ;; Shell command. FIXME: should check the error status and akku
+       ;; should not leak environment variables.
+       (for-each
+        (match-lambda
+         [(name . value)
+          (putenv name value)])
+        env)
        (let-values (((stdin stdout stderr pid)
                      (open-process-ports (string-append (cmd-run-cmd cmd) " 2>&1")
                                          (buffer-mode line)
@@ -141,39 +189,70 @@
              (lp)))))
       (else
        (error 'run "Invalid expression" cmd))))
-  (define (run package version raw-scripts feature-list)
-    (let* ((scripts (map parse-script-expr raw-scripts))
-           ;; XXX: Is this a good strategy?
-           (impl* (scripts-implementation-names scripts))
-           (feature-list* (if (null? impl*)
-                              (list feature-list)
-                              (map (lambda (impl)
-                                     (cons impl feature-list))
-                                   impl*))))
-      ;; FIXME: Must change to the project's directory first.
-      (for-each
-       (lambda (feature-list^)
-         (let ((to-run (scripts-expand scripts feature-list^)))
-           (log/trace "Expanding scripts with feature list " feature-list)
-           (for-each run-cmd to-run)))
-       feature-list*)))
-
-  ;; TODO: Run the scripts in the lockfile as well.
-
-  ;; TODO: Ask the user if it's ok to run the script, if they did not
-  ;; come from a trusted index.
+  (define project&cmd-not-vetted?
+    (match-lambda
+     [(#f . cmd)
+      (cmd-run? cmd)]                  ;run cmd in the current project
+     [(project . cmd)
+      ;; TODO: Look if the command matches the index's version.
+      #f]))
   (let ((project* (read-lockfile lockfile-location))
         (manifest (if (file-exists? manifest-filename)
                       (read-manifest manifest-filename)
                       '()))
-        (feature-list (cons 'linux feature-list)))
-    ;; TODO: Add the OS to the feature list
-    (log/trace "Running scripts from " (wrt lockfile-location)
-               " and " (wrt manifest-filename)
-               " with feature list " feature-list)
-    (for-each (lambda (pkg)
-                (for-each (lambda (ver)
-                            (when (version-scripts ver)
-                              (run pkg ver (version-scripts ver) feature-list)))
-                          (package-version* pkg)))
-              manifest))))
+        (feature-list (cons (os-name) feature-list))
+        (cwd (getcwd)))
+    (let* ((akku-path-root (path-join cwd (akku-directory)))
+           (akku-path-bin (path-join cwd (binaries-directory)))
+           (akku-path-lib-ffi (path-join cwd (ffi-libraries-directory)))
+           (akku-path-lib-r6rs (path-join cwd (libraries-directory)))
+           (akku-path-lib-r7rs (path-join cwd (r7rs-libraries-directory)))
+           (env (list (cons "akku_path_root" akku-path-root)
+                      (cons "akku_path_bin" akku-path-bin)
+                      (cons "akku_path_lib_ffi" akku-path-lib-ffi)
+                      (cons "akku_path_lib_r6rs" akku-path-lib-r6rs)
+                      (cons "akku_path_lib_r7rs" akku-path-lib-r7rs))))
+      (log/trace "Running scripts from " (wrt lockfile-location)
+                 " and " (wrt manifest-filename)
+                 " with feature list " feature-list
+                 " and environment " (wrt env))
+      (let* ((project&scripts (append (projects->scripts project*)
+                                      (packages->scripts manifest)))
+             (project&cmd* (append-map
+                            (match-lambda
+                             [(project . scripts)
+                              (map (lambda (script)
+                                     (cons project script))
+                                   (scripts-expand (map parse-script-expr scripts)
+                                                   feature-list))])
+                            project&scripts)))
+        ;; Show any commands that have not been vetted and get
+        ;; permission to run them.
+        (log/trace "Projects and commands: " (wrt project&cmd*))
+        (when (exists project&cmd-not-vetted? project&cmd*)
+          (for-each
+           (match-lambda
+            [(project . cmd)
+             (cond ((cmd-run? cmd)
+                    (fmt #t "Shell command in "
+                         (if project (project-name project) "the current project")
+                         ": " nl
+                         " " (wrt (cmd-run-cmd cmd)) nl)))])
+           project&cmd*)
+          (cond
+            ((not (prompt-user-y/n? "Run these commands"))
+             (log/warn "User said no to running scripts"))
+            (else
+             ;; Run them.
+             (for-each mkdir/recursive (list akku-path-root akku-path-bin akku-path-lib-ffi
+                                             akku-path-lib-r6rs akku-path-lib-r7rs))
+             (for-each
+              (match-lambda
+               [(project . cmd)
+                (log/trace "Running " cmd " in " project)
+                (with-working-directory (if project
+                                            (project-source-directory project)
+                                            ".")
+                                        (lambda ()
+                                          (run-cmd cmd env)))])
+              project&cmd*)))))))))

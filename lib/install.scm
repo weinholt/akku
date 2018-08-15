@@ -21,7 +21,9 @@
 (library (akku lib install)
   (export
     install
-    libraries-directory file-list-filename
+    akku-directory libraries-directory ffi-libraries-directory
+    r7rs-libraries-directory binaries-directory
+    file-list-filename
     make-r6rs-library-filenames
     logger:akku.install)
   (import
@@ -40,7 +42,7 @@
     (xitomatl alists)
     (xitomatl AS-match)
     (only (akku private compat) chmod file-exists/no-follow?
-          directory-list delete-directory)
+          directory-list delete-directory os-name)
     (akku lib fetch)
     (akku lib file-parser)
     (akku lib git)
@@ -62,7 +64,7 @@
 (define log/trace (make-fmt-log logger:akku.install 'trace))
 
 (define (support-windows?)
-  #f)
+  (eq? (os-name) 'cygwin))
 
 (define (akku-directory)
   ".akku")
@@ -75,6 +77,9 @@
 
 (define (r7rs-libraries-directory)
   (path-join (akku-directory) "lib"))
+
+(define (ffi-libraries-directory)
+  (path-join (akku-directory) "ffi"))
 
 (define (notices-directory project)
   (path-join (path-join (akku-directory) "notices")
@@ -747,7 +752,8 @@
                                            (native-transcoder))
       (lambda (p)
         (let ((lib (libraries-directory))
-              (lib7 (r7rs-libraries-directory)))
+              (lib7 (r7rs-libraries-directory))
+              (ffi (ffi-libraries-directory)))
           (fmt p
                "# Load this with \"source .akku/bin/activate\" in bash" nl
                ;; R6RS
@@ -765,10 +771,10 @@
                "export CHIBI_MODULE_PATH=\"$PWD/" lib7 "\"" nl
                "export PATH=$PWD/.akku/bin:$PATH" nl
                "if [[ $LD_LIBRARY_PATH == \"\" ]]; then" nl
-               " export LD_LIBRARY_PATH=$PWD/.akku/ffi" nl
+               " export LD_LIBRARY_PATH=$PWD/" ffi nl
                "else" nl
-               " export LD_LIBRARY_PATH=$PWD/.akku/ffi:$LD_LIBRARY_PATH" nl
-               "fi"))))))
+               " export LD_LIBRARY_PATH=$PWD/" ffi ":$LD_LIBRARY_PATH" nl
+               "fi" nl))))))
 
 ;; Installs a library that contains metadata about all artifacts.
 (define (install-metadata installed-project/artifact* manifest-filename)
@@ -940,7 +946,7 @@
 ;; Install all projects, assuming that fetch already ran.
 (define (install lockfile-location manifest-filename)
   (let ((project-list (read-lockfile lockfile-location))
-        (current-project (make-project "" #f '(directory ".") '((r6rs)) #f #f #f)))
+        (current-project (make-dummy-project "" '(directory "."))))
     (mkdir/recursive (libraries-directory))
     (let* ((installed-project/artifact*
             (map-in-order (lambda (project)

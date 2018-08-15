@@ -28,7 +28,7 @@
 
     ;; Lockfile parsing
     read-lockfile
-    make-project project?
+    make-project make-dummy-project project?
     project-name
     project-packages
     project-source
@@ -37,6 +37,7 @@
     project-revision
     project-content
     project-sanitized-name
+    project-scripts
 
     ;; Logging
     logger:akku.lock)
@@ -73,6 +74,7 @@
 (define-record-type project
   (fields name packages source
           installer                     ;for future extensions
+          scripts
           ;; one of these:
           tag revision content)
   (sealed #t)
@@ -97,7 +99,11 @@
                   (cond ((assq 'install spec) => cdr) (else #f))
                   (car (assq-ref spec 'location))
                   (assq-ref spec 'installer '((r6rs)))
+                  (assq-ref spec 'scripts '())
                   tag revision content)))
+
+(define (make-dummy-project name location)
+  (make-project name #f location '((r6rs)) '() #f #f #f))
 
 ;; Parse a lockfile, returning a list of project records.
 (define (read-lockfile lockfile-location)
