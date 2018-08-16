@@ -28,7 +28,7 @@
 
     ;; Lockfile parsing
     read-lockfile
-    make-project project?
+    make-project make-dummy-project project?
     project-name
     project-packages
     project-source
@@ -37,6 +37,8 @@
     project-revision
     project-content
     project-sanitized-name
+    project-scripts
+    project-locks-package-version?
 
     ;; Logging
     logger:akku.lock)
@@ -73,6 +75,7 @@
 (define-record-type project
   (fields name packages source
           installer                     ;for future extensions
+          scripts
           ;; one of these:
           tag revision content)
   (sealed #t)
@@ -82,22 +85,39 @@
 (define (project-sanitized-name project)
   (sanitized-name (project-name project)))
 
+(define (lock-key? x)
+  (memq x '(install installer location tag revision content)))
+
+(define (assq-car-ref alist key def)
+  (cond ((assq-ref alist key #f) => car)
+        (else def)))
+
 (define (parse-project spec)
   (let ((name (car (assq-ref spec 'name)))
         (tag (cond ((assq 'tag spec) => cadr) (else #f)))
         (revision (cond ((assq-ref spec 'revision #f) => car) (else #f)))
         (location (assq 'location spec))
         (content (assq-ref spec 'content #f)))
-    (assert (not (char=? (string-ref name 0) #\()))
-    (match location
-      (('location ('directory _))
-       #f)
-      (else #f))
+    (assert (or (list? name) (not (char=? (string-ref name 0) #\())))
     (make-project name
                   (cond ((assq 'install spec) => cdr) (else #f))
                   (car (assq-ref spec 'location))
                   (assq-ref spec 'installer '((r6rs)))
+                  (assq-ref spec 'scripts '())
                   tag revision content)))
+
+;; If the installer is given `project`, does that mean it will install
+;; `version`?
+(define (project-locks-package-version? project version)
+  (let ((ver-lock (version-lock version)))
+    (and
+      (equal? (project-source project) (assq-car-ref ver-lock 'location #f))
+      (equal? (project-tag project) (assq-car-ref ver-lock 'tag #f))
+      (equal? (project-revision project) (assq-car-ref ver-lock 'revision #f))
+      (equal? (project-content project) (assq-ref ver-lock 'content #f)))))
+
+(define (make-dummy-project name location)
+  (make-project name #f location '((r6rs)) '() #f #f #f))
 
 ;; Parse a lockfile, returning a list of project records.
 (define (read-lockfile lockfile-location)
@@ -187,7 +207,11 @@
                     (ver (list-ref (package-version* pkg) chosen-tag)))
                (log/info "Locked " name " v" (version-number ver))
                `((name ,name)
-                 ,@(version-lock ver)))))))
+                 ,@(version-lock ver)
+                 (version ,(version-number ver))
+                 ,@(if (null? (version-scripts ver))
+                       '()
+                       `((scripts ,@(version-scripts ver))))))))))
   (choice-set-fold (lambda (choice acc)
                      (let ((project (choice->project choice)))
                        (if (eq? project 'in-manifest)
@@ -408,20 +432,9 @@
     (if (file-exists? manifest-filename)
         (read-manifest manifest-filename)
         '()))
-  (define lock-spec*         ;FIXME: move to a common parser lib
+  (define lockfile-projects
     (if (file-exists? lockfile-filename)
-        (call-with-input-file lockfile-filename
-          (lambda (p)
-            (let lp ((ret '()))
-              (match (read p)
-                ((? eof-object?) ret)
-                (('projects . prj*)
-                 (lp (append (map (match-lambda
-                                   [(('name name) . lock-spec)
-                                    lock-spec])
-                                  prj*)
-                             ret)))
-                (_ (lp ret))))))
+        (read-lockfile lockfile-filename)
         '()))
   (define deps                          ;package name -> (type . range)
     (let ((deps (make-hashtable equal-hash equal?)))
@@ -454,7 +467,10 @@
          (let ((package (hashtable-ref packages package-name #f)))
            (for-each
             (lambda (version)
-              (let ((version-locked? (member (version-lock version) lock-spec*))
+              (let ((version-locked?
+                     (exists (lambda (project)
+                               (project-locks-package-version? project version))
+                             lockfile-projects))
                     (manifest-match (cond ((hashtable-ref deps package-name #f)
                                            => (match-lambda
                                                ((type . range-matcher)

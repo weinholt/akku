@@ -31,6 +31,7 @@
     version-number version-semver version-lock version-lock-set! version-depends
     version-depends/dev version-conflicts
     version-synopsis version-description version-authors version-homepage version-license
+    version-scripts
     read-manifest
     write-manifest
     draft-akku-package)
@@ -82,9 +83,9 @@
                               `((homepage ,@(version-homepage version)))
                               '())
                         (license ,@(version-license version))
-                        ,@(if (version-scripts version)
-                              `((scripts ,@(version-scripts version)))
-                              '())
+                        ,@(if (null? (version-scripts version))
+                              '()
+                              `((scripts ,@(version-scripts version))))
                         (lock ,@(version-lock version))
                         (depends ,@(version-depends version))
                         (depends/dev ,@(version-depends/dev version))
@@ -108,7 +109,7 @@
                   ;; For someone
                   (assq-ref version-spec 'license #f)
                   ;; For various parts of the system
-                  (assq-ref version-spec 'scripts #f))))
+                  (assq-ref version-spec 'scripts '()))))
 
 ;; Read the packages in the manifest. Optionally mangle names so they
 ;; don't get mixed up with names in the index. Optionally override the

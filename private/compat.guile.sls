@@ -33,7 +33,8 @@
     directory-list
     file-exists/no-follow?
     pretty-print
-    get-passwd-realname)
+    get-passwd-realname
+    os-name)
   (import
     (except (rnrs (6)) file-exists?)
     (only (ice-9 pretty-print) pretty-print)
@@ -43,8 +44,10 @@
           lstat stat:type
           symlink readlink
           opendir readdir closedir
-          string-split passwd:gecos getpwnam getlogin)
+          string-split passwd:gecos getpwnam getlogin
+          uname utsname:sysname)
     (prefix (only (guile) putenv) guile:)
+    (only (srfi :13 strings) string-prefix?)
     (prefix (spells process) spells:))
 
 (define (file-exists/no-follow? fn)
@@ -77,4 +80,10 @@
 
 (define (get-passwd-realname)
   (car (string-split (passwd:gecos (getpwnam (getlogin)))
-                     #\,))))
+                     #\,)))
+
+(define (os-name)
+  (let ((os (utsname:sysname (uname))))
+    (if (string-prefix? "CYGWIN_NT-" os)
+        'cygwin
+        (string->symbol (string-downcase os))))))

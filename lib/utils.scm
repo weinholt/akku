@@ -38,7 +38,8 @@
     run-command
     get-realname
     get-index-filename
-    check-filename)
+    check-filename
+    with-working-directory)
   (import
     (rnrs (6))
     (rnrs mutable-pairs (6))
@@ -50,7 +51,7 @@
     (only (spells process) run-shell-command)
     (only (industria strings) string-split)
     (xitomatl AS-match)
-    (only (akku private compat) getcwd mkdir symlink get-passwd-realname))
+    (only (akku private compat) cd getcwd mkdir symlink get-passwd-realname))
 
 ;; Split directory name and filename components.
 (define (split-path filename)
@@ -257,4 +258,11 @@
                          (string->list component)))
             (error 'check-filename "Path contains character disallowed on MS Windows"
                    filename))))
-   (string-split filename #\/))))
+   (string-split filename #\/)))
+
+;; Temporarily change working directories while running the thunk.
+(define (with-working-directory dir thunk)
+  (let ((cwd (getcwd)))
+    (dynamic-wind (lambda () (cd dir))
+                  thunk
+                  (lambda () (cd cwd))))))

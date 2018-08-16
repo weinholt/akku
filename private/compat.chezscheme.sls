@@ -30,37 +30,52 @@
     directory-list
     file-exists/no-follow?
     pretty-print
-    get-passwd-realname)
+    get-passwd-realname
+    os-name)
   (import
     (except (rnrs (6)) file-exists?)
+    (only (srfi :13 strings) string-suffix?)
     (only (chezscheme) cd mkdir chmod putenv rename-file delete-directory
           system process open-process-ports directory-list
           pretty-print file-exists?
           machine-type load-shared-object foreign-procedure))
 
-  (define (file-exists/no-follow? filename)
-    (file-exists? filename #f))
+(define (file-exists/no-follow? filename)
+  (file-exists? filename #f))
 
-  (define (symlink from to)
-    (define %symlink (foreign-procedure "symlink" (string string) int))
-    (let ((ret (%symlink from to)))
-      (when (= ret -1)
-        (error 'symlink "Could not create symbolic link" from to))))
+(define (symlink from to)
+  (define %symlink (foreign-procedure "symlink" (string string) int))
+  (let ((ret (%symlink from to)))
+    (when (= ret -1)
+      (error 'symlink "Could not create symbolic link" from to))))
 
-  (define (readlink pathname)
-    (define %readlink (foreign-procedure "readlink" (string u8* size_t) ssize_t))
-    (define buf (make-bytevector 255 0))
-    (let ((ret (%readlink pathname buf (bytevector-length buf))))
-      (if (= ret -1)
-          (error 'readlink "Could not read symbolic link" pathname)
-          (utf8->string
-           (get-bytevector-n (open-bytevector-input-port buf) ret)))))
+(define (readlink pathname)
+  (define %readlink (foreign-procedure "readlink" (string u8* size_t) ssize_t))
+  (define buf (make-bytevector 255 0))
+  (let ((ret (%readlink pathname buf (bytevector-length buf))))
+    (if (= ret -1)
+        (error 'readlink "Could not read symbolic link" pathname)
+        (utf8->string
+         (get-bytevector-n (open-bytevector-input-port buf) ret)))))
 
-  (define (get-passwd-realname)
-    "Guy Q. Schemer")
+(define (get-passwd-realname)
+  "Guy Q. Schemer")                     ;TODO: get it from the OS
 
-  (case (machine-type)
-    ((i3le ti3le a6le ta6le arm32le tarm32le) (load-shared-object "libc.so.6"))
-    ((i3osx ti3osx a6osx ta6osx) (load-shared-object "libc.dylib"))
-    ((i3nt ti3nt a3nt ta3nt) (load-shared-object "crtdll.dll"))
-    (else (load-shared-object "libc.so"))))
+;; Should match downcase of uname (except for cygwin).
+(define (os-name)
+  (let ((mt (symbol->string (machine-type))))
+    (cond ((string-suffix? "le" mt) 'linux)
+          ((string-suffix? "fb" mt) 'freebsd)
+          ((string-suffix? "nb" mt) 'netbsd)
+          ((string-suffix? "ob" mt) 'openbsd)
+          ((string-suffix? "osx" mt) 'darwin)
+          ((string-suffix? "s2" mt) 'sunos)
+          ((string-suffix? "qnx" mt) 'qnx)
+          ((string-suffix? "nt" mt) 'cygwin)
+          (else 'unknown))))
+
+(case (os-name)
+  ((linux) (load-shared-object "libc.so.6"))
+  ((darwin) (load-shared-object "libc.dylib"))
+  ((cygwin) (load-shared-object "crtdll.dll"))
+  (else (load-shared-object "libc.so"))))
