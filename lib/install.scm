@@ -755,7 +755,7 @@
               (lib7 (r7rs-libraries-directory))
               (ffi (ffi-libraries-directory)))
           (fmt p
-               "# Load this with \"source .akku/bin/activate\" in bash" nl
+               "# Load this with \"source .akku/bin/activate\" in bash   -*-sh-*-" nl
                ;; R6RS
                "export CHEZSCHEMELIBDIRS=\"$PWD/.akku/lib::$PWD/.akku/libobj\"" nl
                "unset CHEZSCHEMELIBEXTS" nl
@@ -770,10 +770,10 @@
                ;; R7RS
                "export CHIBI_MODULE_PATH=\"$PWD/" lib7 "\"" nl
                "export PATH=$PWD/.akku/bin:$PATH" nl
-               "if [[ $LD_LIBRARY_PATH == \"\" ]]; then" nl
-               " export LD_LIBRARY_PATH=$PWD/" ffi nl
-               "else" nl
+               "if [[ ${LD_LIBRARY_PATH+x} ]]; then" nl
                " export LD_LIBRARY_PATH=$PWD/" ffi ":$LD_LIBRARY_PATH" nl
+               "else" nl
+               " export LD_LIBRARY_PATH=$PWD/" ffi nl
                "fi" nl))))))
 
 ;; Installs a library that contains metadata about all artifacts.

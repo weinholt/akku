@@ -177,9 +177,10 @@ your implementation.") nl))
          (unless (file-exists? lockfile-filename)
            (cmd-lock '()))
          (fetch lockfile-filename)
-         (run-scripts lockfile-filename manifest-filename '(pre-install))
-         (install lockfile-filename manifest-filename)
-         (run-scripts lockfile-filename manifest-filename '(post-install)))
+         (let ((index-filename (get-index-filename)))
+           (run-scripts lockfile-filename manifest-filename index-filename '(pre-install))
+           (install lockfile-filename manifest-filename)
+           (run-scripts lockfile-filename manifest-filename index-filename '(post-install))))
         (else
          ;; All-in-one automatic installation of a package.
          (cmd-add arg*)

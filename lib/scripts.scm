@@ -163,7 +163,22 @@ Security goals for scripts
       (package-version* pkg)))
    package*))
 
-(define (run-scripts lockfile-location manifest-filename feature-list)
+(define (package-index-find-project index-filename project)
+  ;; TODO: There are too many instances of procedures like this one.
+  (call-with-input-file index-filename
+    (lambda (p)
+      (let lp ()
+        (match (read p)
+          ((? eof-object?) #f)
+          (('package ('name name)
+                     ('versions version* ...))
+           (or (find (lambda (version)
+                       (project-locks-package-version? project version))
+                     (map parse-version version*))
+               (lp)))
+          (else (lp)))))))  ;allow for future expansion
+
+(define (run-scripts lockfile-location manifest-filename index-filename feature-list)
   (define (run-cmd cmd env)
     (cond
       ((cmd-nop? cmd))
@@ -192,10 +207,44 @@ Security goals for scripts
   (define project&cmd-not-vetted?
     (match-lambda
      [(#f . cmd)
-      (cmd-run? cmd)]                  ;run cmd in the current project
+      (log/warn "The scripts of the current project HAVE NOT been vetted by the Akku.scm repository maintainer.")
+      (cmd-run? cmd)]      ;run cmd in the current project, not vetted
      [(project . cmd)
-      ;; TODO: Look if the command matches the index's version.
-      #f]))
+      ;; Compare with the index. Is the result different from what
+      ;; "akku lock" would have created?
+      (let ((version (package-index-find-project index-filename project)))
+        (cond
+          ((not version)
+           (log/warn "The project " (project-name project) " in " lockfile-location " is not in the index (try: akku update)")
+           (log/warn "The scripts below MAY NOT have been vetted by the Akku.scm repository maintainer.")
+           #t)
+          ((not (equal? (version-scripts version) (project-scripts project)))
+           (log/warn "The project " (project-name project) " from " lockfile-location " has scripts that DIFFER from the index (try: akku lock).")
+           (log/warn "There may be a good reason for this, but dishonesty may also be involved.")
+           #t)
+          (else #f)))]))
+  (define (get-approval-to-run project&cmd*)
+    ;; Show any commands that have not been vetted and get permission
+    ;; to run them. TODO: Get permission with -y on the command line.
+    (let ((not-vetted (filter project&cmd-not-vetted? project&cmd*)))
+      (cond
+        ((null? not-vetted)
+         'all-commands-vetted)
+        (else
+         (for-each
+          (match-lambda
+           [(project . cmd)
+            (cond ((cmd-run? cmd)
+                   (fmt #t "Shell command in "
+                        (if project (project-name project) "the current project")
+                        ": " nl
+                        " " (wrt (cmd-run-cmd cmd)) nl)))])
+          not-vetted)
+         (cond
+           ((not (prompt-user-y/n? "Run these commands"))
+            (log/warn "User said no to running scripts. Continuing without them.")
+            #f)
+           (else 'user-ok))))))
   (let ((project* (read-lockfile lockfile-location))
         (manifest (if (file-exists? manifest-filename)
                       (read-manifest manifest-filename)
@@ -226,33 +275,19 @@ Security goals for scripts
                                    (scripts-expand (map parse-script-expr scripts)
                                                    feature-list))])
                             project&scripts)))
-        ;; Show any commands that have not been vetted and get
-        ;; permission to run them.
         (log/trace "Projects and commands: " (wrt project&cmd*))
-        (when (exists project&cmd-not-vetted? project&cmd*)
-          (for-each
-           (match-lambda
-            [(project . cmd)
-             (cond ((cmd-run? cmd)
-                    (fmt #t "Shell command in "
-                         (if project (project-name project) "the current project")
-                         ": " nl
-                         " " (wrt (cmd-run-cmd cmd)) nl)))])
-           project&cmd*)
-          (cond
-            ((not (prompt-user-y/n? "Run these commands"))
-             (log/warn "User said no to running scripts"))
-            (else
-             ;; Run them.
-             (for-each mkdir/recursive (list akku-path-root akku-path-bin akku-path-lib-ffi
-                                             akku-path-lib-r6rs akku-path-lib-r7rs))
-             (for-each
-              (match-lambda
-               [(project . cmd)
-                (log/trace "Running " cmd " in " project)
-                (with-working-directory (if project
-                                            (project-source-directory project)
-                                            ".")
-                                        (lambda ()
-                                          (run-cmd cmd env)))])
-              project&cmd*)))))))))
+        (unless (null? project&cmd*)
+          (when (get-approval-to-run project&cmd*)
+            ;; Run them.
+            (for-each mkdir/recursive (list akku-path-root akku-path-bin akku-path-lib-ffi
+                                            akku-path-lib-r6rs akku-path-lib-r7rs))
+            (for-each
+             (match-lambda
+              [(project . cmd)
+               (log/trace "Running " cmd " in " project)
+               (with-working-directory (if project
+                                           (project-source-directory project)
+                                           ".")
+                                       (lambda ()
+                                         (run-cmd cmd env)))])
+             project&cmd*))))))))
