@@ -208,7 +208,6 @@
                (log/info "Locked " name " v" (version-number ver))
                `((name ,name)
                  ,@(version-lock ver)
-                 (version ,(version-number ver))
                  ,@(if (null? (version-scripts ver))
                        '()
                        `((scripts ,@(version-scripts ver))))))))))
