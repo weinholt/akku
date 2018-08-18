@@ -57,6 +57,7 @@
   (define test-deps (make-hashtable equal-hash equal?))
   (for-each
    (lambda (file)
+     (log/trace "Scanning " file)
      (for-each
       (lambda (import)
         (let ((lib-name (library-reference-name import)))

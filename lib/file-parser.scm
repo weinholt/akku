@@ -648,7 +648,7 @@
       (('module (? symbol? name) (export* ...) body* ...)
        ;; Named Chez Scheme module. Imports and exports can appear
        ;; basically anywhere, making them very difficult to support
-       ;; completely.
+       ;; completely. XXX: Can also match for Chicken modules.
        (let ((import* '())
              (include* (scan-for-includes/r6rs body* realpath)))
          (list (make-module path path-list form-index (eof-object? next-datum)
@@ -657,7 +657,7 @@
        (cond ((path->implementation-name path) =>
               (lambda (impl)
                 (list (make-module path path-list form-index (eof-object? next-datum)
-                                   #f '() impl #f))))
+                                   '() '() impl #f))))
              (else
               ;; TODO: detect modules from various implementations
               #f)))))
