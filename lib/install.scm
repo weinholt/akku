@@ -107,9 +107,11 @@
       (lambda (library-name->file-name)
         (guard (exn
                 ((serious-condition? exn)
-                 (when (and (message-condition? exn)
+                 (when (and (who-condition? exn)
+                            (message-condition? exn)
                             (irritants-condition? exn))
-                   (log/error (condition-message exn) ": "
+                   (log/error "(" (condition-who exn) ") "
+                              (condition-message exn) ": "
                               (condition-irritants exn)))
                  #f))
           (let* ((filename (library-name->file-name name))
@@ -542,7 +544,7 @@
                        (irritants-condition? exn)
                        (lexical-violation? exn)
                        (source-condition? exn))
-                  (log/error "Not installing " (wrt target)
+                  (log/error "Not installing " (wrt (path-join (car target) (cdr target)))
                              " due to syntax error: "
                              (condition-message exn) " with irritants "
                              (condition-irritants exn)
