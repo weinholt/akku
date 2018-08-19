@@ -236,7 +236,7 @@ lexical syntax are handled rather poorly.
 .PP
 The conversion of R7RS code is not complete. It does not add quotes to
 vectors, which are self-quoting in R7RS but not in R6RS. If the R7RS
-code uses shared data at the lexical level, then the written R6RS
+code uses shared data at the lexical level then the written R6RS
 library will also use that and may end up not being loadable by a
 conformant R6RS implementation. The R7RS support needs the akku\-r7rs
 package to be installed.
@@ -337,4 +337,8 @@ There is NO WARRANTY, to the extent permitted by law.
 .SH "SEE ALSO"
 The project website:
 .UR https://akkuscm.org/
+.UE
+.br
+The project wiki:
+.UR https://gitlab.com/akkuscm/akku/wikis/home
 .UE

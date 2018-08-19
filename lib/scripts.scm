@@ -207,7 +207,7 @@ Security goals for scripts
   (define project&cmd-not-vetted?
     (match-lambda
      [(#f . cmd)
-      (log/warn "The scripts of the current project HAVE NOT been vetted by the Akku.scm repository maintainer.")
+      (log/warn "The scripts of the current project HAVE NOT been vetted by the Akku.scm repository maintainer")
       (cmd-run? cmd)]      ;run cmd in the current project, not vetted
      [(project . cmd)
       ;; Compare with the index. Is the result different from what
@@ -216,11 +216,11 @@ Security goals for scripts
         (cond
           ((not version)
            (log/warn "The project " (project-name project) " in " lockfile-location " is not in the index (try: akku update)")
-           (log/warn "The scripts below MAY NOT have been vetted by the Akku.scm repository maintainer.")
+           (log/warn "The scripts below MAY NOT have been vetted by the Akku.scm repository maintainer")
            #t)
           ((not (equal? (version-scripts version) (project-scripts project)))
-           (log/warn "The project " (project-name project) " from " lockfile-location " has scripts that DIFFER from the index (try: akku lock).")
-           (log/warn "There may be a good reason for this, but dishonesty may also be involved.")
+           (log/warn "The project " (project-name project) " from " lockfile-location " has scripts that DIFFER from the index (try: akku lock)")
+           (log/warn "There may be a good reason for this, but dishonesty may also be involved")
            #t)
           (else #f)))]))
   (define (get-approval-to-run project&cmd*)
@@ -242,7 +242,7 @@ Security goals for scripts
           not-vetted)
          (cond
            ((not (prompt-user-y/n? "Run these commands"))
-            (log/warn "User said no to running scripts. Continuing without them.")
+            (log/warn "User said no to running scripts, continuing without them")
             #f)
            (else 'user-ok))))))
   (let ((project* (read-lockfile lockfile-location))
