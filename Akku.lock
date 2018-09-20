@@ -3,8 +3,8 @@
 (import (akku format lockfile))
 (projects
   ((name "chez-srfi")
-    (location (git "https://github.com/weinholt/chez-srfi.git"))
-    (revision "4b84c82a1e51d7dadc8e5a7dfe4c6f9f70818f54"))
+    (location (git "https://github.com/arcfide/chez-srfi"))
+    (revision "23c1e3529397e14d2d7a685ff3bd8c5c79d34010"))
   ((name "compression")
     (location
       (git "https://github.com/weinholt/compression.git"))
@@ -41,7 +41,7 @@
     (revision "7df9873ee079086a533d500de4358c0adb96f2ff"))
   ((name "spells")
     (location (git "https://github.com/weinholt/spells.git"))
-    (revision "a5400406d8423381791a5ef648198f223851eaa2"))
+    (revision "1617bae4ecf0fbef39cdf3818efaeb53b7e9940a"))
   ((name "struct-pack")
     (location
       (git "https://github.com/weinholt/struct-pack.git"))
