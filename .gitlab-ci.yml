@@ -46,7 +46,8 @@ test:guile:
   image: "debian:buster"
   before_script:
     - apt-get update -qq
-    - apt-get install -qq guile-2.2 curl git xz-utils
+    # XXX: libcurl4-dev should not really be needed
+    - apt-get install -qq guile-2.2 curl git xz-utils libcurl4-gnutls-dev
     - tar xvaf akku-*src*.tar.xz
     - (cd akku-*src; ./install.sh)
 

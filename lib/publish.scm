@@ -34,12 +34,12 @@
     (akku lib utils)
     (akku private logging))
 
-(define logger:akku.install (make-logger logger:akku 'publish))
-(define log/info (make-fmt-log logger:akku.install 'info))
-(define log/error (make-fmt-log logger:akku.install 'error))
-(define log/warn (make-fmt-log logger:akku.install 'warning))
-(define log/debug (make-fmt-log logger:akku.install 'debug))
-(define log/trace (make-fmt-log logger:akku.install 'trace))
+(define logger:akku.http (make-logger logger:akku 'publish))
+(define log/info (make-fmt-log logger:akku.http 'info))
+(define log/error (make-fmt-log logger:akku.http 'error))
+(define log/warn (make-fmt-log logger:akku.http 'warning))
+(define log/debug (make-fmt-log logger:akku.http 'debug))
+(define log/trace (make-fmt-log logger:akku.http 'trace))
 
 (define (guess-public-git-location base-directory)
   (let lp ((remote* (git-list-remotes base-directory)))

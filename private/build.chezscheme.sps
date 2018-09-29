@@ -93,7 +93,7 @@
                            (generate-wpo-files #t)
                            (optimize-level 2))
               (compile-program "bin/akku.sps" "bin/akku.so")
-              (let ((remaining (compile-whole-program "bin/akku.wpo" "bin/akku" #f)))
+              (let ((remaining (compile-whole-program "bin/akku.wpo" "bin/akku" #t)))
                 (unless (null? remaining)
                   (when (file-exists? "bin/akku")
                     (delete-file "bin/akku"))

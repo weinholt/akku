@@ -30,9 +30,18 @@
     download-file)
   (import
     (rnrs (6))
+    (pffi)
     (only (srfi :13 strings) string-prefix?)
-    (srfi :115 regexp)
-    (akku private compat))
+    (akku lib utils)
+    (akku private compat)
+    (akku private logging))
+
+(define logger:akku.http (make-logger logger:akku 'http))
+(define log/info (make-fmt-log logger:akku.http 'info))
+(define log/error (make-fmt-log logger:akku.http 'error))
+(define log/warn (make-fmt-log logger:akku.http 'warning))
+(define log/debug (make-fmt-log logger:akku.http 'debug))
+(define log/trace (make-fmt-log logger:akku.http 'trace))
 
 (define-record-type http-request
   (nongenerative)
@@ -44,36 +53,95 @@
   (sealed #t)
   (fields status port))
 
-;; TODO: Use a native HTTP client (ocelotl) when net libraries are
-;; working more reasonably.
+(define (c-string->string ptr)
+  (utf8->string
+   (call-with-bytevector-output-port
+     (lambda (p)
+       (let lp ((i 0))
+         (let ((c (pointer-ref-c-uint8 ptr i)))
+           (unless (fxzero? c)
+             (put-u8 p c)
+             (lp (fx+ i 1)))))))))
 
-(define (open-http-request req)
-  (putenv "AKKU_METHOD" (case (http-request-method req)
-                          ((get) "GET")
-                          ((post) "POST")
-                          ((put) "PUT")
-                          ((delete) "DELETE")
-                          ((patch) "PATCH")
-                          (else
-                           (assertion-violation 'open-http-request "Bad method" req))))
-  (putenv "AKKU_URL" (http-request-url req))
-  (let-values (((to-stdin from-stdout from-stderr _process-id)
-                (open-process-ports "exec curl -s -X \"$AKKU_METHOD\" -D /dev/stderr \"$AKKU_URL\""
-                                    (buffer-mode block)
-                                    #f)))
-    (close-port to-stdin)
-    (let* ((stderr (transcoded-port from-stderr (make-transcoder (utf-8-codec)
-                                                                 (eol-style lf))))
-           (resp (get-line stderr)))
-      (close-port from-stderr)
-      (cond ((regexp-matches (rx "HTTP/" (+ (~ " ")) " " (submatch (+ (~ " "))) (* any))
-                             resp)
-             => (lambda (m)
-                  (let ((status (regexp-match-submatch m 1)))
-                    (make-http-response status from-stdout))))
-            (else
-             (close-port from-stdout)
-             (error 'open-http-request "Could not open request" req resp))))))
+(define (string->c-string str)
+  (string->utf8 (string-append str "\x0;")))
+
+(define open-http-request
+  (let ((libcurl #f))
+    (define CURLE_OK                      0)
+    (define CURLOPT_URL               10002)
+    (define CURLOPT_WRITEFUNCTION     20011)
+    (define CURLOPT_VERBOSE              41)
+    (define CURLOPT_HEADER               42)
+    (define CURLOPT_NOPROGRESS           43)
+    (define CURLOPT_FAILONERROR          45)
+    (define CURLOPT_FOLLOWLOCATION       52)
+    (define CURLOPT_HEADERFUNCTION    20079)
+    (define CURLINFO_RESPONSE_CODE #x200002)
+    (lambda (req)
+      (define-syntax call
+        (lambda (x)
+          (syntax-case x ()
+            ((_ proc args ...)
+             (with-syntax (((tmps ...) (generate-temporaries #'(args ...))))
+               #'(let ((tmps args) ...)
+                   (let ((status (proc tmps ...)))
+                     (unless (eqv? status CURLE_OK)
+                       (error 'proc "Error from libcurl" status tmps ...)))))))))
+      (unless libcurl
+        ;; Initialize libcurl and get a handle
+        (log/trace "Initializing libcurl")
+        (case (os-name)
+          ((darwin)
+           (set! libcurl (open-shared-object "libcurl.dylib")))
+          (else
+           (guard (exn
+                   (else
+                    (set! libcurl (open-shared-object "libcurl.so.3"))))
+             (set! libcurl (open-shared-object "libcurl.so.4")))))
+        (letrec ()
+          (define %curl_global_init (foreign-procedure libcurl int curl_global_init (long)))
+          (call %curl_global_init #b11)))
+      (letrec ()
+        (define %curl_easy_init (foreign-procedure libcurl pointer curl_easy_init ()))
+        (define %curl_easy_setopt/long (foreign-procedure libcurl int curl_easy_setopt (pointer int long)))
+        (define %curl_easy_setopt/pointer (foreign-procedure libcurl int curl_easy_setopt (pointer int pointer)))
+        (define %curl_easy_setopt/callback (foreign-procedure libcurl int curl_easy_setopt
+                                                              (pointer int (callback int (pointer int int pointer)))))
+        (define %curl_easy_perform (foreign-procedure libcurl int curl_easy_perform (pointer)))
+        (define %curl_easy_getinfo (foreign-procedure libcurl int curl_easy_getinfo (pointer int pointer)))
+        (define %curl_easy_reset (foreign-procedure libcurl void curl_easy_reset (pointer)))
+        (define %curl_easy_cleanup (foreign-procedure libcurl void curl_easy_cleanup (pointer)))
+        (log/debug "Using libcurl to download " (http-request-url req))
+        (let ((curl (%curl_easy_init)))
+          (call %curl_easy_setopt/pointer curl CURLOPT_URL
+                (bytevector->pointer (string->c-string (http-request-url req))))
+          (call %curl_easy_setopt/long curl CURLOPT_VERBOSE
+                (if (memq (get-log-threshold) '(debug trace)) 1 0))
+          (call %curl_easy_setopt/long curl CURLOPT_NOPROGRESS 1)
+          (call %curl_easy_setopt/long curl CURLOPT_FOLLOWLOCATION 1)
+          (call %curl_easy_setopt/long curl CURLOPT_FAILONERROR 1)
+          ;; Read the whole response into memory. The other options
+          ;; are to use curl_easy_recv(), but it requires select(); or
+          ;; do jump in and out of libcurl's callback with call/cc.
+          ;; Files are small enough to fit in memory for now.
+          (let ((bv (call-with-bytevector-output-port
+                      (lambda (p)
+                        (let ((cb (c-callback int (pointer int int pointer)
+                                          (lambda (ptr size nmemb stream)
+                                            (let ((bytes (* size nmemb)))
+                                              (log/trace "curl read: " bytes)
+                                              (do ((i 0 (fx+ i 1)))
+                                                  ((fx=? i bytes))
+                                                (put-u8 p (pointer-ref-c-uint8 ptr i)))
+                                              bytes)))))
+                          (call %curl_easy_setopt/callback curl CURLOPT_WRITEFUNCTION cb)
+                          (call %curl_easy_perform curl)
+                          (free-c-callback cb))))))
+            (let ((resp-bv (make-bytevector 8 0)))
+              (call %curl_easy_getinfo curl CURLINFO_RESPONSE_CODE (bytevector->pointer resp-bv))
+              (make-http-response (number->string (pointer-ref-c-long (bytevector->pointer resp-bv) 0))
+                                  (open-bytevector-input-port bv)))))))))
 
 (define (download-file url local-filename callback)
   (call-with-port (open-file-output-port local-filename)
@@ -95,6 +163,4 @@
                  (lp))))
            (close-port (http-response-port resp))))
         (else
-         (error 'download-file "URL scheme not supported" url))))))
-
-)
+         (error 'download-file "URL scheme not supported" url)))))))
