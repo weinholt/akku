@@ -26,5 +26,5 @@
            ("hashing" "^1.1.0")
            ("compression" "^0.1.1")
            ("laesare" "^1.0.0-alpha.0")
-           ("r6rs-pffi" "^0.1.0-18.6.21.akku.1"))
+           ("r6rs-pffi" "^1.0.0"))
 )
