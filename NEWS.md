@@ -1,5 +1,29 @@
 # Akku.scm release notes
 
+## Version 0.4.0
+
+This release introduces scripts that run during installation of
+packages. The intended use is for compiling shared objects that are
+loaded by a foreign function interface such
+as [r6rs-pffi](https://akkuscm.org/packages/r6rs-pffi/). The first
+user of this feature
+is [linenoise](https://akkuscm.org/packages/linenoise/), a
+readline-like library.
+
+R7RS libraries are now additionally installed as `.sld` files for use
+in R7RS Schemes. In addition, activating the environment now also
+updates Chibi's module path. Contributions to support more Schemes are
+very welcome.
+
+A bug was fixed in the HTTP library that prevented the package index
+from being updated if it grew beyond a certain size. As part of the
+fix, Akku.scm now depends on libcurl rather than curl itself. Guile
+needs the libcurl.so file from the -dev/-devel package.
+
+A newer version of chez-srfi is used that provides Unicode support in
+its SRFI-14 implementation. This fixes some crashes that would happen
+if library names contained letters outside of the latin-1 range.
+
 ## Version 0.3.1
 
 This release fixes an bug with updating cloned git repositories. When

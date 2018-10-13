@@ -1,5 +1,5 @@
 .\" HTML output: groff -man -Thtml docs/akku.1
-.TH AKKU "1" "July 2018" "Akku.scm" "User Commands"
+.TH AKKU "1" "October 2018" "Akku.scm" "User Commands"
 .SH "NAME"
 akku \- R6RS Scheme language package manager
 .SH "SYNOPSIS"
@@ -10,8 +10,8 @@ Scheme. It is mainly meant for schemers who develop programs or
 libraries in R6RS Scheme, but could potentially work for end-users of
 those programs.
 .PP
-Project-based means that dependencies are local to each project you
-manage with Akku. The idea is that each project will specify its
+Being project-based means that dependencies are local to each project
+you manage with Akku. The idea is that each project will specify its
 dependencies through a manifest and a lockfile. When developing on a
 project, you set your environment variables by sourcing that project's
 activate script into your shell (\fCsource .akku/bin/activate\fR).
@@ -57,11 +57,20 @@ Running install with a list of packages will add them to the package
 manifest, lock dependencies and install everything in the lockfile.
 .\" ------------------------------------------
 .TP
+.B install
+This command follows the instructions in the lockfile to download and
+install the listed projects. A file scanner looks at each file in the
+downloaded projects and figures out what type of source it is and
+where it goes in the file system.
+.IP
+This command requires git.
+.\" ------------------------------------------
+.TP
 .B update
 Updates the local package index. The index files are signed with GnuPG
 signatures that are verified before they are used.
 .IP
-This command requires curl.
+This command requires libcurl.
 .\" ------------------------------------------
 .TP
 \fBadd\fR [\-\-\fBdev\fR] \fIpkg\fR[@\fIversion-range\fR]
@@ -86,15 +95,6 @@ cryptographic identity.
 It is wise to commit both the manifest and the lockfile in your source
 code repository; the lockfile is not used when your package is pulled
 in as a dependency.
-.\" ------------------------------------------
-.TP
-.B install
-Without arguments, this command follows the instructions in the
-lockfile to download and install the listed projects. A file scanner
-looks at each file in the downloaded projects and figures out what
-type of source it is and where it goes in the file system.
-.IP
-This command requires git.
 .\" ------------------------------------------
 .TP
 .B remove \fIpkg\fR.\|.\|.
@@ -269,19 +269,23 @@ $ akku update
 .\" ------------------------------------------
 .SS "Quick start in a new project"
 .\" ------------------------------------------
-A quick way to get new dependencies into a project is to use the
-\fBinstall\fR command. Have a look at the package list and choose
-something you want to install. Afterwards, source the activate
-script to get the correct environment variables:
+A quick way to get a new project up and running is the \fBinit\fR
+command:
 .
 .RS
 .EX
-$ akku list
-$ akku install chez-srfi
+$ akku init my-project
+$ cd my-project
+$ akku install
 $ source .akku/bin/activate
 .EE
 .RE
 .
+Use \fBakku list\fR to find some package you want to use, or browse
+the package list on the Akku website. When you want to install a
+package, e.g. json-tools, run \fBakku install json-tools\fR. This adds
+it to the package manifest, locks all dependencies to specific
+versions and rewrites .akku/ to the locked versions.
 .\" ------------------------------------------
 .SS "Install dependencies step-by-step"
 .\" ------------------------------------------
@@ -315,6 +319,7 @@ $ akku install        # updates .akku/
 \fIAkku.lock\fR	instructions for installing dependencies
 \fI.akku/bin/\fR	programs from packages; activate script
 \fI.akku/lib/\fR	installed libraries from packages
+\fI.akku/ffi/\fR	compiled libraries for use with an FFI
 \fI.akku/list\fR	a list of files and whence they came
 \fI.akku/notices/\fR	license notices from installed packages
 \fI.akku/src/\fR	downloaded source code

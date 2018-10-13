@@ -16,16 +16,16 @@ code and vigorously shakes it until it behaves properly.
   directory.
 * Scan repositories for R6RS/R7RS libraries, even multiple per file,
   and copy them to the right file paths for any supported Scheme.
-* Resolve all files needed for compilation and scan them for license
-  notices.
+* Resolve all Scheme files needed for compilation and scan them for
+  license notices.
 
 Web site: [akkuscm.org](https://akkuscm.org/).
 
 ## Dependencies
 
-Akku.scm currently requires the git and curl programs. Publishing
-requires GnuPG. It has only been tested on GNU/Linux systems.
-Assistance in porting is very welcome.
+Akku.scm requires git and libcurl. It has been tested on GNU/Linux and
+macOS. (Windows users can run Akku through WSL for now). Assistance in
+porting is very welcome.
 
 ## Installation
 
@@ -49,12 +49,13 @@ signed with [E33E61A2E9B8C3A2][key].
 
 ## Usage
 
-Here's a high level view of how to get started:
+How to get started with a new project:
 
- - Create a new directory for your project or go to your existing
-   project directory.
- - Run `akku list` to list the packages (`akku update` downloads the
-   package index).
+ - Run `akku init project-name`. This creates a new project from a
+   template. You can also safely run akku in your existing project
+   directory.
+ - Run `akku list` to list available packages (`akku update` downloads
+   the package index).
  - Run `akku install <pkg>` to install a named package. This also
    installs the code in your current directory into `.akku`.
  - Run `source .akku/bin/activate` (in bash) to prepare the
