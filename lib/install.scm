@@ -678,10 +678,17 @@
                                   (artifact-form-index artifact)
                                   (r7rs-program? artifact))))))))
     ((r7rs-library? artifact)
-     (append (if (not (artifact-implementation artifact))
-                 (install-artifact/r7rs-library/native project artifact srcdir always-symlink?)
-                 '())
-             (install-artifact/r7rs-library project artifact srcdir always-symlink?)))
+     ;; Install the native R7RS version and/or the R6RS translation.
+     (let ((impl (artifact-implementation artifact))
+           (same-path* (filter (lambda (art)
+                                 (equal? (artifact-path art)
+                                         (artifact-path artifact)))
+                               related-artifact*)))
+       (append
+        (if (and (pair? same-path*) (eq? artifact (car same-path*)))
+            (install-artifact/r7rs-library/native project artifact srcdir always-symlink?)
+            '())                        ;already installed
+        (install-artifact/r7rs-library project artifact srcdir always-symlink?))))
     ((and (module? artifact)
           (memq (artifact-implementation artifact)
                 '(guile)))
