@@ -181,10 +181,9 @@
             (format p "echo You can now run '~~/bin/akku'~%")))
         (chmod "dist/install.sh" #o755)
         ;; Build a tarball.
-        (let* ((build-version (format #f "~d+~d" akku-version long-machine-type))
+        (let* ((build-version (format #f "~d.~d" akku-version long-machine-type))
                (tarfile (format #f "akku-~d.tar.xz" build-version)))
           (assert (string->semver akku-version))
-          (assert (string->semver build-version))
           (putenv "FILENAME" tarfile)
           (putenv "DISTVER" build-version)
           (system "tar --numeric-owner --owner 0 --group 0 -caf \"$FILENAME\" --transform s,^dist,akku-$DISTVER, dist/")
@@ -226,10 +225,9 @@
     ;; Install script
     (cp "private/install-src.sh" "dist/install.sh")
     (chmod "dist/install.sh" #o755)
-    (let* ((build-version (format #f "~d+src" akku-version))
+    (let* ((build-version (format #f "~d.src" akku-version))
            (tarfile (format #f "akku-~d.tar.xz" build-version)))
       (assert (string->semver akku-version))
-      (assert (string->semver build-version))
       (putenv "FILENAME" tarfile)
       (putenv "DISTVER" build-version)
       (system "tar --numeric-owner --owner 0 --group 0 -caf \"$FILENAME\" --transform s,^dist,akku-$DISTVER, dist/")

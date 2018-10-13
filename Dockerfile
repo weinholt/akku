@@ -16,8 +16,8 @@ RUN set -uxe; \
     cp akku-archive-*.gpg ~/.akku/share/keys.d; \
     akku.sps update; \
     private/build.chezscheme.sps; \
-    tar -xvaf akku-*+*-linux.tar.xz; \
-    cd akku-*+*-linux; \
+    tar -xvaf akku-*-linux.tar.xz; \
+    cd akku-*-linux; \
     ./install.sh; \
     ~/bin/akku
 
