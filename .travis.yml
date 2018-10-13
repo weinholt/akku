@@ -10,7 +10,6 @@ env:
 
 matrix:
   allow_failures:
-    - os: osx
     - env: SCHEME="ChezScheme_master"
     - env: SCHEME="Larceny"
     - env: SCHEME="Racket_HEAD"
