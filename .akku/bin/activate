@@ -16,3 +16,8 @@ if [[ ${LD_LIBRARY_PATH+x} ]]; then
 else
  export LD_LIBRARY_PATH=$PWD/.akku/ffi
 fi
+if [[ ${DYLD_LIBRARY_PATH+x} ]]; then
+ export DYLD_LIBRARY_PATH=$PWD/.akku/ffi:$DYLD_LIBRARY_PATH
+else
+ export DYLD_LIBRARY_PATH=$PWD/.akku/ffi
+fi

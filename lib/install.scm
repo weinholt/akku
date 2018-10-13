@@ -779,10 +779,17 @@
                ;; R7RS
                "export CHIBI_MODULE_PATH=\"$PWD/" lib7 "\"" nl
                "export PATH=$PWD/.akku/bin:$PATH" nl
+               ;; For Linux
                "if [[ ${LD_LIBRARY_PATH+x} ]]; then" nl
                " export LD_LIBRARY_PATH=$PWD/" ffi ":$LD_LIBRARY_PATH" nl
                "else" nl
                " export LD_LIBRARY_PATH=$PWD/" ffi nl
+               "fi" nl
+               ;; For macOS
+               "if [[ ${DYLD_LIBRARY_PATH+x} ]]; then" nl
+               " export DYLD_LIBRARY_PATH=$PWD/" ffi ":$DYLD_LIBRARY_PATH" nl
+               "else" nl
+               " export DYLD_LIBRARY_PATH=$PWD/" ffi nl
                "fi" nl))))))
 
 ;; Installs a library that contains metadata about all artifacts.
