@@ -3,10 +3,6 @@
 [![Build Status](https://travis-ci.org/weinholt/akku.svg?branch=master)](https://travis-ci.org/weinholt/akku)
 [![pipeline status](https://gitlab.com/akkuscm/akku/badges/master/pipeline.svg)](https://gitlab.com/akkuscm/akku/commits/master)
 
-> "The purpose of the machine is to make drudgery unnecessary."
->
-> &mdash; Alan Watts
-
 Akku.scm is a language package manager for Scheme. It grabs hold of
 code and vigorously shakes it until it behaves properly.
 
@@ -14,10 +10,12 @@ code and vigorously shakes it until it behaves properly.
 * One command to install everything needed for a project.
 * Project-based, installs your locked dependencies to a single library
   directory.
-* Scan repositories for R6RS/R7RS libraries, even multiple per file,
-  and copy them to the right file paths for any supported Scheme.
+* Scan repositories for libraries and install them to the right paths
+  for all supported Schemes.
 * Resolve all Scheme files needed for compilation and scan them for
   license notices.
+* Convert R7RS libraries for use with Chez Scheme and other R6RS
+  Scheme implementations.
 
 Web site: [akkuscm.org](https://akkuscm.org/).
 
@@ -57,7 +55,8 @@ How to get started with a new project:
  - Run `akku list` to list available packages (`akku update` downloads
    the package index).
  - Run `akku install <pkg>` to install a named package. This also
-   installs the code in your current directory into `.akku`.
+   installs the code in your current directory into `.akku`. If you
+   add local source files you'll need to rerun `akku install`.
  - Run `source .akku/bin/activate` (in bash) to prepare the
    environment for the programs and libraries in `.akku`.
 
@@ -65,6 +64,9 @@ The installed libraries and programs should now be available to you,
 assuming you use one of these Schemes: Chez Scheme, GNU Guile (with
 R6RS settings), Ikarus, Larceny, Mosh, Racket (plt-r6rs), Sagittarius,
 Vicare or Ypsilon.
+
+Your users can unpack your source code and run `akku install` to get
+the same dependencies that you used during development.
 
 More details are in the manpage: `man docs/akku.1`.
 
