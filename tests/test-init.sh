@@ -1,10 +1,10 @@
-#!/bin/bash
+#!/bin/sh
 set -x
 
 TESTNAME=test-init
 WORKDIR=$PWD/$TESTNAME
 
-function cleanup {
+cleanup () {
   rm -rf -- "$WORKDIR"
 }
 trap cleanup EXIT

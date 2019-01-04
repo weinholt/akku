@@ -1,10 +1,10 @@
-#!/bin/bash
+#!/bin/sh
 set -x
 
 WORKDIR=$PWD/test-workdir
 rm -rf "$WORKDIR"
 mkdir "$WORKDIR"
-tar -C "$WORKDIR" -xJf `dirname $0`/test-project.tar.xz
+tar -C "$WORKDIR" -xJf $(dirname $0)/test-project.tar.xz
 
 cat > "$WORKDIR/Akku.lock" <<EOF
 #!r6rs
@@ -19,21 +19,20 @@ cat > "$WORKDIR/Akku.lock" <<EOF
   (tag "v0.2.0")))
 EOF
 
-pushd "$WORKDIR"
-akku install; STATUS=$?
-popd
+(set -e;cd "$WORKDIR"; akku install)
+STATUS=$?
 
-if [ ! -f $WORKDIR/.akku/lib/test-project/foo.sls ]; then
+if [ ! -f "$WORKDIR"/.akku/lib/test-project/foo.sls ]; then
     echo "The source was not checked out."
     STATUS=1
 fi
 
-if [ ! -f $WORKDIR/.akku/lib/test-project/bar.sls ]; then
+if [ ! -f "$WORKDIR"/.akku/lib/test-project/bar.sls ]; then
     echo "The source was not checked out."
     STATUS=1
 fi
 
-if [ ! -f $WORKDIR/.akku/lib/test-project/bar/baz.sls ]; then
+if [ ! -f "$WORKDIR"/.akku/lib/test-project/bar/baz.sls ]; then
     echo "The source was not checked out."
     STATUS=1
 fi

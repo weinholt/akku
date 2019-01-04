@@ -3,7 +3,7 @@ image: "weinholt/chezscheme"
 variables:
   AKKU_LOG_LEVEL: "info"
 
-build:
+build:debian:
   stage: build
   before_script:
     - apt-get update -qq
@@ -19,6 +19,24 @@ build:
   artifacts:
     paths:
       - akku-*.tar.xz
+
+build:alpine:
+  image: "weinholt/chezscheme:alpine"
+  stage: build
+  before_script:
+    - apk add --no-cache curl git xz tar
+    - source .akku/bin/activate
+    - mkdir -p ~/.akku/share/keys.d
+    - cp akku-archive-*.gpg ~/.akku/share/keys.d
+  script:
+    - bin/akku.sps update
+    - bin/akku.sps install
+    - private/build.chezscheme.sps
+    - ./run-tests.sh
+    - mv akku-*linux.tar.xz $(echo akku-*-linux.tar.xz | sed 's/linux/linux-musl/')
+  artifacts:
+    paths:
+      - akku-*linux-musl.tar.xz
 
 # Tests the newly built Akku under Chez and Guile.
 
@@ -38,7 +56,7 @@ test:chezscheme:
   before_script:
     - apt-get update -qq
     - apt-get install -qq curl git xz-utils
-    - tar xvaf akku-*linux*.tar.xz
+    - tar xvaf akku-*linux.tar.xz
     - (cd akku-*linux; ./install.sh)
 
 test:guile:
@@ -48,7 +66,7 @@ test:guile:
     - apt-get update -qq
     # XXX: libcurl4-dev should not really be needed
     - apt-get install -qq guile-2.2 curl git xz-utils libcurl4-gnutls-dev
-    - tar xvaf akku-*src*.tar.xz
+    - tar xvaf akku-*src.tar.xz
     - (cd akku-*src; ./install.sh)
 
 # Check the Chez-bundled version on CentOS.
@@ -57,5 +75,14 @@ test:chezscheme-centos:
   image: "centos"
   before_script:
     - yum install -y curl git xz
-    - tar xvaf akku-*linux*.tar.xz
+    - tar xvaf akku-*linux.tar.xz
+    - (cd akku-*linux; ./install.sh)
+
+# Check the Chez-bundled version on Alpine.
+test:chezscheme-alpine:
+  <<: *job_definition
+  image: "alpine:3.8"
+  before_script:
+    - apk add --no-cache curl git xz
+    - tar xvJf akku-*linux-musl.tar.xz
     - (cd akku-*linux; ./install.sh)
