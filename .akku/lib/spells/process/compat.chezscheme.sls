@@ -2,7 +2,7 @@
 ;;; compat.chezscheme.sls --- OS processes for Chez Scheme
 
 ;; Copyright (C) 2010, 2011, 2015 Andreas Rottmann <a.rottmann@gmx.at>
-;; Copyright (C) 2018 Göran Weinholt <goran@weinholt.se>
+;; Copyright (C) 2018, 2019 Göran Weinholt <goran@weinholt.se>
 
 ;; Authors: Andreas Rottmann <a.rottmann@gmx.at>
 ;;          Göran Weinholt <goran@weinholt.se>
@@ -95,9 +95,10 @@
 
   (define call/errno
     (let ((get-error
-           (let ((%errno (foreign-entry "errno"))
+           ;; This works with both glibc and musl
+           (let ((%errno-location (foreign-procedure "__errno_location" () void*))
                  (%strerror (foreign-procedure "strerror" (int) string)))
-             (lambda () (%strerror (foreign-ref 'int %errno 0))))))
+             (lambda () (%strerror (foreign-ref 'int (%errno-location) 0))))))
       (lambda (procedure . args)
         (critical-section
          (let* ((return-value (apply procedure args))
