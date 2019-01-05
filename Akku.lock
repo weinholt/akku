@@ -44,7 +44,7 @@
    (revision "7df9873ee079086a533d500de4358c0adb96f2ff"))
  ((name "spells")
    (location (git "https://github.com/weinholt/spells.git"))
-   (revision "08b4e4b8f378d56cdb048ef72e8c9c9487990d4a"))
+   (revision "f91ed0b954e5f17b10b324b719e32b5c0ab0396c"))
  ((name "struct-pack")
    (location
      (git "https://github.com/weinholt/struct-pack.git"))
