@@ -748,13 +748,18 @@
        (log/error "No support for the installer " (map car (project-installer project)))
        '()))))
 
-;; Installs an activation script, like Python's virtualenv.
-(define (install-activate-script)
+;; Installs activation scripts, like Python's virtualenv.
+(define (install-activate-scripts)
+  (mkdir/recursive (binaries-directory))
+  (install-bash-activate-script)
+  (install-fish-activate-script))
+
+;; Installs the activate script for Bash, which used to be the only activation script
+(define (install-bash-activate-script)
   ;; TODO: Setup routines for more Schemes, perhaps take the wrappers
   ;; from scheme-ci.
   (let ((filename (path-join (binaries-directory) "activate")))
     (log/info "Installing " filename)
-    (mkdir/recursive (binaries-directory))
     (call-with-port (open-file-output-port filename
                                            (file-options no-fail)
                                            (buffer-mode block)
@@ -791,6 +796,46 @@
                "else" nl
                " export DYLD_LIBRARY_PATH=$PWD/" ffi nl
                "fi" nl))))))
+
+(define (install-fish-activate-script)
+  (let ((filename (path-join (binaries-directory) "activate.fish")))
+    (log/info "Installing " filename)
+    (call-with-port (open-file-output-port filename
+                                           (file-options no-fail)
+                                           (buffer-mode block)
+                                           (native-transcoder))
+      (lambda (p)
+        (let ((lib (libraries-directory))
+              (lib7 (r7rs-libraries-directory))
+              (ffi (ffi-libraries-directory)))
+          (fmt p
+               "Load this with \"source .akku/bin/" filename "\" in Fish    -*-sh-*-" nl
+               ;; R6RS
+               "set --export CHEZSCHEMELIBDIRS \"$PWD/.akku/lib\" \"$PWD/.akku/libobj\"" nl
+               "set --erase CHEZSCHEMELIBEXTS" nl
+               "set --export GUILE_LOAD_PATH \"$PWD/.akku/lib\"" nl
+               "set --export IKARUS_LIBRARY_PATH \"$PWD/.akku/lib\"" nl
+               "set --export MOSH_LOADPATH \"$PWD/.akku/lib\"" nl
+               "set --export PLTCOLLECTS \":$PWD/.akku/lib\"" nl
+               "set --export SAGITTARIUS_LOADPATH \"$PWD/.akku/lib\"" nl
+               "set --export VICARE_SOURCE_PATH \"$PWD/.akku/lib\"" nl
+               "set --export YPSILON_SITELIB \"$PWD/.akku/lib\"" nl
+               "set --export LARCENY_LIBPATH \"$PWD/" lib "\"" nl
+               ;; R7RS
+               "set --export CHIBI_MODULE_PATH \"$PWD/" lib7 "\"" nl
+               "set --prepend PATH $PWD/.akku/bin" nl
+               ;; For Linux
+               "if set --query LD_LIBRARY_PATH" nl
+               "  set --export --prepend LD_LIBRARY_PATH $PWD/" ffi nl
+               "else" nl
+               "  set --export LD_LIBRARY_PATH $PWD/" ffi nl
+               "end" nl
+               ;; For macOS
+               "if set --query DYLD_LIBRARY_PATH" nl
+               "  set --export --prepend DYLD_LIBRARY_PATH $PWD/" ffi nl
+               "else" nl
+               "  set --export DYLD_LIBRARY_PATH $PWD/" ffi nl
+               "end" nl))))))
 
 ;; Installs a library that contains metadata about all artifacts.
 (define (install-metadata installed-project/artifact* manifest-filename)
@@ -981,4 +1026,4 @@
                                                              manifest-filename))))))
       (install-file-list complete-list)
       (remove-extraneous-files complete-list))
-    (install-activate-script))))
+    (install-activate-scripts))))
