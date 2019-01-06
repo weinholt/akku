@@ -809,7 +809,7 @@
               (lib7 (r7rs-libraries-directory))
               (ffi (ffi-libraries-directory)))
           (fmt p
-               "Load this with \"source .akku/bin/" filename "\" in Fish    -*-sh-*-" nl
+               "# Load this with \"source .akku/bin/" filename "\" in Fish    -*-sh-*-" nl
                ;; R6RS
                "set --export CHEZSCHEMELIBDIRS \"$PWD/.akku/lib\" \"$PWD/.akku/libobj\"" nl
                "set --erase CHEZSCHEMELIBEXTS" nl
