@@ -1,11 +1,6 @@
 # -*- mode: dockerfile; coding: utf-8 -*-
-FROM weinholt/chezscheme AS build
-RUN apt-get update && apt-get -y --no-install-recommends install \
-       ca-certificates \
-       curl \
-       git \
-       xz-utils \
-  && rm -rf /var/lib/apt/lists/*
+FROM weinholt/chezscheme:alpine AS build
+RUN apk add --no-cache curl git xz tar
 
 COPY . /tmp
 WORKDIR /tmp
@@ -21,13 +16,8 @@ RUN set -uxe; \
     ./install.sh; \
     ~/bin/akku
 
-# No Scheme implementation pre-installed.
-FROM debian:buster
-RUN apt-get update && apt-get -y --no-install-recommends install \
-       ca-certificates \
-       curl \
-       git \
-  && rm -rf /var/lib/apt/lists/*
+FROM weinholt/chezscheme:alpine
+RUN apk add --no-cache curl git
 COPY --from=build /root/.akku /root/.akku
 ENV PATH="/root/.akku/bin:${PATH}"
 RUN akku version
