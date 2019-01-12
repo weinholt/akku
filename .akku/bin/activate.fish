@@ -1,5 +1,5 @@
 # Load this with "source .akku/bin/.akku/bin/activate.fish" in Fish    -*-sh-*-
-set --export CHEZSCHEMELIBDIRS "$PWD/.akku/lib" "$PWD/.akku/libobj"
+set --export CHEZSCHEMELIBDIRS "$PWD/.akku/lib::$PWD/.akku/libobj"
 set --erase CHEZSCHEMELIBEXTS
 set --export GUILE_LOAD_PATH "$PWD/.akku/lib"
 set --export IKARUS_LIBRARY_PATH "$PWD/.akku/lib"

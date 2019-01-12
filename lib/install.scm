@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2017-2018 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2017-2019 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -811,7 +811,7 @@
           (fmt p
                "# Load this with \"source .akku/bin/" filename "\" in Fish    -*-sh-*-" nl
                ;; R6RS
-               "set --export CHEZSCHEMELIBDIRS \"$PWD/.akku/lib\" \"$PWD/.akku/libobj\"" nl
+               "set --export CHEZSCHEMELIBDIRS \"$PWD/.akku/lib::$PWD/.akku/libobj\"" nl
                "set --erase CHEZSCHEMELIBEXTS" nl
                "set --export GUILE_LOAD_PATH \"$PWD/.akku/lib\"" nl
                "set --export IKARUS_LIBRARY_PATH \"$PWD/.akku/lib\"" nl
