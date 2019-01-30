@@ -70,6 +70,25 @@ the same dependencies that you used during development.
 
 More details are in the manpage: `man docs/akku.1`.
 
+## Docker image
+
+The [akkuscm/akku](https://hub.docker.com/r/akkuscm/akku) image is
+automatically built in Docker hub from the repository at GitHub. It is
+based on Alpine Linux and comes with a stripped down Chez Scheme that
+doesn't require X or ncurses. Here's a simple way to use this image to
+run tests with GitLab CI:
+
+```yaml
+image: "akkuscm/akku:latest"
+
+build:
+  before_script:
+    - akku install
+  script:
+    - . .akku/bin/activate
+    - tests/test-foo.sps
+```
+
 ## License
 
 Akku.scm is free software: you can redistribute it and/or modify it

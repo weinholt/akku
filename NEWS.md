@@ -1,5 +1,17 @@
 # Akku.scm release notes
 
+## Version 0.4.1
+
+This release adds an activate script for fish, the Friendly Shell. It
+works with fish 3.0.0 or later. Thanks to Luis Osa for this
+contribution.
+
+Akku is now compatible with Chez Scheme built for musl libc, an
+implementation of the C standard library. Thanks to Andrew Kravchuk
+for pointing out the incompatibility. As a further consequence of this
+change, the docker image "akkuscm/akku" is now built for Alpine Linux
+together with a slimmed down Chez Scheme.
+
 ## Version 0.4.0
 
 This release introduces scripts that run during installation of
