@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2018 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2018, 2019 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -58,12 +58,12 @@
   (make-parameter "NOASSERTION"))
 
 (define-record-type package
-  (nongenerative)
+  (nongenerative package-v0-48a50174-b2c8-442f-a6e5-e82de44dbae3)
   (sealed #t)
   (fields name version*))
 
 (define-record-type version
-  (nongenerative)
+  (nongenerative version-v0-8bad67a4-a936-4950-990a-4c42343e76ee)
   (sealed #t)
   (fields number semver (mutable lock) depends depends/dev conflicts
           synopsis description authors homepage license scripts))

@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2018 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2018, 2019 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -135,14 +135,63 @@
            (lp (append (map parse-project prj*) project*)))
           (_ (lp project*)))))))
 
+;; Direct dependencies are in the manifest and replace whatever
+;; information there might be about them in the index. The info in the
+;; direct dependency is used to create the lock without consulting the
+;; index.
+(define (parse-direct-dependencies manifest-packages)
+  (define who 'parse-direct-dependencies)
+  (define (direct-deps-from-pkg pkg)
+    (define (filter-direct-dep dep)
+      ;; Look at a dependency of a package in the manifest and see if
+      ;; it contains a direct dependency on a project in git. If so,
+      ;; return a package with info from that dependency as a version
+      ;; record.
+      (match dep
+        [('or pkg* ...)
+         (append-map filter-direct-dep pkg*)]
+        [(_name (? string? _version))
+         '()]
+        [(name (? list? prop*) ...)
+         (let ((maybe-version (assq-ref prop* 'version #f))
+               (maybe-location (assq-ref prop* 'location #f))
+               (maybe-revision (assq-ref prop* 'revision #f))
+               (maybe-tag (assq-ref prop* 'tag #f)))
+           (unless (and maybe-version maybe-location maybe-revision)
+             (assertion-violation who
+                                  "Direct dependencies require: version, location, revision"
+                                  name prop*))
+           (let ((version (car maybe-version))
+                 (location (car maybe-location))
+                 (revision (car maybe-revision)))
+             (let ((version-spec `((version ,version)
+                                   (lock (location ,location)
+                                         (revision ,revision)
+                                         ,@(if maybe-tag `((tag ,@maybe-tag)) '())))))
+               (list (make-package name (list (parse-version version-spec)))))))]))
+    (append-map (lambda (version)
+                  (append
+                   (append-map filter-direct-dep (version-depends version))
+                   (append-map filter-direct-dep (version-depends/dev version))))
+                (package-version* pkg)))
+  (append-map direct-deps-from-pkg manifest-packages))
+
 (define (read-package-index index-filename manifest-packages)
   (let ((db (make-dummy-db))
-        (packages (make-hashtable equal-hash equal?)))
-    ;; Add the packages from the manifest.
+        (packages (make-hashtable equal-hash equal?))
+        (direct-dependencies (parse-direct-dependencies manifest-packages)))
+    (log/trace "Found direct dependencies: " direct-dependencies)
+    ;; Add the packages from the manifest and direct dependencies.
     (for-each (lambda (pkg)
-                (dummy-db-add-package! db (package-name pkg) (list 0) 0)
+                (if (memq pkg manifest-packages)
+                    (dummy-db-add-package! db (package-name pkg) (list 0) 0)
+                    (dummy-db-add-package! db (package-name pkg) (list #f 0) #f))
+                (when (hashtable-contains? packages (package-name pkg))
+                  (assertion-violation 'read-package-index
+                                       "Duplicate package in the manifest"
+                                       (package-name pkg)))
                 (hashtable-set! packages (package-name pkg) pkg))
-              manifest-packages)
+              (append manifest-packages direct-dependencies))
     ;; Read packages from the index.
     (call-with-input-file index-filename
       (lambda (p)
@@ -152,10 +201,13 @@
             (('package ('name name)
                        ('versions version* ...))
              ;; XXX: Versions must be semver-sorted in ascending
-             ;; order.
-             (dummy-db-add-package! db name (cons #f (iota (length version*))) #f)
-             (hashtable-set! packages name
-                             (make-package name (map parse-version version*)))
+             ;; order. This is arranged by the archive software.
+             (cond ((hashtable-ref packages name #f)
+                    (log/debug "Ignoring " name " from the index because it is in the manifest"))
+                   (else
+                    (dummy-db-add-package! db name (cons #f (iota (length version*))) #f)
+                    (hashtable-set! packages name
+                                    (make-package name (map parse-version version*)))))
              (lp))
             (else (lp))))))             ;allow for future expansion
     (values db packages)))
@@ -219,45 +271,64 @@
                    '()
                    (choice-set-union initial-choices choices-in-solution)))
 
-(define (dependencies->version-tags packages pkg lst)
-  (let lp ((lst lst))
-    (match lst
+;; Given a package and a dependency *dep-spec* this returns a list of
+;; (name . tag) pairs showing which versions satisfy the dependencies
+;; (or conflicts). If the dependencies are unsatisfiable then this
+;; returns #f. This case is distinguished
+(define (dependencies->version-tags packages pkg dep-spec is-essential?)
+  (let lp ((dep-spec dep-spec))
+    (match dep-spec
       [('or pkg* ...)
        (append-map lp pkg*)]
       [(name (? string? range))
-       ;; TODO: Don't crash when the depended-on package doesn't
-       ;; exist.
-       (let ((package (hashtable-ref packages name #f)))
-         (unless package
-           (error 'dependencies->version-tags "No such package in the index" name))
-         (let* ((available-version* (package-version* package))
-                (m (semver-range->matcher range))
-                (tag* (filter-map
-                       (lambda (tag pkgver)
-                         (and (m (version-semver pkgver)) tag))
-                       (iota (length available-version*))
-                       available-version*)))
-           (when (null? tag*)
-             ;; TODO: Don't crash when no versions are in the range.
-             (error 'dependencies->version-tags "No matching versions"
-                    (package-name pkg)
-                    name
-                    (semver-range->string (semver-range-desugar (string->semver-range range)))
-                    (map version-number available-version*)))
-           ;; To satisfy the dependency, any of these (name . tag) pairs
-           ;; can be used.
-           (map (lambda (tag) (cons name tag)) tag*)))])))
+       (cond
+         ((hashtable-ref packages name #f) =>
+          (lambda (package)
+            (let* ((available-version* (package-version* package))
+                   (m (semver-range->matcher range))
+                   (tag* (filter-map
+                          (lambda (tag pkgver)
+                            (and (m (version-semver pkgver)) tag))
+                          (iota (length available-version*))
+                          available-version*)))
+              (cond ((and (null? tag*) is-essential?)
+                     (assertion-violation 'dependencies->version-tags
+                                          "No matching versions"
+                                          (package-name pkg)
+                                          name
+                                          (semver-range->string
+                                           (semver-range-desugar (string->semver-range range)))
+                                          (map version-number available-version*)))
+                    ((and (null? tag*) (not is-essential?))
+                     (log/debug "Dependency " (package-name pkg) " -> "
+                                name "@" range " is unsatisfiable")
+                     '())
+                    (else
+                     ;; To satisfy the dependency, any of these (name . tag) pairs
+                     ;; can be used.
+                     (log/trace "Depends for " (wrt name) " match " tag*)
+                     (map (lambda (tag) (cons name tag)) tag*))))))
+         (else
+          (log/warn "Unknown package: " (wrt name))
+          '()))]
+      [(name (? list? prop*) ...)
+       (log/trace "Tagging up " (wrt name) " with props " (wrt prop*))
+       (lp (list name (cond ((assq-ref prop* 'version) => car)
+                            (else
+                             (assertion-violation 'dependencies->version-tags
+                                                  "A version is required here"
+                                                  name prop*)))))])))
 
 ;; Adds dependencies between packages.
 (define (add-package-dependencies db packages manifest-packages dev-mode?)
   (define (process-package-version pkg version-idx version)
-    (define (process-deps lst conflict?)
+    (define (process-deps dep-spec conflict?)
       (log/debug "dependency: " (package-name pkg) " " (version-number version) " "
-                 (if conflict? "conflicts" "depends") " " lst)
-      (let ((deps (dependencies->version-tags packages pkg lst)))
-        (unless (null? deps)
+                 (if conflict? "conflicts" "depends") " " dep-spec)
+      (let ((deps (dependencies->version-tags packages pkg dep-spec (memq pkg manifest-packages))))
+        (unless (null? dep-spec)
           (dummy-db-add-dependency! db (package-name pkg) version-idx conflict?
-                                    deps))))
+                                    (or deps '())))))
     (for-each (lambda (dep) (process-deps dep #f))
               (version-depends version))
     (for-each (lambda (dep) (process-deps dep #t))
@@ -267,16 +338,16 @@
       (for-each (lambda (dep) (process-deps dep #f))
                 (version-depends/dev version))))
   (let-values (((pkg-names pkgs) (hashtable-entries packages)))
-      (vector-for-each
-       (lambda (name pkg)
-         (log/debug "package " name " has versions "
-                    (map version-number (package-version* pkg)))
-         (for-each (lambda (version-idx version)
-                     (log/debug "processing " name ": " version)
-                     (process-package-version pkg version-idx version))
-                   (iota (length (package-version* pkg)))
-                   (package-version* pkg)))
-       pkg-names pkgs)))
+    (vector-for-each
+     (lambda (name pkg)
+       (log/debug "package " name " has versions "
+                  (map version-number (package-version* pkg)))
+       (for-each (lambda (version-idx version)
+                   (log/debug "processing " name ": " version)
+                   (process-package-version pkg version-idx version))
+                 (iota (length (package-version* pkg)))
+                 (package-version* pkg)))
+     pkg-names pkgs)))
 
 ;; Write the lockfile.
 (define (write-lockfile lockfile-filename projects dry-run?)
@@ -389,8 +460,6 @@
                                                           (list range)))
                                          '()))))))
                     (else
-                     ;; XXX: This is a manifest that can actually be
-                     ;; used immediately, unlike the one in init.
                      (write-manifest
                       manifest-filename
                       (list (draft-akku-package #f
@@ -413,11 +482,16 @@
                   [((and (or 'depends 'depends/dev) dep-type) . dep-list)
                    (cons dep-type
                          (remp (match-lambda
-                                [(pkg-name range)
+                                [(pkg-name attr* ...)
                                  (let ((do-remove (member pkg-name dep-name*)))
                                    (when do-remove
-                                     (log/info "Removing " pkg-name "@" range " from "
-                                               manifest-filename "..."))
+                                     (match attr*
+                                       [((? string? range))
+                                        (log/info "Removing " pkg-name "@" range " from "
+                                                  manifest-filename "...")]
+                                       [else
+                                        (log/info "Removing " pkg-name " from "
+                                                  manifest-filename "...")]))
                                    do-remove)])
                                dep-list))]
                   [x x])
@@ -444,7 +518,9 @@
             (match-lambda
              [(package-name range)
               (hashtable-set! deps package-name
-                              (cons type (semver-range->matcher range)))])
+                              (cons type (semver-range->matcher range)))]
+             [(name (? list? prop*) ...)
+              (set-ranges type (list (list name (car (assq-ref prop* 'version)))))])
             depends))
          (let ((v (car (package-version* pkg)))) ;manifest has a single version
            (set-ranges 'depends (version-depends v))

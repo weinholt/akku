@@ -2,9 +2,9 @@
 
 ## Version 0.4.1
 
-This release adds an activate script for fish, the Friendly Shell. It
-works with fish 3.0.0 or later. Thanks to Luis Osa for this
-contribution.
+This release adds an activate script for fish, the friendly
+interactive shell. It works with fish 3.0.0 or later. Thanks to Luis
+Osa for this contribution.
 
 Akku is now compatible with Chez Scheme built for musl libc, an
 implementation of the C standard library. Thanks to Andrew Kravchuk
