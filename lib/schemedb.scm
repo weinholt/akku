@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2017-2018 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2017-2019 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -73,23 +73,7 @@
            (chibi process)
            (chibi system)
            (chibi time)
-           (meta)
-           (scheme box)
-           (scheme charset)
-           (scheme comparator)
-           (scheme division)
-           (scheme ephemeron)
-           (scheme generator)
-           (scheme hash-table)
-           (scheme ilist)
-           (scheme list-queue)
-           (scheme list)
-           (scheme red)
-           (scheme small)
-           (scheme sort)
-           (scheme time tai-to-utc-offset)
-           (scheme time tai)
-           (scheme vector))
+           (meta))
     (cyclone (scheme cyclone *))
     (guile (guile *)
            (ice-9 *))
@@ -196,7 +180,6 @@
   (let ((guess (match lib-name
                  (('chibi . _) 'chibi)
                  (('meta) 'chibi)
-                 (('scheme . _) 'chibi) ;has many extra (scheme *) libs
                  (('kawa . _) 'kawa)
                  (('rapid . _) 'rapid-scheme)
                  (('scheme 'cyclone . _) 'cyclone)
