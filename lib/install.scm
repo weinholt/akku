@@ -655,14 +655,25 @@
 
 ;; Install an artifact.
 (define (install-artifact project artifact related-artifact* srcdir always-symlink?)
+  (define (skip-program? project artifact)
+    (cond
+      ((and (r7rs-program? artifact) (string=? (project-name project) ""))
+       ;; R7RS programs can't be run in R6RS implementations unless
+       ;; they are translated first.
+       #f)
+      ((not (artifact-for-bin? artifact))
+       (log/trace "Skipping the program not for bin " (artifact-path artifact))
+       #t)
+      ((artifact-internal? artifact)
+       (log/trace "Skipping the internal/private program " (artifact-path artifact))
+       #t)
+      (else #f)))
   (cond
     ((r6rs-library? artifact)
      (install-artifact/r6rs-library project artifact related-artifact* srcdir always-symlink?))
-    ((or (r6rs-program? artifact)
-         (r7rs-program? artifact))      ;TODO: convert the imports in this case
+    ((or (r6rs-program? artifact) (r7rs-program? artifact))
      (cond
-       ((or (artifact-internal? artifact) (not (artifact-for-bin? artifact)))
-        (log/trace "Skipping the program " (artifact-path artifact))
+       ((skip-program? project artifact)
         '())
        (else
         (let ((target (split-path (artifact-path artifact))))
