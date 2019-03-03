@@ -158,7 +158,12 @@
                (maybe-content (assq-ref prop* 'content #f))
                (maybe-revision (assq-ref prop* 'revision #f))
                (maybe-tag (assq-ref prop* 'tag #f)))
-           (unless (and maybe-version maybe-location (or maybe-revision maybe-content))
+           (unless (and maybe-version
+                        maybe-location
+                        (or (match maybe-location
+                              [(('directory _)) #t]
+                              [else #f])
+                            maybe-revision maybe-content))
              (assertion-violation who
                                   "Direct dependencies require: version, location and revision or content"
                                   name prop*))
