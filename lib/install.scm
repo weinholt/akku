@@ -657,7 +657,7 @@
 (define (install-artifact project artifact related-artifact* srcdir always-symlink?)
   (define (skip-program? project artifact)
     (cond
-      ((and (r7rs-program? artifact) (string=? (project-name project) ""))
+      ((and (r7rs-program? artifact) (equal? (project-name project) ""))
        ;; R7RS programs can't be run in R6RS implementations unless
        ;; they are translated first.
        #f)
@@ -723,14 +723,14 @@
   (let ((srcdir (project-source-directory project)))
     ;; Copy libraries, programs and assets to the file system. These
     ;; operations are ordered.
-    (log/info "Installing " (if (string=? (project-name project) "")
+    (log/info "Installing " (if (equal? (project-name project) "")
                                 "the current project"
                                 (project-name project)))
     (cond
       ((equal? (project-installer project) '((r6rs)))
        (let* ((artifact* (find-artifacts srcdir #f))
               (artifact*
-               (if (string=? (project-name project) "")
+               (if (equal? (project-name project) "")
                    artifact*
                    (filter (lambda (artifact)
                              (not (artifact-for-test? artifact)))
