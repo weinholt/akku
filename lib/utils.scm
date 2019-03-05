@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2017-2018 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2017-2019 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -28,6 +28,7 @@
     pipe-ports
     application-home-directory
     cache-directory
+    local-ignore-file
     running-from-home?
     sanitized-name
     get-terminal-size
@@ -123,6 +124,9 @@
         (else
          (assert (getenv "HOME"))
          (path-join (getenv "HOME") ".cache/akku"))))
+
+(define (local-ignore-file directory)
+  (path-join directory ".akkuignore"))
 
 (define (running-from-home?)
   (equal? (string-trim-right (getcwd) #\/)

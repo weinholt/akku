@@ -1,5 +1,29 @@
 # Akku.scm release notes
 
+## Version 0.5.0 (not released yet)
+
+This release adds support for direct dependencies on Git repositories,
+checksummed tarballs at URLs and local directories. See the wiki
+for [direct dependency examples][direct-dep].
+
+  [direct-dep]: https://gitlab.com/akkuscm/akku/wikis/Direct-dependencies
+
+R7RS programs are translated to R6RS and installed in .akku/bin. This
+was meant to work earlier, but was broken.
+
+A number of `(scheme *)` libraries are no longer considered to be
+exclusive to Chibi. They were always a part of R7RS-large and marking
+them as Chibi-specific was a mistake.
+
+It is now possible to ignore files and directories by adding their
+names to `.akkuignore` (no support for wildcards yet).
+
+A bug was fixed that caused Akku to crash when a package name was a
+list of symbols.
+
+Thanks to Yanying Wang and Amirouche Boubekki for contributing to this
+release.
+
 ## Version 0.4.1
 
 This release adds an activate script for fish, the friendly

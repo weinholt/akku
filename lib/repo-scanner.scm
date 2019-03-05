@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2017-2018 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2017-2019 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -20,7 +20,6 @@
 
 (library (akku lib repo-scanner)
   (export
-    scm-origin
     scm-file-list
     find-artifacts)
   (import
@@ -42,12 +41,6 @@
 (define log/warn (make-fmt-log logger:akku.repo-scanner 'warning))
 (define log/debug (make-fmt-log logger:akku.repo-scanner 'debug))
 (define log/trace (make-fmt-log logger:akku.repo-scanner 'trace))
-
-;; Get the location for cloning the repository.
-(define (scm-origin dir)
-  (if (is-git-repository? dir)
-      `(git ,"https://example.com")
-      #f))
 
 ;; Get a list of files that are tracked by the scm system.
 (define (scm-file-list dir)
@@ -80,9 +73,21 @@
           (>= (length relpath-list)
               (length link-dots))))))
 
+(define (read-ignore-file directory)
+  (let ((ignore-file (local-ignore-file directory)))
+    (if (file-exists? ignore-file)
+        (call-with-input-file ignore-file
+          (lambda (p)
+            (let lp ((fn* '()))
+              (let ((fn (get-line p)))
+                (if (eof-object? fn)
+                    fn*
+                    (lp (cons fn fn*)))))))
+        '())))
+
 ;; Takes a directory name and a list of files contained in it. Returns
 ;; a list of artifact records.
-(define (find-artifacts* realpath relpath relpath-list files tracked-files)
+(define (find-artifacts* realpath relpath relpath-list files tracked-files ignored-files)
   (define (filename->record* fn)
     (let ([realpath (path-join realpath fn)]
           [relpath (path-join relpath fn)])
@@ -93,7 +98,8 @@
              (string=? "Akku.lock" fn)
              (string=? "Akku.manifest" fn)
              (and (file-symbolic-link? realpath)
-                  (symlink-inside-repo? realpath relpath-list)))
+                  (symlink-inside-repo? realpath relpath-list))
+             (member fn ignored-files))
          (log/debug "Ignored " relpath)
          '())                        ;ignore
         ((file-regular? realpath)
@@ -115,7 +121,7 @@
          (find-artifacts* realpath relpath
                           (cons (basename->library-component fn) relpath-list)
                           (directory-list realpath)
-                          tracked-files))
+                          tracked-files ignored-files))
         (else
          (log/debug "Ignored " relpath " because it is not a regular file or directory")
          '()))))
@@ -124,4 +130,5 @@
 (define (find-artifacts directory tracked-files)
   (find-artifacts* directory "" '()
                    (directory-list directory)
-                   tracked-files)))
+                   tracked-files
+                   (read-ignore-file directory))))
