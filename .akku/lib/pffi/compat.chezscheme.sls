@@ -132,10 +132,12 @@
   (fields (immutable address pointer->integer)))
 (define integer->pointer make-pointer)
 
-(define (pointer->bytevector pointer)
-  (let ((bv (make-bytevector size-of-pointer)))
-    (bytevector-uint-set! bv 0 (pointer->integer pointer) size-of-pointer
-			  (native-endianness))))
+(define (pointer->bytevector pointer len . maybe-offset)
+  ;; FIXME one way copy
+  (let ((bv (make-bytevector len)))
+    (do ((i 0 (+ i 1)))
+	((= i len) bv)
+      (bytevector-u8-set! bv i (pointer-ref-c-uint8 pointer i)))))
 (define (bytevector->pointer bv) (make-pointer (bytevector->address bv)))
 
 (define-syntax callback
@@ -213,15 +215,23 @@
        (identifier? #'name)
        (with-syntax ((name-str (symbol->string (syntax->datum #'name)))
 		     ((types ...) (unwrap-callback #'k #'(args ...)))
-		     (chez-ret (datum->syntax #'k (->cheztype (syntax->datum #'ret)))))
+		     (chez-ret (datum->syntax #'k
+				(->cheztype (syntax->datum #'ret)))))
 	 #'(let ((fp (foreign-procedure name-str (types ...) chez-ret))
 		 (arg-types (list args ...)))
+	     (define (b->p b) (pointer->integer (bytevector->pointer b)))
+	     (define (s->p s)
+	       (b->p (string->utf8 (string-append s "\x0;"))))
 	     (lambda arg*
-	       (let ((r (apply fp (map (lambda (type arg)
-					 (case type
-					   ((void*) (pointer->integer arg))
-					   (else arg)))
-				       arg-types arg*))))
+	       (let ((r (apply fp
+			       (map (lambda (type arg)
+				      (case type
+					((void*)
+					 (cond ((string? arg) (s->p arg))
+					       ((bytevector? arg) (b->p arg))
+					       (else (pointer->integer arg))))
+					(else arg)))
+				    arg-types arg*))))
 		 (case ret
 		   ((void*) (integer->pointer r))
 		   (else r))))))))))

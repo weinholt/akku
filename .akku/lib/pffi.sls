@@ -1,20 +1,20 @@
 #!r6rs ;;; -*- mode:scheme; coding: utf-8; -*-
 ;;;
-;;; src/pffi.sls - Portable Foreign Function Interface 
-;;;  
-;;;   Copyright (c) 2015  Takashi Kato  <ktakashi@ymail.com>
-;;;   
+;;; src/pffi.sls - Portable Foreign Function Interface
+;;;
+;;;   Copyright (c) 2015-2019  Takashi Kato  <ktakashi@ymail.com>
+;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
 ;;;   are met:
-;;;   
+;;;
 ;;;   1. Redistributions of source code must retain the above copyright
 ;;;      notice, this list of conditions and the following disclaimer.
-;;;  
+;;;
 ;;;   2. Redistributions in binary form must reproduce the above copyright
 ;;;      notice, this list of conditions and the following disclaimer in the
 ;;;      documentation and/or other materials provided with the distribution.
-;;;  
+;;;
 ;;;   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 ;;;   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 ;;;   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -26,7 +26,7 @@
 ;;;   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 ;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-;;;  
+;;;
 
 #!r6rs
 (library (pffi)
@@ -35,7 +35,7 @@
 	    free-c-callback
 	    open-shared-object
 	    ;; TODO should we export these primitives?
-	    ;; lookup-shared-object 
+	    ;; lookup-shared-object
 	    ;; make-c-function
 	    ;; make-c-callback
 
@@ -63,6 +63,10 @@
 	    size-of-int16_t
 	    size-of-int32_t
 	    size-of-int64_t
+	    size-of-uint8_t
+	    size-of-uint16_t
+	    size-of-uint32_t
+	    size-of-uint64_t
 
 	    ;; pointer ref
 	    pointer-ref-c-uint8
@@ -108,7 +112,7 @@
 
 	    ;; variable
 	    define-foreign-variable
-	    
+
 	    pointer?
 	    bytevector->pointer
 	    pointer->bytevector
@@ -117,11 +121,17 @@
 
 	    ;; struct
 	    define-foreign-struct
-	    
+	    define-foreign-union
 	    )
     (import (pffi procedure)
 	    (pffi variable)
 	    (pffi pointers)
-	    (pffi struct))
+	    (pffi struct)
+	    (only (rnrs) define))
+
+(define size-of-uint8_t  size-of-int8_t)
+(define size-of-uint16_t size-of-int16_t)
+(define size-of-uint32_t size-of-int32_t)
+(define size-of-uint64_t size-of-int64_t)
 
 )

@@ -4,7 +4,7 @@
 (projects
  ((name "chez-srfi")
    (location (git "https://github.com/arcfide/chez-srfi"))
-   (revision "23c1e3529397e14d2d7a685ff3bd8c5c79d34010"))
+   (revision "f704590f54f982d98c004e5ed3e55359ecab12e1"))
  ((name "compression")
    (location
      (git "https://github.com/weinholt/compression.git"))
@@ -33,7 +33,7 @@
    (revision "81b08bc6faed27c069d0ffcc5f31e031c6b2c077"))
  ((name "r6rs-pffi")
    (location (git "https://github.com/ktakashi/r6rs-pffi"))
-   (revision "98163d939799d3cb07f215385bd476ac299b5c2e"))
+   (revision "2a62053059d7e2dee53fc3e1905bffb71a64bb7a"))
  ((name "semver")
    (location (git "https://github.com/weinholt/semver.git"))
    (tag "v1.0.2")
