@@ -1,6 +1,6 @@
 #!/usr/bin/env scheme-script
 ;; -*- mode: scheme; coding: utf-8 -*- !#
-;; Copyright © 2017-2018 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2017-2019 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -162,7 +162,8 @@ your implementation.") nl))
 (define (cmd-show arg*)
   (unless (= (length arg*) 1)
     (cmd-help))
-  (show-package manifest-filename lockfile-filename (get-index-filename) (car arg*)))
+  (show-package manifest-filename lockfile-filename (get-index-filename)
+                (parse-package-name (car arg*))))
 
 (define (cmd-lock arg*)
   (unless (null? arg*)
