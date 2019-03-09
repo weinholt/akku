@@ -635,7 +635,13 @@
                   "Revision:" (space-to 15) (car (assq-ref lock 'revision)) nl)
              (cond ((assq-ref lock 'tag #f) =>
                     (lambda (tag)
-                      (fmt #t "Tag:" (space-to 15) (car tag) nl))))]))
+                      (fmt #t "Tag:" (space-to 15) (car tag) nl))))]
+
+            [(('url remote-url))
+             (fmt #t nl (fmt-underline "Source code" nl))
+             (fmt #t "URL:" (space-to 15) remote-url nl)
+             (let ((content (assq-ref lock 'content)))
+               (fmt #t "Content:" (space-to 15) (car content) nl))]))
 
         (fmt #t nl (fmt-underline "Available versions") nl
              (fmt-join (lambda (v) (cat (version-number v) nl))
