@@ -124,7 +124,7 @@
        nl
        " cd " (car arg*) nl
        " akku install" nl
-       " source .akku/bin/activate" nl
+       " .akku/env" nl
        nl
        ;; TODO: This caveat should not be needed.
        (wrap-lines

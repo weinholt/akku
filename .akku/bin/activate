@@ -1,23 +1,14 @@
-# Load this with "source .akku/bin/activate" in bash   -*-sh-*-
-export CHEZSCHEMELIBDIRS="$PWD/.akku/lib::$PWD/.akku/libobj"
-unset CHEZSCHEMELIBEXTS
-export GUILE_LOAD_PATH="$PWD/.akku/lib"
-export IKARUS_LIBRARY_PATH="$PWD/.akku/lib"
-export MOSH_LOADPATH="$PWD/.akku/lib"
-export PLTCOLLECTS=":$PWD/.akku/lib"
-export SAGITTARIUS_LOADPATH="$PWD/.akku/lib"
-export VICARE_SOURCE_PATH="$PWD/.akku/lib"
-export YPSILON_SITELIB="$PWD/.akku/lib"
-export LARCENY_LIBPATH="$PWD/.akku/lib"
-export CHIBI_MODULE_PATH="$PWD/.akku/lib"
-export PATH=$PWD/.akku/bin:$PATH
-if [[ ${LD_LIBRARY_PATH+x} ]]; then
- export LD_LIBRARY_PATH=$PWD/.akku/ffi:$LD_LIBRARY_PATH
-else
- export LD_LIBRARY_PATH=$PWD/.akku/ffi
-fi
-if [[ ${DYLD_LIBRARY_PATH+x} ]]; then
- export DYLD_LIBRARY_PATH=$PWD/.akku/ffi:$DYLD_LIBRARY_PATH
-else
- export DYLD_LIBRARY_PATH=$PWD/.akku/ffi
-fi
+export CHEZSCHEMELIBDIRS="$PWD/.akku/lib::$PWD/.akku/libobj";
+unset CHEZSCHEMELIBEXTS;
+export GUILE_LOAD_PATH="$PWD/.akku/lib";
+export IKARUS_LIBRARY_PATH="$PWD/.akku/lib";
+export MOSH_LOADPATH="$PWD/.akku/lib";
+export PLTCOLLECTS=":$PWD/.akku/lib";
+export SAGITTARIUS_LOADPATH="$PWD/.akku/lib";
+export VICARE_SOURCE_PATH="$PWD/.akku/lib";
+export YPSILON_SITELIB="$PWD/.akku/lib";
+export LARCENY_LIBPATH="$PWD/.akku/lib";
+export CHIBI_MODULE_PATH="$PWD/.akku/lib";
+export PATH=$PWD/.akku/bin:$PATH;
+export LD_LIBRARY_PATH=$PWD/.akku/ffi${LD_LIBRARY_PATH:+:}$LD_LIBRARY_PATH;
+export DYLD_LIBRARY_PATH=$PWD/.akku/ffi${DYLD_LIBRARY_PATH:+:}$DYLD_LIBRARY_PATH;

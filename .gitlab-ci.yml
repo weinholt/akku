@@ -8,7 +8,7 @@ build:debian:
   before_script:
     - apt-get update -qq
     - apt-get install -qq curl git xz-utils
-    - source .akku/bin/activate
+    - eval $(.akku/env -s)
     - mkdir -p ~/.akku/share/keys.d
     - cp akku-archive-*.gpg ~/.akku/share/keys.d
   script:

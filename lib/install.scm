@@ -763,7 +763,8 @@
 (define (install-activate-scripts)
   (mkdir/recursive (binaries-directory))
   (install-bash-activate-script)
-  (install-fish-activate-script))
+  (install-fish-activate-script)
+  (install-env-script))
 
 ;; Installs the activate script for Bash, which used to be the only activation script
 (define (install-bash-activate-script)
@@ -780,33 +781,24 @@
               (lib7 (r7rs-libraries-directory))
               (ffi (ffi-libraries-directory)))
           (fmt p
-               "# Load this with \"source .akku/bin/activate\" in bash   -*-sh-*-" nl
                ;; R6RS
-               "export CHEZSCHEMELIBDIRS=\"$PWD/.akku/lib::$PWD/.akku/libobj\"" nl
-               "unset CHEZSCHEMELIBEXTS" nl
-               "export GUILE_LOAD_PATH=\"$PWD/.akku/lib\"" nl
-               "export IKARUS_LIBRARY_PATH=\"$PWD/.akku/lib\"" nl
-               "export MOSH_LOADPATH=\"$PWD/.akku/lib\"" nl
-               "export PLTCOLLECTS=\":$PWD/.akku/lib\"" nl
-               "export SAGITTARIUS_LOADPATH=\"$PWD/.akku/lib\"" nl
-               "export VICARE_SOURCE_PATH=\"$PWD/.akku/lib\"" nl
-               "export YPSILON_SITELIB=\"$PWD/.akku/lib\"" nl
-               "export LARCENY_LIBPATH=\"$PWD/" lib "\"" nl
+               "export CHEZSCHEMELIBDIRS=\"$PWD/.akku/lib::$PWD/.akku/libobj\";" nl
+               "unset CHEZSCHEMELIBEXTS;" nl
+               "export GUILE_LOAD_PATH=\"$PWD/.akku/lib\";" nl
+               "export IKARUS_LIBRARY_PATH=\"$PWD/.akku/lib\";" nl
+               "export MOSH_LOADPATH=\"$PWD/.akku/lib\";" nl
+               "export PLTCOLLECTS=\":$PWD/.akku/lib\";" nl
+               "export SAGITTARIUS_LOADPATH=\"$PWD/.akku/lib\";" nl
+               "export VICARE_SOURCE_PATH=\"$PWD/.akku/lib\";" nl
+               "export YPSILON_SITELIB=\"$PWD/.akku/lib\";" nl
+               "export LARCENY_LIBPATH=\"$PWD/" lib "\";" nl
                ;; R7RS
-               "export CHIBI_MODULE_PATH=\"$PWD/" lib7 "\"" nl
-               "export PATH=$PWD/.akku/bin:$PATH" nl
+               "export CHIBI_MODULE_PATH=\"$PWD/" lib7 "\";" nl
+               "export PATH=$PWD/.akku/bin:$PATH;" nl
                ;; For Linux
-               "if [[ ${LD_LIBRARY_PATH+x} ]]; then" nl
-               " export LD_LIBRARY_PATH=$PWD/" ffi ":$LD_LIBRARY_PATH" nl
-               "else" nl
-               " export LD_LIBRARY_PATH=$PWD/" ffi nl
-               "fi" nl
+               "export LD_LIBRARY_PATH=$PWD/" ffi "${LD_LIBRARY_PATH:+:}$LD_LIBRARY_PATH;" nl
                ;; For macOS
-               "if [[ ${DYLD_LIBRARY_PATH+x} ]]; then" nl
-               " export DYLD_LIBRARY_PATH=$PWD/" ffi ":$DYLD_LIBRARY_PATH" nl
-               "else" nl
-               " export DYLD_LIBRARY_PATH=$PWD/" ffi nl
-               "fi" nl))))))
+               "export DYLD_LIBRARY_PATH=$PWD/" ffi "${DYLD_LIBRARY_PATH:+:}$DYLD_LIBRARY_PATH;" nl))))))
 
 (define (install-fish-activate-script)
   (let ((filename (path-join (binaries-directory) "activate.fish")))
@@ -820,7 +812,6 @@
               (lib7 (r7rs-libraries-directory))
               (ffi (ffi-libraries-directory)))
           (fmt p
-               "# Load this with \"source .akku/bin/" filename "\" in Fish    -*-sh-*-" nl
                ;; R6RS
                "set --export CHEZSCHEMELIBDIRS \"$PWD/.akku/lib::$PWD/.akku/libobj\"" nl
                "set --erase CHEZSCHEMELIBEXTS" nl
@@ -834,19 +825,42 @@
                "set --export LARCENY_LIBPATH \"$PWD/" lib "\"" nl
                ;; R7RS
                "set --export CHIBI_MODULE_PATH \"$PWD/" lib7 "\"" nl
-               "set --prepend PATH $PWD/.akku/bin" nl
+               "set --export --prepend PATH $PWD/.akku/bin" nl
                ;; For Linux
-               "if set --query LD_LIBRARY_PATH" nl
-               "  set --export --prepend LD_LIBRARY_PATH $PWD/" ffi nl
-               "else" nl
-               "  set --export LD_LIBRARY_PATH $PWD/" ffi nl
-               "end" nl
+               "set --export --prepend LD_LIBRARY_PATH $PWD/" ffi nl
                ;; For macOS
-               "if set --query DYLD_LIBRARY_PATH" nl
-               "  set --export --prepend DYLD_LIBRARY_PATH $PWD/" ffi nl
-               "else" nl
-               "  set --export DYLD_LIBRARY_PATH $PWD/" ffi nl
-               "end" nl))))))
+               "set --export --prepend DYLD_LIBRARY_PATH $PWD/" ffi nl))))))
+
+(define (install-env-script)
+  (let ((filename (path-join (akku-directory) "env")))
+    (log/info "Installing " filename)
+    (call-with-port (open-file-output-port filename
+                                           (file-options no-fail)
+                                           (buffer-mode block)
+                                           (native-transcoder))
+      (lambda (p)
+        (fmt p
+             "#!/bin/sh" nl
+             "# Run this from anywhere to get a shell in the project environment  -*-sh-*-" nl
+             "# To load in the current shell with bash: eval $(.akku/env -s)" nl
+             "# For fish, use:                          .akku/env -f | source" nl
+             "export AKKU_ENV=$(CDPATH='' cd -- \"$(dirname -- \"$0\")/..\" && pwd)" nl
+             "dir=$(pwd)" nl
+             "cd \"$AKKU_ENV/..\" || exit 1" nl
+             ". \"$AKKU_ENV/.akku/bin/activate\"" nl
+             "" nl
+             "if [ \"$1\" = \"-s\" ]; then" nl
+             "    echo \"AKKU_ENV=\\\"$AKKU_ENV\\\";\"" nl
+             "    sed -e \"s/\\$PWD/\\$AKKU_ENV/g\" \"$AKKU_ENV/.akku/bin/activate\"" nl
+             "    cd \"$dir\" || exit 1" nl
+             "elif [ \"$1\" = \"-f\" ]; then" nl
+             "    echo \"set AKKU_ENV \\\"$AKKU_ENV\\\"\"" nl
+             "    sed -e \"s/\\$PWD/\\$AKKU_ENV/g\" \"$AKKU_ENV/.akku/bin/activate.fish\"" nl
+             "    cd \"$dir\" || exit 1" nl
+             "else" nl
+             "    cd \"$dir\" || exit 1" nl
+             "    exec \"${@:-$SHELL}\"" nl
+             "fi" nl)))))
 
 ;; Installs a library that contains metadata about all artifacts.
 (define (install-metadata installed-project/artifact* manifest-filename)

@@ -18,6 +18,13 @@ them as Chibi-specific was a mistake.
 It is now possible to ignore files and directories by adding their
 names to `.akkuignore` (no support for wildcards yet).
 
+This release adds the `.akku/env` script, which is an improvement over
+the old activate scripts. This new script starts a subshell, which
+means it is easier to unset the environment variables that it changes.
+It also exports `AKKU_ENV` which you can use to update your prompt, if
+you wish, and it can print sourceable shell snippets that have the
+right paths independent of which directory it runs from.
+
 A bug was fixed that caused Akku to crash when a package name was a
 list of symbols.
 

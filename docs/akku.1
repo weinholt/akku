@@ -11,10 +11,10 @@ libraries in R6RS Scheme, but could potentially work for end-users of
 those programs.
 .PP
 Being project-based means that dependencies are local to each project
-you manage with Akku. The idea is that each project will specify its
+you manage with Akku. The idea is that each project specifies its
 dependencies through a manifest and a lockfile. When developing on a
-project, you set your environment variables by sourcing that project's
-activate script into your shell (\fCsource .akku/bin/activate\fR).
+project, you run \fC.akku/env\fR to starts a new shell with that
+project's environment variables set.
 This ensures that the code you load into your program is that of your
 direct or indirect dependencies, instead of something that just
 happened to exist somewhere in your load path.
@@ -277,7 +277,7 @@ command:
 $ akku init my-project
 $ cd my-project
 $ akku install
-$ source .akku/bin/activate
+$ .akku/env
 .EE
 .RE
 .
@@ -304,6 +304,7 @@ $ akku install        # updates .akku/
 .nf
 \fIAKKU_HOME\fR	override the application home directory
 \fIAKKU_LOG_LEVEL\fR	log level: trace, debug, info, warning, error, critical
+\fIAKKU_ENV\fR	informative variable; not used (set by .akku/env)
 \fIHOME\fR	user's home directory
 .SH FILES
 .nf

@@ -21,7 +21,7 @@ Here are instructions for Debian:
 sudo apt install git chezscheme libcurl4
 git clone https://gitlab.com/akkuscm/akku
 cd akku
-source .akku/bin/activate
+.akku/env
 mkdir -p ~/.akku/share/keys.d
 cp akku-archive-*.gpg ~/.akku/share/keys.d
 bin/akku.sps update
@@ -43,7 +43,7 @@ just like the pre-built releases. Here's how to build it:
 
 ```sh
 sudo apt install xz-utils
-source .akku/bin/activate
+.akku/env
 private/build.chezscheme.sps
 ```
 

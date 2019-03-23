@@ -57,8 +57,8 @@ How to get started with a new project:
  - Run `akku install <pkg>` to install a named package. This also
    installs the code in your current directory into `.akku`. If you
    add local source files you'll need to rerun `akku install`.
- - Run `source .akku/bin/activate` (in bash) to prepare the
-   environment for the programs and libraries in `.akku`.
+ - Run `.akku/env` to get a shell in an environment that uses the
+   programs and libraries in `.akku`.
 
 The installed libraries and programs should now be available to you,
 assuming you use one of these Schemes: Chez Scheme, GNU Guile (with
