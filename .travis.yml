@@ -1,8 +1,10 @@
+# Only tests on macOS. Other tests are done at GitLab.
+# While issue #12 is open the tests will fail for Guile.
+
 env:
   matrix:
     - SCHEME="ChezScheme_master"
-    - SCHEME="ChezScheme_v9.5"
-    - SCHEME="Guile_2.2"
+    #- SCHEME="Guile_2.2"
     #- SCHEME="Larceny"
     #- SCHEME="Racket_HEAD"
     #- SCHEME="SagittariusScheme"
@@ -37,7 +39,7 @@ cache:
     - $HOME/opt
 
 os:
-  - linux
+  #- linux
   - osx
 
 compiler:
