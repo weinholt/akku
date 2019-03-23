@@ -4,7 +4,7 @@ RUN apk add --no-cache curl git xz tar
 
 COPY . /tmp
 WORKDIR /tmp
-RUN set -uxe; \
+RUN set -xe; \
     test -d .git && git clean -d -d -x -f; \
     . .akku/bin/activate; \
     mkdir -p ~/.akku/share/keys.d; \
