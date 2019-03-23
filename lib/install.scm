@@ -42,7 +42,7 @@
     (xitomatl alists)
     (xitomatl AS-match)
     (only (akku private compat) chmod file-exists/no-follow?
-          directory-list delete-directory os-name)
+          directory-list delete-directory os-name chmod)
     (akku lib fetch)
     (akku lib file-parser)
     (akku lib git)
@@ -846,7 +846,6 @@
              "# For fish, use:                          .akku/env -f | source" nl
              "export AKKU_ENV=$(CDPATH='' cd -- \"$(dirname -- \"$0\")/..\" && pwd)" nl
              "dir=$(pwd)" nl
-             "cd \"$AKKU_ENV/..\" || exit 1" nl
              ". \"$AKKU_ENV/.akku/bin/activate\"" nl
              "" nl
              "if [ \"$1\" = \"-s\" ]; then" nl
@@ -860,7 +859,8 @@
              "else" nl
              "    cd \"$dir\" || exit 1" nl
              "    exec \"${@:-$SHELL}\"" nl
-             "fi" nl)))))
+             "fi" nl)))
+    (chmod filename #o755)))
 
 ;; Installs a library that contains metadata about all artifacts.
 (define (install-metadata installed-project/artifact* manifest-filename)
