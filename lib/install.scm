@@ -846,6 +846,7 @@
              "# For fish, use:                          .akku/env -f | source" nl
              "export AKKU_ENV=$(CDPATH='' cd -- \"$(dirname -- \"$0\")/..\" && pwd)" nl
              "dir=$(pwd)" nl
+             "cd \"$AKKU_ENV\" || exit 1" nl
              ". \"$AKKU_ENV/.akku/bin/activate\"" nl
              "" nl
              "if [ \"$1\" = \"-s\" ]; then" nl
