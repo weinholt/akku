@@ -8,8 +8,8 @@
  ((name "compression")
    (location
      (git "https://github.com/weinholt/compression.git"))
-   (tag "v0.1.1")
-   (revision "a0ef2461a99da7b256ea6a63960bf23a5e39419a"))
+   (tag "v0.1.2")
+   (revision "019ed92d92b71d737f3d5beba4464da5184f7833"))
  ((name "hashing")
    (location (git "https://github.com/weinholt/hashing.git"))
    (tag "v1.2.0")
@@ -48,8 +48,8 @@
  ((name "struct-pack")
    (location
      (git "https://github.com/weinholt/struct-pack.git"))
-   (tag "v1.1.0")
-   (revision "6c583e744154e31b529445824f858f734e6ad66e"))
+   (tag "v1.1.1")
+   (revision "11b71963793ed4a3bf761efdd83cf2fe123239ee"))
  ((name "wak-common")
    (location
      (git "https://gitlab.com/weinholt/wak-common.git"))

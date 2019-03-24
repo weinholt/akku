@@ -1,5 +1,5 @@
 #!r6rs ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2010, 2012, 2017, 2018 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2010, 2012, 2017, 2018, 2019 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: MIT
 
 ;; Permission is hereby granted, free of charge, to any person obtaining a
@@ -250,10 +250,11 @@
       (do ((buf (make-bytevector 512))
            (blocks blocks (- blocks 1)))
           ((zero? blocks)
-           (let ((r (get-bytevector-n! tarport buf 0 512)))
-             (trace "read block: " r " (last)")
-             (unless (eqv? r 512) (premature-eof who tarport))
-             (put-bytevector destport buf 0 trail)))
+           (unless (zero? trail)
+             (let ((r (get-bytevector-n! tarport buf 0 512)))
+               (trace "read block: " r " (last)")
+               (unless (eqv? r 512) (premature-eof who tarport))
+               (put-bytevector destport buf 0 trail))))
         (let ((r (get-bytevector-n! tarport buf 0 512)))
           (unless (eqv? r 512) (premature-eof who tarport))
           (trace "read block: " r)

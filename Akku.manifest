@@ -24,7 +24,7 @@
            ("wak-wt-tree" "~0.0.0-akku")
            ("xitomatl" "~0.0.0-akku")
            ("hashing" "^1.1.0")
-           ("compression" "^0.1.1")
+           ("compression" "^0.1.2")
            ("laesare" "^1.0.0-alpha.0")
            ("r6rs-pffi" "^1.0.0"))
 )

@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2017-2018 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2017-2019 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -106,13 +106,14 @@
           (unless (eof-object? hdr)
             (case (tar:header-typeflag hdr)
               ((regular)
-               (check-filename (tar:header-name hdr) #f)
-               (let ((output-filename (path-join directory (tar:header-name hdr))))
-                 (log/debug "Writing " output-filename)
-                 (mkdir/recursive (car (split-path output-filename)))
-                 (call-with-port (open-file-output-port output-filename (file-options no-fail))
-                   (lambda (outp)
-                     (tar:extract-to-port tarp hdr outp)))))
+               (let ((filename (resolve-pathname (tar:header-name hdr))))
+                 (check-filename filename #f)
+                 (let ((output-filename (path-join directory filename)))
+                   (log/debug "Writing " output-filename)
+                   (mkdir/recursive (car (split-path output-filename)))
+                   (call-with-port (open-file-output-port output-filename (file-options no-fail))
+                     (lambda (outp)
+                       (tar:extract-to-port tarp hdr outp))))))
               ((directory)
                (tar:skip-file tarp hdr))
               (else
