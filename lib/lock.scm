@@ -535,17 +535,21 @@
       deps))
   (let-values (((_ packages) (read-package-index index-filename '()))
                ((terminal-cols _terminal-lines) (get-terminal-size)))
-    (fmt #t ",-- (L) The version is in the lockfile" nl
-            "|,- (M) The version matches the range in the manifest / (D) Dev. dependency" nl)
-    (fmt #t "||" (space-to 3) "Package name" (space-to 20) "SemVer" (space-to 36) "Synopsis"
-         nl
-         (pad-char #\= (space-to (max 1 (- terminal-cols 1))))
-         nl)
-    (let ((package-names (hashtable-keys packages)))
+    (let ((package-names (hashtable-keys packages))
+          (vercol 24))                  ;version column
+      (fmt #t ",-- (L) The version is in the lockfile" nl
+           "|,- (M) The version matches the range in the manifest / (D) Dev. dependency" nl)
+      (fmt #t "||" (space-to 3) "Package name" (space-to vercol) "SemVer" (space-to 36) "Synopsis"
+           nl
+           (pad-char #\= (space-to (max 1 (- terminal-cols 1))))
+           nl)
       (vector-sort! (lambda (x y) (<? default-compare x y)) package-names)
       (vector-for-each
        (lambda (package-name)
-         (let ((package (hashtable-ref packages package-name #f)))
+         (let ((package (hashtable-ref packages package-name #f))
+               (pkgname-len (string-length
+                             (call-with-string-output-port
+                               (lambda (p) (display package-name p))))))
            (for-each
             (lambda (version)
               (let ((version-locked?
@@ -569,9 +573,10 @@
                        (space-to 1)
                        (or manifest-match "")
                        (space-to 3) package-name
-                       (space-to 20)
+                       (if (> pkgname-len (- vercol 4)) nl fmt-null)
+                       (space-to (- vercol 1)) " "
                        (ellipses "…"
-                                 (colorize (pad 16 (trim 15 (version-number version))))
+                                 (colorize (pad 12 (trim 11 (version-number version))))
                                  (trim (max 10 (- terminal-cols 37))
                                        (cond ((version-synopsis version) => car)
                                              (else "-"))))
