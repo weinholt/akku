@@ -24,7 +24,7 @@ for x in chez-scheme-script scheme-script; do
     fi
 done
 chez_scheme=""
-for x in chez-scheme chez scheme; do
+for x in chez-scheme chezscheme chez scheme; do
     if is_executable "$x"; then
         chez_scheme="$x"
         break
