@@ -43,14 +43,28 @@ chmod 0755 "$PREFIX/bin/akku.guile"
 mkdir -p "$HOME/bin"
 
 rm -f "$HOME/bin/akku"
-if is_executable scheme; then
+
+install_chez()
+{
+    chez="$1"
     export CHEZSCHEMELIBDIRS="$PREFIX/lib"
     unset CHEZSCHEMELIBEXTS
-    scheme --compile-imported-libraries --program "$PREFIX/bin/akku.sps" 2>/dev/null
+    $chez --compile-imported-libraries --program "$PREFIX/bin/akku.sps" 2>/dev/null
     ln -s "$PREFIX/bin/akku.chezscheme" "$HOME/bin/akku"
     echo You can now run '~/bin/akku'
-else
+}
+
+install_guile()
+{
     ln -s "$PREFIX/bin/akku.guile" "$HOME/bin/akku"
     "$HOME/bin/akku" version >/dev/null
     echo You can now run '~/bin/akku' "(configured for GNU Guile 2.2+)"
+}
+
+if is_executable chez; then
+    install_chez chez
+elif is_executable scheme; then
+    install_chez scheme
+else
+    install_guile
 fi
