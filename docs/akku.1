@@ -1,5 +1,5 @@
 .\" HTML output: groff -man -Thtml docs/akku.1
-.TH AKKU "1" "October 2018" "Akku.scm" "User Commands"
+.TH AKKU "1" "April 2019" "Akku.scm" "User Commands"
 .SH "NAME"
 akku \- R6RS Scheme language package manager
 .SH "SYNOPSIS"
@@ -11,19 +11,18 @@ libraries in R6RS Scheme, but could potentially work for end-users of
 those programs.
 .PP
 Being project-based means that dependencies are local to each project
-you manage with Akku. The idea is that each project specifies its
-dependencies through a manifest and a lockfile. When developing on a
-project, you run \fC.akku/env\fR to starts a new shell with that
-project's environment variables set.
-This ensures that the code you load into your program is that of your
-direct or indirect dependencies, instead of something that just
-happened to exist somewhere in your load path.
+you manage with Akku. Each project specifies its dependencies through
+a manifest and a lockfile. When developing on a project, you run
+\fCakku install\fR and then \fC.akku/env\fR to start a new shell with
+that project's environment variables set. This ensures that the code
+you load into your program is that of your direct or indirect
+dependencies, instead of something that just happened to exist
+somewhere in your load path.
 .PP
 A project's direct dependencies are listed in the manifest. By running
 a dependency solver, specific versions of those dependencies are
-\fIlocked\fR. This means that others who also use your lockfile will
-get exactly the same dependencies installed as you had while
-developing.
+\fIlocked\fR. This means that everyone using the same lockfile will
+get exactly the same dependencies installed as you.
 .PP
 This manpage mostly goes over the details of the command line
 interface, where these command are available:
@@ -136,11 +135,8 @@ a tag then the published revision will match the current HEAD.
 .IP
 It is always the lock section of the printed index snippet that will
 dictate which revision of your code is associated with the version
-you're publishing.
-.IP
-Note that no matter which revision is published, it is the currently
-checked out manifest that will be used to populate the metadata of the
-index snippet.
+you're publishing. It is the also currently checked out manifest file
+that will be used to populate the metadata of the index snippet.
 .IP
 See section
 .B "PUBLISHING PACKAGES"
@@ -178,9 +174,14 @@ into a single index file. This is used at repository servers as part
 of maintaining the archive.
 .\" ------------------------------------------
 .SH "PUBLISHING PACKAGES"
-You can make packages available to other users through the central
-Akku.scm registry with the \fBpublish\fR command described above. Here
-is a checklist of items to consider before publishing:
+You can make R6RS packages available to other users through the central
+Akku.scm registry with the \fBpublish\fR command described above. If your
+package is written in R7RS then please publish to
+.UR http://snow-fort.org/
+Snow
+.UE
+instead so that your package will also be available to other R7RS users.
+Here is a checklist of items to consider before publishing:
 .
 .IP 1.
 Check that your manifest is up to date and contains at least the

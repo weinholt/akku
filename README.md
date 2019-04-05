@@ -3,21 +3,21 @@
 [![Build Status](https://travis-ci.org/weinholt/akku.svg?branch=master)](https://travis-ci.org/weinholt/akku)
 [![pipeline status](https://gitlab.com/akkuscm/akku/badges/master/pipeline.svg)](https://gitlab.com/akkuscm/akku/commits/master)
 
-Akku.scm is a language package manager for Scheme. It grabs hold of
-code and vigorously shakes it until it behaves properly.
+[Akku.scm](https://akkuscm.org/) is a language package manager for
+Scheme. It grabs hold of code and vigorously shakes it until it
+behaves properly.
 
-* Separately declare your dependencies and locked versions.
-* One command to install everything needed for a project.
-* Project-based, installs your locked dependencies to a single library
-  directory.
-* Scan repositories for libraries and install them to the right paths
-  for all supported Schemes.
-* Resolve all Scheme files needed for compilation and scan them for
-  license notices.
+* No complicated setup to point out where libraries are; Akku finds
+  them!
+* Separately declare dependencies and locked versions for your
+  project.
 * Convert R7RS libraries for use with Chez Scheme and other R6RS
   Scheme implementations.
+* Numerous R6RS [packages][packages] and as well as R7RS libraries
+  mirrored from [Snow][snow].
 
-Web site: [akkuscm.org](https://akkuscm.org/).
+ [packages]: https://akkuscm.org/packages/
+ [snow]: http://snow-fort.org/
 
 ## Dependencies
 
@@ -30,19 +30,21 @@ porting is very welcome.
 There are two options:
 
  - Download, unpack and run the binary installer
-   from [GitHub](https://github.com/weinholt/akku/releases). Pre-built
-   versions are available for GNU/Linux amd64. The installation is
-   completely contained to `~/.akku`.
+   from [GitLab][GitLabTags]. Pre-built versions are available for
+   GNU/Linux amd64. The installation is completely contained to
+   `~/.akku`.
 
- - Download the source bundle
-   from [GitHub](https://github.com/weinholt/akku/releases) (files
-   ending with `+src.tar.xz`). This version is a little slower and
-   takes longer to install, but runs on more types of systems. It
-   requires Chez Scheme 9.5+ or GNU Guile 2.2+.
+ - Download the source bundle from [GitLab][GitLabTags] (files ending
+   with `+src.tar.xz`). This version is a little slower and takes
+   longer to install, but runs on more types of systems. It requires
+   Chez Scheme 9.5+ or GNU Guile 2.2+.
 
 Please remember to verify the OpenPGP signatures. The releases are
-signed with [E33E61A2E9B8C3A2][key].
+signed with [E33E61A2E9B8C3A2][key]. The releases are also mirrored on
+[GitHub][GitHubReleases].
 
+ [GitLabTags]: https://gitlab.com/akkuscm/akku/tags
+ [GitHubReleases]: https://github.com/weinholt/akku/releases
  [key]: https://pgp.surfnet.nl/pks/lookup?op=vindex&fingerprint=on&search=0xE33E61A2E9B8C3A2
 
 ## Usage

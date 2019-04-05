@@ -1,22 +1,11 @@
 # Akku.scm release notes
 
-## Version 0.5.0 (not released yet)
+## Version 0.5.0
 
-This release adds support for direct dependencies on Git repositories,
-checksummed tarballs at URLs and local directories. See the wiki
-for [direct dependency examples][direct-dep].
-
-  [direct-dep]: https://gitlab.com/akkuscm/akku/wikis/Direct-dependencies
-
-R7RS programs are translated to R6RS and installed in .akku/bin. This
-was meant to work earlier, but was broken.
-
-A number of `(scheme *)` libraries are no longer considered to be
-exclusive to Chibi. They were always a part of R7RS-large and marking
-them as Chibi-specific was a mistake.
-
-It is now possible to ignore files and directories by adding their
-names to `.akkuignore` (no support for wildcards yet).
+This release is the first to mirror R7RS libraries
+from [Snow](http://snow-fort.org). They are named by their main
+library name, e.g. `(chibi match)`. Note that the names need to be
+quoted when used from the shell: `akku install '(chibi match)'`.
 
 This release adds the `.akku/env` script, which is an improvement over
 the old activate scripts. This new script starts a subshell, which
@@ -25,11 +14,30 @@ It also exports `AKKU_ENV` which you can use to update your prompt, if
 you wish, and it can print sourceable shell snippets that have the
 right paths independent of which directory it runs from.
 
+This release adds support for direct dependencies on Git repositories,
+checksummed tarballs at URLs and local directories. See the wiki
+for [direct dependency examples][direct-dep].
+
+  [direct-dep]: https://gitlab.com/akkuscm/akku/wikis/Direct-dependencies
+
+It is now possible to ignore files and directories by adding their
+names to `.akkuignore` (no support for wildcards yet).
+
+R7RS programs are translated to R6RS and installed in .akku/bin. This
+was meant to work earlier, but was broken.
+
+A number of `(scheme *)` libraries are no longer considered to be
+exclusive to Chibi. They were always a part of R7RS-large and marking
+them as Chibi-specific was a mistake.
+
 A bug was fixed that caused Akku to crash when a package name was a
 list of symbols.
 
-Thanks to Yanying Wang and Amirouche Boubekki for contributing to this
-release.
+The installer script now also checks if Chez Scheme is installed under
+the names `chez`, `chezscheme` or `chez-scheme`.
+
+Thanks to Yanying Wang, Amirouche Boubekki and Lassi Kortela for
+contributing to this release.
 
 ## Version 0.4.1
 

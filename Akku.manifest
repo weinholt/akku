@@ -1,15 +1,14 @@
 #!r6rs ; -*- mode: scheme; coding: utf-8 -*-
 (import (akku format manifest))
 
-(akku-package ("akku" "0.5.0-alpha.0")
+(akku-package ("akku" "0.5.0")
   (synopsis "Language package manager for Scheme")
   (description
    "Akku.scm is a language package manager for Scheme. It grabs hold of code and vigorously shakes it until it behaves properly."
-   " - Separately declare your dependencies and locked versions."
-   " - One command to install everything needed for a project."
-   " - Project-based, installs your locked dependencies to a single library directory."
-   " - Scan repositories for R6RS/R7RS libraries, even multiple per file, and copy them to the right file paths for any supported Scheme."
-   " - Resolve all Scheme files needed for compilation and scan them for license notices.")
+   " - No complicated setup to point out where libraries are; Akku finds them!"
+   " - Separately declare dependencies and locked versions for your project."
+   " - Convert R7RS libraries for use with R6RS Scheme implementations."
+   " - Numerous R6RS packages as well as R7RS libraries mirrored from Snow.")
   (authors "Göran Weinholt <goran@weinholt.se>")
   (homepage "https://akkuscm.org/")
   (license "GPL-3.0-or-later")
