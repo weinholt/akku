@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright © 2017-2018 Göran Weinholt <goran@weinholt.se>
+# Copyright © 2017-2019 Göran Weinholt <goran@weinholt.se>
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # This file is part of akku-*+src.tar.xz and installs a script wrapper
@@ -43,18 +43,19 @@ if [ -d "$PREFIX/lib" ]; then
     mv "$PREFIX/lib" "$PREFIX/lib.old"
 fi
 cp -a share .akku/* "$PREFIX/"
+mv -f "$PREFIX/share/index.db" "$PREFIX/share/index.db.bak" 2>/dev/null
 
 cat > "$PREFIX/bin/akku.chezscheme" << EOF
 #!/bin/sh
 export CHEZSCHEMELIBDIRS="$PREFIX/lib"
 unset CHEZSCHEMELIBEXTS
-exec $chez_scheme_script "$PREFIX/bin/akku.sps" \$*
+exec $chez_scheme_script "$PREFIX/bin/akku.sps" "\$@"
 EOF
 
 cat > "$PREFIX/bin/akku.guile" << EOF
 #!/bin/sh
 export GUILE_LOAD_PATH="$PREFIX/lib"
-exec guile -q -l "$PREFIX/share/r6rs-guile.scm" -ds "$PREFIX/bin/akku.sps" \$*
+exec guile -q -l "$PREFIX/share/r6rs-guile.scm" -ds "$PREFIX/bin/akku.sps" "\$@"
 EOF
 
 cat > "$PREFIX/share/r6rs-guile.scm" << EOF
