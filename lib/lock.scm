@@ -46,7 +46,7 @@
     (rnrs (6))
     (only (srfi :1 lists) last iota append-map filter-map)
     (only (srfi :13 strings) string-prefix?)
-    (only (srfi :67 compare-procedures) <? default-compare)
+    (only (srfi :67 compare-procedures) <? string-compare-ci)
     (semver versions)
     (semver ranges)
     (only (spells filesys) rename-file)
@@ -507,6 +507,16 @@
 
 ;; Lists packages in the index.
 (define (list-packages manifest-filename lockfile-filename index-filename)
+  (define (compare-names x y)
+    (define (strip-paren x)
+      (if (string? x)
+          x
+          (let ((str
+                 (call-with-string-output-port
+                   (lambda (p)
+                     (display x p)))))
+            (substring str 1 (- (string-length str) 1)))))
+    (string-compare-ci (strip-paren x) (strip-paren y)))
   (define manifest-packages
     (if (file-exists? manifest-filename)
         (read-manifest manifest-filename)
@@ -543,7 +553,7 @@
            nl
            (pad-char #\= (space-to (max 1 (- terminal-cols 1))))
            nl)
-      (vector-sort! (lambda (x y) (<? default-compare x y)) package-names)
+      (vector-sort! (lambda (x y) (<? compare-names x y)) package-names)
       (vector-for-each
        (lambda (package-name)
          (let ((package (hashtable-ref packages package-name #f))
