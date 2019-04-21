@@ -8,6 +8,7 @@ set --export SAGITTARIUS_LOADPATH "$PWD/.akku/lib"
 set --export VICARE_SOURCE_PATH "$PWD/.akku/lib"
 set --export YPSILON_SITELIB "$PWD/.akku/lib"
 set --export LARCENY_LIBPATH "$PWD/.akku/lib"
+set --export IRONSCHEME_LIBRARY_PATH "$PWD/.akku/lib"
 set --export CHIBI_MODULE_PATH "$PWD/.akku/lib"
 set --export --prepend PATH $PWD/.akku/bin
 set --export --prepend LD_LIBRARY_PATH $PWD/.akku/ffi

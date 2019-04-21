@@ -792,6 +792,7 @@
                "export VICARE_SOURCE_PATH=\"$PWD/.akku/lib\";" nl
                "export YPSILON_SITELIB=\"$PWD/.akku/lib\";" nl
                "export LARCENY_LIBPATH=\"$PWD/" lib "\";" nl
+               "export IRONSCHEME_LIBRARY_PATH=\"$PWD/" lib "\";" nl ;nonstandard
                ;; R7RS
                "export CHIBI_MODULE_PATH=\"$PWD/" lib7 "\";" nl
                "export PATH=$PWD/.akku/bin:$PATH;" nl
@@ -823,6 +824,7 @@
                "set --export VICARE_SOURCE_PATH \"$PWD/.akku/lib\"" nl
                "set --export YPSILON_SITELIB \"$PWD/.akku/lib\"" nl
                "set --export LARCENY_LIBPATH \"$PWD/" lib "\"" nl
+               "set --export IRONSCHEME_LIBRARY_PATH \"$PWD/" lib "\"" nl  ;nonstandard
                ;; R7RS
                "set --export CHIBI_MODULE_PATH \"$PWD/" lib7 "\"" nl
                "set --export --prepend PATH $PWD/.akku/bin" nl

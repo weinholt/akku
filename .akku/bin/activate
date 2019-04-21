@@ -8,6 +8,7 @@ export SAGITTARIUS_LOADPATH="$PWD/.akku/lib";
 export VICARE_SOURCE_PATH="$PWD/.akku/lib";
 export YPSILON_SITELIB="$PWD/.akku/lib";
 export LARCENY_LIBPATH="$PWD/.akku/lib";
+export IRONSCHEME_LIBRARY_PATH="$PWD/.akku/lib";
 export CHIBI_MODULE_PATH="$PWD/.akku/lib";
 export PATH=$PWD/.akku/bin:$PATH;
 export LD_LIBRARY_PATH=$PWD/.akku/ffi${LD_LIBRARY_PATH:+:}$LD_LIBRARY_PATH;
