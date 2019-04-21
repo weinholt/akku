@@ -83,6 +83,6 @@ test:chezscheme-alpine:
   <<: *job_definition
   image: "alpine:3.8"
   before_script:
-    - apk add --no-cache curl git xz
+    - apk add --no-cache curl git xz libuuid
     - tar xvJf akku-*linux-musl.tar.xz
     - (cd akku-*linux; ./install.sh)
