@@ -91,6 +91,11 @@ build:
     - tests/test-foo.sps
 ```
 
+Debian-based images are available for a few Scheme implementations.
+See Docker hub for a list of tags. They come prepared with a
+`scheme-script` wrapper that works as described in the R6RS
+non-normative appendix.
+
 ## License
 
 Akku.scm is free software: you can redistribute it and/or modify it
