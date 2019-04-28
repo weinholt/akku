@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2017-2018 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2017-2019 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -557,7 +557,16 @@
                 (implementation-name (or (path->implementation-name path)
                                          (r6rs-library-name*->implementation-name
                                           (map library-reference-name parsed-import-spec*))))
-                (parsed-export* (append-map parse-r6rs-export export*)))
+                (parsed-export* (append-map parse-r6rs-export export*))
+                ;; Let (akku lib schemedb) decide whether the library
+                ;; should be name mangled for some implementations,
+                ;; and/or blocked from an implementation. The
+                ;; installer does the second half of this job, here we
+                ;; just deal with the name mangling by returning
+                ;; additional artifacts.
+                (block-for-impl* (r6rs-library-block-for-implementations name))
+                (omit-for-impl* (r6rs-library-omit-for-implementations name))
+                (name-mangling* (r6rs-library-name-mangle name)))
            (let ((include* (scan-for-includes/r6rs body* realpath)))
              (cons (make-r6rs-library path path-list form-index (eof-object? next-datum)
                                       parsed-import-spec* include*
@@ -572,10 +581,8 @@
                       (cond ((and implementation-name
                                   (not (eq? implementation-name mangle-impl-name)))
                              '())
-                            ((or (memq mangle-impl-name
-                                       (r6rs-library-block-for-implementations name))
-                                 (memq mangle-impl-name
-                                       (r6rs-library-omit-for-implementations name)))
+                            ((or (memq mangle-impl-name block-for-impl*)
+                                 (memq mangle-impl-name omit-for-impl*))
                              (log/debug "Not installing " (wrt name) " for "
                                         mangle-impl-name)
                              '())
@@ -588,7 +595,7 @@
                                                       parsed-import-spec* include*
                                                       mangle-impl-name mangled-lib-name
                                                       (or ver '()) parsed-export* name))))])
-                    (r6rs-library-name-mangle name)))))))
+                    name-mangling*))))))
       (('define-library (name ...)      ;R7RS library
          . declaration*)
        ;; XXX: name can contain <identifier> or <uinteger 10> [sic!].

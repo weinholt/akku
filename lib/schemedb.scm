@@ -35,6 +35,7 @@
     r6rs-library-block-for-implementations)
   (import
     (rnrs (6))
+    (only (srfi :1 lists) filter-map)
     (xitomatl AS-match))
 
 ;; True if lib-name is a built-in library provided by the implementation.
@@ -273,6 +274,33 @@
          [else '()]))]
     [else '()]))
 
+(define supported-srfis
+  '((chezscheme . ())
+    (guile . (1 2 4 6 8 9 10 11 13 14 16 17 18 19 26 27 28 31 34
+                35 37 38 39 41 42 43 45 60 64 67 69 71 88 98 111))
+    (ikarus . ())
+    (ironscheme . (0 1 2 6 8 9 11 13 14 16 19 23 25 26 27 31 37 38
+                     39 41 42 43 45 48 61 64 67 69 78 98 99 101 102
+                     111 112))
+    (larceny . (1 2 5 6 8 9 11 13 14 16 17 19 23 25 26 27 28 29 30
+                  31 34 37 38 39 41 42 43 45 48 51 54 55 59 60 61
+                  62 63 64 66 67 69 71 74 78 87 95 98 99 101))
+    (mosh . (0 1 2 6 8 9 11 13 14 16 19 23 26 27 31 37 38 39
+               41 42 43 48 61 64 67 78 98 99))
+    (mzscheme . (1 2 5 6 8 9 11 13 14 16 17 18 19 23 25 26 27
+                   28 29 31 38 39 41 42 43 45 48 54 57 59 60 61
+                   63 64 66 67 69 71 74 78 86 87 98))
+    (sagittarius . (0 1 2 4 5 6 8 9 13 14 17 23 25 26 27 29 31
+                      37 38 39 41 42 43 45 49 57 60 61 64 69 78
+                      86 87 98 99 100 101 105 110 111 112 113
+                      114 115 116 117 120 121 123 124 125 126
+                      127 128 129 130 131 132 133 134 135 136
+                      139 141 142 143 144 145 151 152 156 158))
+    (vicare . (0 1 2 6 8 9 11 13 14 16 19 23 25 26 27 28 31 37
+                 38 39 41 42 43 45 48 61 64 67 69 78 98 99 101
+                 106 111 112 113 114 115 116))
+    (ypsilon . (1 6 8 9 13 14 19 26 27 28 38 39 41 42 48 98))))
+
 ;; Implementations for which the library should be omitted from normal
 ;; installation procedures.
 (define (r6rs-library-omit-for-implementations lib-name)
@@ -295,4 +323,12 @@
 ;; implementations.
 (define (r6rs-library-block-for-implementations lib-name)
   (match lib-name
+    [('srfi (? colon-name? :srfi-n) . _)
+     (let* ((:srfi-n (symbol->string :srfi-n))
+            (srfi-n (string->number (substring :srfi-n 1 (string-length :srfi-n)))))
+       (filter-map (match-lambda
+                    ([impl . supported]
+                     (and (memq srfi-n supported)
+                          impl)))
+                   supported-srfis))]
     [else '()])))

@@ -132,28 +132,29 @@
   (let ((block-by-omission (r6rs-library-omit-for-implementations name))
         (block-by-exclusion (r6rs-library-block-for-implementations name)))
     (unless (null? block-by-omission)
-      (log/trace "Omitting " name " from implementations " block-by-omission))
+      (log/debug "Omitting " name " from implementations " block-by-omission))
     (unless (null? block-by-exclusion)
-      (log/trace "Excluding " name " from implementations " block-by-exclusion))
+      (log/debug "Excluding " name " from implementations " block-by-exclusion))
     (cond
       (implementation
        ;; Implementation-specific libraries are never blocked.
        (make-filenames name implementation (list implementation)))
+      ((pair? block-by-exclusion)
+       ;; Block installation for some implementations. Done by
+       ;; installing with names exclusive to all other known
+       ;; implementations.
+       (let ((allowed-impl* (lset-difference eq? r6rs-implementation-names
+                                             (append other-impl* block-by-exclusion
+                                                     block-by-omission))))
+         (delete-duplicates
+          (append-map (lambda (impl) (make-filenames name impl allowed-impl*))
+                      allowed-impl*))))
       ((pair? block-by-omission)
        ;; Block installation for some implementations. Done by not
        ;; constructing the special filenames that those
        ;; implementations use for this library.
        (make-filenames name #f (lset-difference eq? r6rs-implementation-names
                                                 block-by-omission)))
-      ((pair? block-by-exclusion)
-       ;; Block installation for some implementations. Done by
-       ;; installing with names exclusive to all other known
-       ;; implementations.
-       (let ((allowed-impl* (lset-difference eq? r6rs-implementation-names
-                                             (append other-impl* block-by-exclusion))))
-         (delete-duplicates
-          (append-map (lambda (impl) (make-filenames name impl allowed-impl*))
-                      allowed-impl*))))
       (else
        ;; Install and make available to all implementations, but omit
        ;; special filenames for those that have their own
@@ -465,8 +466,11 @@
                                        other-impl*)))
     (cond
       ((null? library-locations)
-       (log/warn "Could not construct a filename for "
-                 (r6rs-library-name artifact))
+       ;; Do not emit a warning when the implementation-specific
+       ;; artifact is blocked/omitted.
+       (when (and (artifact-implementation artifact) (not (null? other-impl*)))
+         (log/warn "Could not construct a filename for "
+                   (r6rs-library-name artifact)))
        (log/trace "Empty result from "
                   `(make-r6rs-library-filenames ',(r6rs-library-name artifact)
                                                 ',(artifact-implementation artifact)
