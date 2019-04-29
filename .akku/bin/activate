@@ -10,6 +10,7 @@ export YPSILON_SITELIB="$PWD/.akku/lib";
 export LARCENY_LIBPATH="$PWD/.akku/lib";
 export IRONSCHEME_LIBRARY_PATH="$PWD/.akku/lib";
 export CHIBI_MODULE_PATH="$PWD/.akku/lib";
+export GAUCHE_LOAD_PATH="$PWD/.akku/lib";
 export PATH=$PWD/.akku/bin:$PATH;
 export LD_LIBRARY_PATH=$PWD/.akku/ffi${LD_LIBRARY_PATH:+:}$LD_LIBRARY_PATH;
 export DYLD_LIBRARY_PATH=$PWD/.akku/ffi${DYLD_LIBRARY_PATH:+:}$DYLD_LIBRARY_PATH;

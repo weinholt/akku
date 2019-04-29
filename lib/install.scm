@@ -799,6 +799,7 @@
                "export IRONSCHEME_LIBRARY_PATH=\"$PWD/" lib "\";" nl ;nonstandard
                ;; R7RS
                "export CHIBI_MODULE_PATH=\"$PWD/" lib7 "\";" nl
+               "export GAUCHE_LOAD_PATH=\"$PWD/" lib7 "\";" nl
                "export PATH=$PWD/.akku/bin:$PATH;" nl
                ;; For Linux
                "export LD_LIBRARY_PATH=$PWD/" ffi "${LD_LIBRARY_PATH:+:}$LD_LIBRARY_PATH;" nl
@@ -831,6 +832,7 @@
                "set --export IRONSCHEME_LIBRARY_PATH \"$PWD/" lib "\"" nl  ;nonstandard
                ;; R7RS
                "set --export CHIBI_MODULE_PATH \"$PWD/" lib7 "\"" nl
+               "set --export GAUCHE_LOAD_PATH \"$PWD/" lib7 "\"" nl
                "set --export --prepend PATH $PWD/.akku/bin" nl
                ;; For Linux
                "set --export --prepend LD_LIBRARY_PATH $PWD/" ffi nl

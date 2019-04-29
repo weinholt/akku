@@ -62,10 +62,11 @@ How to get started with a new project:
  - Run `.akku/env` to get a shell in an environment that uses the
    programs and libraries in `.akku`.
 
-The installed libraries and programs should now be available to you,
-assuming you use one of these Schemes: Chez Scheme, GNU Guile (with
-R6RS settings), Ikarus, Larceny, Mosh, Racket (plt-r6rs), Sagittarius,
-Vicare or Ypsilon.
+The installed libraries should now be in the load path of Chez Scheme,
+GNU Guile (with R6RS settings), Ikarus, Larceny, Mosh, Racket
+(plt-r6rs), Sagittarius, Vicare and Ypsilon. Original R7RS libraries
+will be available to Chibi, Gauche, Larceny and Sagittarius. Any
+installed programs are available in your shell's path.
 
 Your users can unpack your source code and run `akku install` to get
 the same dependencies that you used during development.
