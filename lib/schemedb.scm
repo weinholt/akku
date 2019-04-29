@@ -323,6 +323,8 @@
 ;; implementations.
 (define (r6rs-library-block-for-implementations lib-name)
   (match lib-name
+    [('srfi 'private 'registry)
+     '(ironscheme)]
     [('srfi (? colon-name? :srfi-n) . _)
      (let* ((:srfi-n (symbol->string :srfi-n))
             (srfi-n (string->number (substring :srfi-n 1 (string-length :srfi-n)))))
