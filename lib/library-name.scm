@@ -1,5 +1,5 @@
 ;;; Copyright (c) 2006, 2007 Abdulaziz Ghuloum and Kent Dybvig
-;;; Copyright © 2017, 2018 Göran Weinholt <goran@weinholt.se>
+;;; Copyright © 2017, 2018, 2019 Göran Weinholt <goran@weinholt.se>
 ;;; SPDX-License-Identifier: MIT
 ;;;
 ;;; Permission is hereby granted, free of charge, to any person obtaining a
@@ -31,6 +31,7 @@
     library-name->file-name/larceny
     library-name->file-name/psyntax
     library-name->file-name/racket
+    library-name->file-name/ypsilon
     library-name->file-name-variant
     library-name->file-name-variant/r7rs)
   (import
@@ -240,6 +241,38 @@
         (f (cdr ls))))
     (extract)))
 
+;; XXX: Ypsilon also tries to append 'main to all library names.
+(define (library-name->file-name/ypsilon ls)
+  (let-values (((p extract) (open-string-output-port)))
+    (define (display-hex n)
+      (cond
+        ((<= 0 n 9) (display n p))
+        (else (write-char
+               (integer->char
+                (+ (char->integer #\a)
+                   (- n 10)))
+               p))))
+    (let f ((x (car ls)) (ls (cdr ls)))
+      (write-char #\/ p)
+      (let ([name (symbol->string x)])
+        (for-each
+         (lambda (n)
+           (let ([c (integer->char n)])
+             (cond
+               ((or (char<=? #\a c #\z)
+                    (char<=? #\A c #\Z)
+                    (char<=? #\0 c #\9)
+                    (memv c '(#\- #\+ #\_)))
+                (write-char c p))
+               (else
+                (write-char #\% p)
+                (display-hex (quotient n 16))
+                (display-hex (remainder n 16))))))
+         (bytevector->u8-list (string->utf8 name)))
+        (when (pair? ls)
+          (f (car ls) (cdr ls)))))
+    (extract)))
+
 (define (library-name->file-name-variant implementation)
   (case implementation
     ((chezscheme)
@@ -254,6 +287,8 @@
      library-name->file-name/guile)
     ((larceny)
      library-name->file-name/larceny)
+    ((ypsilon)
+     library-name->file-name/ypsilon)
     (else                               ;default fallback
      library-name->file-name/chezscheme)))
 

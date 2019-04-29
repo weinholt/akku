@@ -1,6 +1,6 @@
 #!/usr/bin/env scheme-script
 ;; -*- mode: scheme; coding: utf-8 -*- !#
-;; Copyright © 2018 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2018, 2019 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -33,6 +33,8 @@
 (test-error (library-name->file-name/psyntax '(foldling shorthand λ)))
 (test-equal "/foldling/shorthand/%ce%bb"
             (library-name->file-name/racket '(foldling shorthand λ)))
+(test-equal "/foldling/shorthand/%ce%bb"
+            (library-name->file-name/ypsilon '(foldling shorthand λ)))
 (test-end)
 
 (test-begin "libname-guile")
@@ -57,6 +59,19 @@
             (library-name->file-name/larceny '(srfi :1 lists foo)))
 (test-equal "/foldling/shorthand/λ"
             (library-name->file-name/larceny '(foldling shorthand λ)))
+(test-end)
+
+(test-begin "libname-ypsilon")
+(test-equal "/srfi"
+            (library-name->file-name/ypsilon '(srfi)))
+(test-equal "/srfi/%3a1"
+            (library-name->file-name/ypsilon '(srfi :1)))
+(test-equal "/srfi/%3a1/lists"
+            (library-name->file-name/ypsilon '(srfi :1 lists)))
+(test-equal "/srfi/%3a1/lists/foo"
+            (library-name->file-name/ypsilon '(srfi :1 lists foo)))
+(test-equal "/foo/b%2er/_+-"
+            (library-name->file-name/ypsilon '(foo b.r _+-)))
 (test-end)
 
 
