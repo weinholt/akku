@@ -299,7 +299,7 @@
     (vicare . (0 1 2 6 8 9 11 13 14 16 19 23 25 26 27 28 31 37
                  38 39 41 42 43 45 48 61 64 67 69 78 98 99 101
                  106 111 112 113 114 115 116))
-    (ypsilon . (1 6 8 9 13 14 19 26 27 28 38 39 41 42 48 98))))
+    (ypsilon . (1 6 8 #;9 13 14 19 26 27 28 38 39 41 42 48 98))))
 
 ;; Implementations for which the library should be omitted from normal
 ;; installation procedures.
