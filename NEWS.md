@@ -1,5 +1,30 @@
 # Akku.scm release notes
 
+## Version 0.5.1
+
+This release blocks installation of some SRFI libraries for some
+Scheme implementations. SRFIs are often provided by the
+implementations themselves, but when Akku installed another version of
+a SRFI library the practical result was that many SRFIs stopped
+working. To fix this, Akku now avoids installing a SRFI when an
+implementation already provides a working version of it. This improves
+compatibility with Larceny, IronScheme, Sagittarius and Ypsilon.
+
+Akku now sets the load path for Gauche to allow loading of R7RS
+libraries.
+
+There is now support for the library-to-filename mapping of Ypsilon.
+
+Docker images, autobuilt by Docker hub, are now provided that contain
+Akku along with a Scheme implementation. Images are available with
+Chez Scheme, Guile, Ikarus, IronScheme, Larceny, Racket, Sagittarius,
+Vicare and Ypsilon. See the relevant [FAQ entry][FAQ] in the Akku wiki
+for more information on how to use them in CI testing.
+
+Thanks to Daniel Szmulewicz for contributing to this release.
+
+  [FAQ]: https://gitlab.com/akkuscm/akku/wikis/FAQ
+
 ## Version 0.5.0
 
 This release is the first to mirror R7RS libraries
