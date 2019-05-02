@@ -63,4 +63,4 @@
   (define (string-concatenate ls) (apply string-append ls))
   (define (string-concatenate-reverse ls)
     (string-concatenate (reverse ls)))
-  (include/resolve ("srfi" "%3a115") "regexp.scm"))
+  (include/resolve ("srfi" "%3a115") "regexp-impl.scm"))

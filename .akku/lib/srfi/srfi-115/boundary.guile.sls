@@ -6,4 +6,6 @@
     char-set:hangul-lv char-set:hangul-lvt)
   (import (rnrs) (srfi :14 char-sets) (srfi private include))
   (define (immutable-char-set cs) cs)
-  (include/resolve ("srfi" "%3a115" "regexp") "boundary.scm"))
+  (include/resolve
+    ("srfi" "%3a115" "regexp")
+    "boundary-impl.scm"))

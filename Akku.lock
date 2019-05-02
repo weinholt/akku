@@ -4,7 +4,7 @@
 (projects
  ((name "chez-srfi")
    (location (git "https://github.com/arcfide/chez-srfi"))
-   (revision "f704590f54f982d98c004e5ed3e55359ecab12e1"))
+   (revision "daf5ebd67ef36fd2388d6a62e278ba8d04b11abf"))
  ((name "compression")
    (location
      (git "https://github.com/weinholt/compression.git"))

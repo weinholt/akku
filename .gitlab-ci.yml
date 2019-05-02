@@ -2,12 +2,20 @@ image: "weinholt/chezscheme"
 
 variables:
   AKKU_LOG_LEVEL: "info"
+  AKKU_CACHE_DIR: "$CI_PROJECT_DIR/.cache/akku"
+
+cache:
+  key: "$CI_JOB_STAGE-$CI_COMMIT_REF_SLUG"
+  paths:
+    - .akku/src
+    - .cache/akku
 
 build:debian:
   stage: build
   before_script:
     - apt-get update -qq
-    - apt-get install -qq curl git xz-utils
+    - apt-get install --no-install-recommends -qq git xz-utils
+    - apt-get install -qq curl
     - eval $(.akku/env -s)
     - mkdir -p ~/.akku/share/keys.d
     - cp akku-archive-*.gpg ~/.akku/share/keys.d
