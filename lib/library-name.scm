@@ -31,6 +31,7 @@
     library-name->file-name/larceny
     library-name->file-name/psyntax
     library-name->file-name/racket
+    library-name->file-name/sagittarius
     library-name->file-name/ypsilon
     library-name->file-name-variant
     library-name->file-name-variant/r7rs)
@@ -273,22 +274,50 @@
           (f (car ls) (cdr ls)))))
     (extract)))
 
+(define (library-name->file-name/sagittarius ls)
+  (let-values (((p extract) (open-string-output-port)))
+    (define (display-hex n)
+      (cond
+        ((<= 0 n 9) (display n p))
+        (else (write-char
+               (integer->char
+                (+ (char->integer #\a)
+                   (- n 10)))
+               p))))
+    (let f ((x (car ls)) (ls (cdr ls)))
+      (write-char #\/ p)
+      (let ([name (symbol->string x)])
+        (for-each
+         (lambda (c)
+           (when (char=? c #\nul)
+             (assertion-violation 'library-name->file-name/sagittarius
+                                  "NUL characters are not supported" c))
+           (let ([n (char->integer c)])
+             (cond
+               ((not (memv c '(#\/ #\\ #\: #\* #\? #\" #\< #\> #\|)))
+                (write-char c p))
+               (else
+                (when (> n #x7f)
+                  (assertion-violation 'library-name->file-name/sagittarius
+                                       "Characters above U+007F are not supported" c))
+                (write-char #\% p)
+                (display-hex (quotient n 16))
+                (display-hex (remainder n 16))))))
+         (string->list name))
+        (when (pair? ls)
+          (f (car ls) (cdr ls)))))
+    (extract)))
+
 (define (library-name->file-name-variant implementation)
   (case implementation
-    ((chezscheme)
-     library-name->file-name/chezscheme)
-    ((ikarus)
-     library-name->file-name/ikarus)
-    ((ironscheme)
-     library-name->file-name/ironscheme)
-    ((mzscheme)
-     library-name->file-name/racket)
-    ((guile)
-     library-name->file-name/guile)
-    ((larceny)
-     library-name->file-name/larceny)
-    ((ypsilon)
-     library-name->file-name/ypsilon)
+    ((chezscheme) library-name->file-name/chezscheme)
+    ((guile) library-name->file-name/guile)
+    ((ikarus) library-name->file-name/ikarus)
+    ((ironscheme) library-name->file-name/ironscheme)
+    ((larceny) library-name->file-name/larceny)
+    ((mzscheme) library-name->file-name/racket)
+    ((sagittarius) library-name->file-name/sagittarius)
+    ((ypsilon) library-name->file-name/ypsilon)
     (else                               ;default fallback
      library-name->file-name/chezscheme)))
 
