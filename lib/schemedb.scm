@@ -211,7 +211,7 @@
     chicken
     cyclone
     foment
-    guache
+    gauche
     kawa
     larceny
     rapid-scheme
@@ -251,6 +251,10 @@
             [(rapid-scheme)
              '(posix rapid-scheme)]
             [else '()])
+          (if (or (not implementation-name)
+                  (memq implementation-name r6rs-implementation-names))
+              '(r6rs syntax-case)
+              '())
           (cons implementation-name always-supported)))
 
 (define (colon-name? x)
