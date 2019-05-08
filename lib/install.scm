@@ -137,8 +137,11 @@
       (log/debug "Excluding " name " from implementations " block-by-exclusion))
     (cond
       (implementation
-       ;; Implementation-specific libraries are never blocked.
-       (make-filenames name implementation (list implementation)))
+       ;; Implementation-specific library.
+       (if (or (memq implementation block-by-omission)
+               (memq implementation block-by-exclusion))
+           '()
+           (make-filenames name implementation (list implementation))))
       ((pair? block-by-exclusion)
        ;; Block installation for some implementations. Done by
        ;; installing with names exclusive to all other known
@@ -466,11 +469,11 @@
                                        other-impl*)))
     (cond
       ((null? library-locations)
-       ;; Do not emit a warning when the implementation-specific
-       ;; artifact is blocked/omitted.
-       (when (and (artifact-implementation artifact) (not (null? other-impl*)))
-         (log/warn "Could not construct a filename for "
-                   (r6rs-library-name artifact)))
+       (log/debug "No library location for "
+                  (r6rs-library-name artifact)
+                  (cond ((artifact-implementation artifact) =>
+                         (lambda (impl) (cat " for " impl)))
+                        (else "")))
        (log/trace "Empty result from "
                   `(make-r6rs-library-filenames ',(r6rs-library-name artifact)
                                                 ',(artifact-implementation artifact)
