@@ -265,7 +265,7 @@
                (r6rs-library-name artifact))))
 
 ;; Scan a file for includes, to see which files belong together.
-(define (scan-for-includes/r6rs form realpath)
+(define (scan-for-includes/r6rs form lib-name realpath)
   ;; XXX: Note that this implementation can find includes which are in
   ;; quoted datums or contexts where the include form is not bound,
   ;; but this is not terribly important.
@@ -320,9 +320,7 @@
                                    form)))
     ;; Chez Scheme
     (('include (? string? fn))
-     (list (make-include-reference (make-path '() fn #f)
-                                   (make-pkgpath '() fn #f)
-                                   #f form)))
+     (list (mk-relative-include fn #f form lib-name realpath)))
     ;; GNU Guile
     (('include-from-path (? string? fn))
      (list (make-include-reference (make-path '() fn #f)
@@ -332,32 +330,32 @@
      '())
     ((? list? e*)
      (append-map (lambda (e)
-                   (scan-for-includes/r6rs e realpath))
+                   (scan-for-includes/r6rs e lib-name realpath))
                  e*))
     (else '())))
 
 ;; Scan an R7RS asset (included file) for includes
-(define (scan-for-includes/r7rs form asset realpath)
+(define (scan-for-includes/r7rs form lib-name realpath)
   (match form
     (((and (or 'include 'include-ci) include) (? string? fn))
-     (list (mk-r7rs-include fn
-                            (if (eq? include 'include-ci) 'foldcase #f)
-                            form (and (r7lib? asset) (r7lib-name asset))
-                            realpath)))
+     (list (mk-relative-include fn
+                                (if (eq? include 'include-ci) 'foldcase #f)
+                                form lib-name
+                                realpath)))
     (((or 'include/resolve 'include-file 'include-file/downcase 'include-from-path) . _)
      ;; Other forms of includes can appear in R7RS libraries that have
      ;; been manually ported to an R6RS implementation.
-     (scan-for-includes/r6rs form realpath))
+     (scan-for-includes/r6rs form lib-name realpath))
     (('quote _)
      '())
     ((? list? e*)
      (append-map (lambda (e)
-                   (scan-for-includes/r7rs e asset realpath))
+                   (scan-for-includes/r7rs e lib-name realpath))
                  e*))
     (else '())))
 
 ;; Makes an include-reference for an R7RS-style include.
-(define (mk-r7rs-include filename conversion original-include-spec from-lib-name from-realpath)
+(define (mk-relative-include filename conversion original-include-spec from-lib-name from-realpath)
   (let ((target-path
          ;; Decide where to install the file. The filename in the
          ;; include form is relative to the location of the file where
@@ -399,7 +397,7 @@
 
 ;; Recursively scan for included files while gathering assets for an
 ;; artifact.
-(define (recursive-r7-include-scan lib realpath)
+(define (recursive-r7-include-scan maybe-lib realpath)
   (define include* '())
   (define (scan-one realpath)
     (cond
@@ -412,7 +410,8 @@
        (log/trace "Scanning " (wrt realpath) " for includes...")
        (let ((asset-body `(begin ,@(read-file/tolerant realpath))))
          (let ((extra-include*
-                (scan-for-includes/r7rs asset-body lib realpath)))
+                (scan-for-includes/r7rs asset-body (and (r7lib? maybe-lib) (r7lib-name maybe-lib))
+                                        realpath)))
            (for-each (lambda (incl)
                        (scan-one (include-reference-realpath incl)))
                      extra-include*)
@@ -427,11 +426,11 @@
   (define (parse-library-declaration decl import* include* export*)
     (cond
       ((r7include? decl)
-       (let* ((incl (mk-r7rs-include (r7include-target-filename decl)
-                                     (if (r7include-ci? decl) 'foldcase #f)
-                                     (r7include-original-expr decl)
-                                     (r7lib-name lib)
-                                     (r7include-source-filename decl)))
+       (let* ((incl (mk-relative-include (r7include-target-filename decl)
+                                         (if (r7include-ci? decl) 'foldcase #f)
+                                         (r7include-original-expr decl)
+                                         (r7lib-name lib)
+                                         (r7include-source-filename decl)))
               (include* (delete-duplicates
                          (append (cons incl include*)
                                  (recursive-r7-include-scan lib (include-reference-realpath incl)))
@@ -636,7 +635,7 @@
                 (block-for-impl* (r6rs-library-block-for-implementations name))
                 (omit-for-impl* (r6rs-library-omit-for-implementations name))
                 (name-mangling* (r6rs-library-name-mangle name)))
-           (let ((include* (scan-for-includes/r6rs body* realpath)))
+           (let ((include* (scan-for-includes/r6rs body* name realpath)))
              (cons (make-r6rs-library path path-list form-index (eof-object? next-datum)
                                       parsed-import-spec* include*
                                       implementation-name name
@@ -720,7 +719,7 @@
                           [(_ _ . rest*) (lp rest*)]
                           [else '()])))
              (include* (scan-for-includes/r6rs `(begin ,@(read-file/tolerant realpath))
-                                               realpath)))
+                                               name realpath)))
          (list (make-module path path-list form-index #t
                             imports include* 'guile name))))
       (('module (? symbol? name) (export* ...) body* ...)
@@ -728,7 +727,7 @@
        ;; basically anywhere, making them very difficult to support
        ;; completely. XXX: Can also match for Chicken modules.
        (let ((import* '())
-             (include* (scan-for-includes/r6rs body* realpath)))
+             (include* (scan-for-includes/r6rs body* (list name) realpath)))
          (list (make-module path path-list form-index (eof-object? next-datum)
                             import* include* 'chezscheme name))))
       (_                           ;some type of module or bare source
@@ -757,7 +756,7 @@
                 (include* (let lp ((include* '()) (datum next-datum))
                             (if (eof-object? datum)
                                 include*
-                                (lp (append (scan-for-includes/r6rs datum realpath)
+                                (lp (append (scan-for-includes/r6rs datum #f realpath)
                                             include*)
                                     (read-datum reader))))))
             (list (make-r6rs-program path path-list form-index #t parsed-import-spec* include*
@@ -806,7 +805,7 @@
 
 ;; Examine files rejected by examine-source-file
 (define (examine-other-file realpath path path-list)
-    (define (maybe-legal)
-      (and (regexp-matches rx-legal-notice-filename path)
-           (list (make-legal-notice-file path path-list))))
-    (maybe-legal)))
+  (define (maybe-legal)
+    (and (regexp-matches rx-legal-notice-filename path)
+         (list (make-legal-notice-file path path-list))))
+  (maybe-legal)))
