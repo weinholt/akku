@@ -53,8 +53,8 @@
             ;; git://github.com/weinholt/akku.git
             ((regexp-matches (rx "git://" ($ (+ any))) url)
              => (lambda (m) url))
-            ;; ssh://git@github.com[:/]weinholt/akku.git
-            ((regexp-matches (rx "ssh://git@" ($ (or "github.com" "gitlab.com"))
+            ;; [ssh://]git@github.com[:/]weinholt/akku.git
+            ((regexp-matches (rx (?? "ssh://") "git@" ($ (or "github.com" "gitlab.com"))
                                  (or ":" "/") ($ (+ any))) url)
              => (lambda (m)
                   (string-append "https://" (regexp-match-submatch m 1) "/"
@@ -68,19 +68,23 @@
         (version-tag (or tag-override (string-append "v" version)))
         (head-revision (git-rev-parse base-directory "HEAD"))
         (pull-url (guess-public-git-location base-directory)))
+    (when (equal? head-revision "HEAD")
+      (error 'get-git-lock "HEAD must point to a revision (please checkout a pushed branch)"))
     (unless (or declared-location pull-url)
-      (error 'get-git-lock "The git location must be added to Akku.manifest"))
-    (cond ((member version-tag version-tags)
-           (let ((revision (git-rev-list/first base-directory version-tag)))
-             (unless (string=? head-revision revision)
-               (log/warn "Publishing tag that does not match the branch HEAD"))
-             `((location ,(or declared-location `(git ,pull-url)))
-               (tag ,version-tag)
-               (revision ,revision))))
-          (else
-           (log/info "Publishing untagged release")
-           `((location (git ,pull-url))
-             (revision ,head-revision))))))
+      (error 'get-git-lock
+             "Unrecognized remote; please add it to Akku.manifest as (location (git \"<pull-url>\"))"))
+    (let ((location (or declared-location `(git ,pull-url))))
+      (cond ((member version-tag version-tags)
+             (let ((revision (git-rev-list/first base-directory version-tag)))
+               (unless (string=? head-revision revision)
+                 (log/warn "Publishing tag that does not match the branch HEAD"))
+               `((location ,location)
+                 (tag ,version-tag)
+                 (revision ,revision))))
+            (else
+             (log/info "Publishing untagged release")
+             `((location ,location)
+               (revision ,head-revision)))))))
 
 (define (package-filename pkg)
   (string-append (sanitized-name (package-name pkg)) "_"

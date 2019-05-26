@@ -96,7 +96,7 @@
   (let ((version-number (car (assq-ref version-spec 'version))))
     (make-version version-number (string->semver version-number)
                   ;; For install
-                  (assq-ref version-spec 'lock)
+                  (assq-ref version-spec 'lock '())
                   ;; For lock
                   (assq-ref version-spec 'depends '())
                   (assq-ref version-spec 'depends/dev '())
@@ -129,7 +129,9 @@
                 (or (member license-expr '("NONE" "NOASSERTION"))
                     (parse-license-expression license-expr))) ;TODO: validate
               (let* ((ver (parse-version `((version ,(or version-override version))
-                                           (lock ,(assq 'location prop*))
+                                           ,@(if (assq 'location prop*)
+                                                 `((lock ,(assq 'location prop*)))
+                                                 '())
                                            ,@prop*)))
                      (pkg (make-package (if mangle-names?
                                             `(in-manifest: ,name)

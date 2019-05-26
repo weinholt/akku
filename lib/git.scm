@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2017-2018 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2017-2019 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -35,6 +35,7 @@
     git-remote-get-url)
   (import
     (rnrs (6))
+    (only (srfi :13 strings) string-trim-right)
     (only (spells filesys) file-directory?)
     (only (akku private compat) open-process-ports putenv)
     (only (akku lib utils) string-split path-join run-command))
@@ -133,7 +134,7 @@
   (putenv "GIT_DIR" ".git")
   (putenv "AKKU_DIR" directory)
   (let ((output (get-command-output "cd \"$AKKU_DIR\" && exec git remote")))
-    (string-split output #\newline)))
+    (string-split (string-trim-right output #\newline) #\newline)))
 
 (define (git-remote-get-url directory remote)
   (putenv "GIT_DIR" ".git")
