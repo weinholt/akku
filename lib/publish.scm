@@ -53,9 +53,9 @@
             ;; git://github.com/weinholt/akku.git
             ((regexp-matches (rx "git://" ($ (+ any))) url)
              => (lambda (m) url))
-            ;; git@github.com:weinholt/akku.git
-            ((regexp-matches (rx "git@" ($ (or "github.com" "gitlab.com"))
-                                 ":" ($ (+ any))) url)
+            ;; ssh://git@github.com[:/]weinholt/akku.git
+            ((regexp-matches (rx "ssh://git@" ($ (or "github.com" "gitlab.com"))
+                                 (or ":" "/") ($ (+ any))) url)
              => (lambda (m)
                   (string-append "https://" (regexp-match-submatch m 1) "/"
                                  (regexp-match-submatch m 2))))
