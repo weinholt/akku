@@ -54,7 +54,7 @@
 
 (define (filename->component filename)
   (match (string-split filename #\.)
-    ((lib-name (or "ss" "sls" "scm" "sch" "sld")) (string->symbol lib-name))
+    ((lib-name (or "ss" "sls" "scm" "sch" "sld" "sc")) (string->symbol lib-name))
     ((lib-name _impl (or "ss" "sls" "scm")) (string->symbol lib-name))
     ((program-name "sps") (string->symbol program-name))
     ((program-name _impl "sps") (string->symbol program-name))
