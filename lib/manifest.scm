@@ -129,7 +129,7 @@
                 (or (member license-expr '("NONE" "NOASSERTION"))
                     (parse-license-expression license-expr))) ;TODO: validate
               (let* ((ver (parse-version `((version ,(or version-override version))
-                                           (lock #f)
+                                           (lock ,(assq 'location prop*))
                                            ,@prop*)))
                      (pkg (make-package (if mangle-names?
                                             `(in-manifest: ,name)

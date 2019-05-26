@@ -63,18 +63,18 @@
              (lp (cdr remote*))))))))
 
 ;; Finds information to put into the lock part of the package index.
-(define (get-git-lock base-directory version tag-override)
+(define (get-git-lock declared-location base-directory version tag-override)
   (let ((version-tags (git-tag-list base-directory "v*"))
         (version-tag (or tag-override (string-append "v" version)))
         (head-revision (git-rev-parse base-directory "HEAD"))
         (pull-url (guess-public-git-location base-directory)))
-    (unless pull-url
+    (unless (or declared-location pull-url)
       (error 'get-git-lock "The git location must be added to Akku.manifest"))
     (cond ((member version-tag version-tags)
            (let ((revision (git-rev-list/first base-directory version-tag)))
              (unless (string=? head-revision revision)
                (log/warn "Publishing tag that does not match the branch HEAD"))
-             `((location (git ,pull-url))
+             `((location ,(or declared-location `(git ,pull-url)))
                (tag ,version-tag)
                (revision ,revision))))
           (else
@@ -151,9 +151,13 @@
        (when tag-override
          (log/info "Tag override: " tag-override))
        (let* ((version (car (package-version* (car package*))))
+              (declared-location (cond
+                                   ((assq 'location (version-lock version))  =>
+                                    cadr)
+                                   (else #f)))
               (lock (cond
                       ((is-git-repository? base-directory)
-                       (get-git-lock base-directory (version-number version) tag-override))
+                       (get-git-lock declared-location base-directory (version-number version) tag-override))
                       (else
                        (error 'publish-packages
                               "Publishing from non-git repositories is not yet supported")))))
