@@ -1,5 +1,5 @@
 #!r6rs ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2009, 2010, 2012 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2009, 2010, 2012, 2019 Göran Weinholt <goran@weinholt.se>
 
 ;; Permission is hereby granted, free of charge, to any person obtaining a
 ;; copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 ;; The Digital Signature Algorithm from FIPS Pub 186.
 
 (library (industria crypto dsa)
-  (export make-dsa-public-key dsa-public-key?
+  (export make-dsa-public-key dsa-public-key? dsa-public-key=?
           dsa-public-key-p
           dsa-public-key-q
           dsa-public-key-g
@@ -61,6 +61,14 @@
     (opaque #t)
     (nongenerative dsa-private-key-ec67dd75-be57-42ac-b8ed-95bc893a80db)
     (fields p q g y x))
+
+  (define (dsa-public-key=? a b)
+    (for-all (lambda (f)
+               (equal? (f a) (f b)))
+             (list dsa-public-key-p
+                   dsa-public-key-q
+                   dsa-public-key-g
+                   dsa-public-key-y)))
 
   (define (dsa-public-key-length key)
     (bitwise-length (dsa-public-key-p key)))

@@ -13,7 +13,7 @@
   (homepage "https://akkuscm.org/")
   (license "GPL-3.0-or-later")
   (depends ("chez-srfi" "~0.0.0-akku.82")
-           ("industria" "^2.0.0")
+           ("industria" "^2.1.0")
            ("spells" "~0.0.0-akku")
            ("semver" "^1.0.0")
            ("spdx" "^1.0.0")
