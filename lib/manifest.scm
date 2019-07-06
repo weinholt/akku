@@ -40,13 +40,22 @@
     (srfi :39 parameters)
     (semver versions)
     (only (spells filesys) rename-file)
+    (spdx ids)
     (spdx parser)
     (wak fmt)
     (xitomatl alists)
     (xitomatl AS-match)
     (only (xitomatl common) pretty-print)
     (only (akku private compat) getcwd)
-    (only (akku lib utils) split-path get-realname))
+    (only (akku lib utils) split-path get-realname)
+    (akku private logging))
+
+(define logger:akku.manifest (make-logger logger:akku 'manifest))
+(define log/info (make-fmt-log logger:akku.manifest 'info))
+(define log/error (make-fmt-log logger:akku.manifest 'error))
+(define log/warn (make-fmt-log logger:akku.manifest 'warning))
+(define log/debug (make-fmt-log logger:akku.manifest 'debug))
+(define log/trace (make-fmt-log logger:akku.manifest 'trace))
 
 (define default-manifest-name
   (make-parameter (string-downcase (cdr (split-path (getcwd))))))
@@ -111,6 +120,38 @@
                   ;; For various parts of the system
                   (assq-ref version-spec 'scripts '()))))
 
+(define (validate-license-expr package-name expr)
+  (define (is-deprecated? id)
+    (cond ((license id) =>
+           (lambda (license-data)
+             (assq-ref license-data 'deprecated? #f)))
+          (else #f)))
+  (match expr
+    [(or ('or id0 id1) ('and id0 id1))
+     (validate-license-expr package-name id0)
+     (validate-license-expr package-name id1)]
+    [('with id exc)
+     (validate-license-expr package-name id)
+     (unless (license-exception exc)
+       (log/warn "Unknown SPDX license exception in package " (wrt package-name) ": "
+                 (wrt exc)))]
+    [('user-defined _ _)
+     #t]
+    [('+ (? string? id))
+     (unless (license id)
+       (log/warn "Unknown SPDX license id in package " (wrt package-name) ": "
+                 (wrt id)))
+     (when (is-deprecated? (string-append id "+"))
+       (log/warn "Deprecated SPDX license identifier in package " (wrt package-name) ": "
+                 (wrt (string-append id "+"))))]
+    [(? string? id)
+     (unless (license id)
+       (log/warn "Unknown SPDX license id in package " (wrt package-name) ": "
+                 (wrt id)))
+     (when (is-deprecated? id)
+       (log/warn "Deprecated SPDX license identifier in package " (wrt package-name) ": "
+                 (wrt id)))]))
+
 ;; Read the packages in the manifest. Optionally mangle names so they
 ;; don't get mixed up with names in the index. Optionally override the
 ;; version number.
@@ -126,8 +167,17 @@
              (('akku-package (name version) prop* ...)
               (assert (not (member name name*)))
               (let ((license-expr (car (assq-ref prop* 'license))))
-                (or (member license-expr '("NONE" "NOASSERTION"))
-                    (parse-license-expression license-expr))) ;TODO: validate
+                (cond
+                  ((member license-expr '("NONE" "NOASSERTION")))
+                  ((guard (exn
+                           ((and (who-condition? exn)
+                                 (eq? (condition-who exn) 'string->semver-range))
+                            #f))
+                     (parse-license-expression license-expr))
+                   => (lambda (expr)
+                        (validate-license-expr name expr)))
+                  (else
+                   (error 'read-manifest "Invalid SPDX license identifier" name license-expr))))
               (let* ((ver (parse-version `((version ,(or version-override version))
                                            ,@(if (assq 'location prop*)
                                                  `((lock ,(assq 'location prop*)))
