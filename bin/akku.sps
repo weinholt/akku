@@ -103,6 +103,7 @@
        "   akku dependency-scan <filename>+ - print source code dependencies" nl
        "   akku license-scan <filename>+ - scan dependencies for notices" nl
        "   akku archive-scan <directory>+ - generate a package index" nl
+       "   akku compat-scan <filename>+ - analyze implementation compatibility" nl
        nl
        " [*]: This command may make network requests." nl
        nl
@@ -258,6 +259,12 @@ your implementation.") nl))
     (cmd-help))
   (archive-scan arg*))
 
+(define (cmd-compat-scan arg*)
+  (when (null? arg*)
+    (log/error "At least one program or library entry point must be provided")
+    (cmd-help))
+  (compat-scan lockfile-filename arg*))
+
 (set-logger-properties! logger:akku
                         `((threshold ,(get-log-threshold))
                           (handlers
@@ -300,6 +307,8 @@ your implementation.") nl))
    (cmd-license-scan (cddr (command-line))))
   ((string=? (cadr (command-line)) "archive-scan")
    (cmd-archive-scan (cddr (command-line))))
+  ((string=? (cadr (command-line)) "compat-scan")
+   (cmd-compat-scan (cddr (command-line))))
   (else
    (log/error "Unrecognized command: " (cadr (command-line)))
    (cmd-help)))

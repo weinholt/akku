@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2017-2018 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2017-2019 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -34,11 +34,11 @@
     (akku private utils)
     (akku private logging))
 
-(define logger:akku.init (make-logger logger:akku 'init))
-(define log/info (make-fmt-log logger:akku.init 'info))
-(define log/warn (make-fmt-log logger:akku.init 'warning))
-(define log/debug (make-fmt-log logger:akku.init 'debug))
-(define log/trace (make-fmt-log logger:akku.init 'trace))
+(define logger:akku.scan (make-logger logger:akku 'scan))
+(define log/info (make-fmt-log logger:akku.scan 'info))
+(define log/warn (make-fmt-log logger:akku.scan 'warning))
+(define log/debug (make-fmt-log logger:akku.scan 'debug))
+(define log/trace (make-fmt-log logger:akku.scan 'trace))
 
 (define-record-type package
   (nongenerative)
@@ -204,7 +204,7 @@
     (fmt #t (fmt-join (lambda (a) (cat (fmt-artifact a) nl)) artifact*))
 
     ;; Print dependencies
-    (let-values (((lib-deps lib-deps/test) (find-library-deps artifact*)))
+    (let-values ([(lib-deps lib-deps/test) (find-library-deps artifact*)])
       (letrec ((fmt-deps
                 (lambda (lib-deps)
                   (fmt-join (lambda (lib-name)
@@ -215,6 +215,4 @@
              (fmt-deps lib-deps))
         (unless (null? lib-deps/test)
           (fmt #t nl "External library dependencies for tests:" nl
-               (fmt-deps lib-deps/test)))))
-
-)))
+               (fmt-deps lib-deps/test))))))))

@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2017-2018 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2017-2019 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -22,16 +22,22 @@
   (export
     dependency-scan
     license-scan
+    compat-scan
     logger:akku.bundle)
   (import
     (rnrs (6))
     (only (srfi :1 lists) append-map filter-map delete-duplicates)
+    (only (srfi :67 compare-procedures) <? default-compare)
     (srfi :115 regexp)
     (industria strings)
+    (wak fmt)
+    (wak fmt color)
     (xitomatl AS-match)
     (akku lib file-parser)
     (only (akku lib install) make-r6rs-library-filenames libraries-directory
           file-list-filename)
+    (only (akku lib lock) read-lockfile)
+    (only (akku lib fetch) project-source-directory)
     (akku lib repo-scanner)
     (akku lib schemedb)
     (only (akku lib utils) path-join)
@@ -121,8 +127,8 @@
                                                 "The file is not understood by file-parser"
                                                 filename)))
                                    filenames)))
-    (let-values (((filename->artifact r6rs-lib-name->artifact*)
-                  (scan-installed-artifacts (libraries-directory))))
+    (let-values ([(filename->artifact r6rs-lib-name->artifact*)
+                  (scan-installed-artifacts (libraries-directory))])
       (trace-dependencies filenames files-to-scan (libraries-directory)
                           implementations filename->artifact
                           r6rs-lib-name->artifact* only-first?))))
@@ -138,15 +144,104 @@
                         (hashtable-keys
                          (find-used-source filenames implementations #f))))))
 
-(define (latin-1-filter str)
-  ;; Filter out non-ascii characters since the srif-14 implementation
-  ;; in chez-srfi (in turned used by srfi-115) does not handle unicode.
-  (call-with-string-output-port
-    (lambda (p)
-      (string-for-each (lambda (c)
-                         (unless (fx>? (char->integer c) #x7f)
-                           (put-char p c)))
-                       str))))
+(define (scan-projects-for-artifacts lockfile-location)
+  (let ((lib-name->artifact* (make-hashtable equal-hash equal?)))
+    (for-each (lambda (artifact)
+                (let ((lib-name (cond ((r6rs-library? artifact) (r6rs-library-name artifact))
+                                      ((r7rs-library? artifact) (r7rs-library-name artifact))
+                                      ((module? artifact) (module-name artifact))
+                                      (else #f))))
+                  (when lib-name
+                    (hashtable-update! lib-name->artifact* lib-name
+                                       (lambda (acc) (cons artifact acc))
+                                       '()))))
+              (append (append-map (lambda (project)
+                                    (find-artifacts (project-source-directory project) #f))
+                                  (read-lockfile lockfile-location))
+                      (find-artifacts "." #f)))
+    lib-name->artifact*))
+
+;; Scan the files and their dependencies. Print an analysis of their
+;; implementation compatibility.
+(define (compat-scan lockfile-location filenames)
+
+  (assert (for-all file-exists? filenames))
+  ;; Make a hashtable from library/module names to lists of artifacts
+  (let ((lib-name->artifact* (scan-projects-for-artifacts lockfile-location)))
+    (define (trace artifact implementation used-artifacts missing-lib-names)
+      (unless (hashtable-ref used-artifacts artifact #f)
+        (log/trace "Adding artifact " artifact)
+        (hashtable-set! used-artifacts artifact #t)
+        ;; Recursively add imported artifacts.
+        (for-each
+         (lambda (import)
+           (let ((lib-name (library-reference-name import)))
+             (cond
+               ((or (r6rs-builtin-library? lib-name implementation)
+                    (equal? lib-name '(akku metadata))
+                    (memq implementation (r6rs-library-block-for-implementations lib-name)))
+                (log/trace "Library " (wrt lib-name) " is built-in"))
+               ((hashtable-ref lib-name->artifact* lib-name #f) =>
+                (lambda (artifact*)
+                  (cond ((find (lambda (artifact)
+                                 (let ((for-impl (artifact-implementation artifact)))
+                                   (or (eq? for-impl implementation) (not for-impl))))
+                               artifact*)
+                         => (lambda (imported)
+                              (trace imported implementation
+                                     used-artifacts missing-lib-names)))
+                        ((hashtable-ref missing-lib-names lib-name #f))
+                        (else
+                         (hashtable-set! missing-lib-names lib-name #t)
+                         (log/debug "Missing import " lib-name " for " implementation)))))
+               ((eq? (artifact-implementation artifact) implementation)
+                (log/debug "Missing library for " (wrt lib-name) " used in "
+                           (artifact-path artifact) ", assuming built-in"))
+               (else
+                (log/warn "Could not find import " (wrt lib-name) " for " implementation)))))
+         (artifact-imports artifact))))
+    (let ((files-to-scan (append-map (lambda (filename)
+                                       (or (examine-source-file filename filename '())
+                                           (error 'find-used-source
+                                                  "The file is not understood by file-parser"
+                                                  filename)))
+                                     filenames)))
+      (let ((missing-libs
+             (map (lambda (implementation)
+                    (define used-artifacts (make-eq-hashtable))
+                    (define missing-lib-names (make-hashtable equal-hash equal?))
+                    (log/trace "Tracing dependencies for " implementation)
+                    (hashtable-clear! used-artifacts)
+                    (hashtable-clear! missing-lib-names)
+                    (for-each (lambda (artifact)
+                                (trace artifact implementation
+                                       used-artifacts missing-lib-names))
+                              files-to-scan)
+                    (cons implementation (hashtable-keys missing-lib-names)))
+                  r6rs-implementation-names)))
+        (fmt #t "Summary of compatibility support for:" nl
+             (fmt-join (lambda (fn) (cat " • " fn nl)) filenames)
+             nl)
+        (fmt #t "Supported implementations:" nl)
+        (for-each (match-lambda
+                   [(implementation . #())
+                    (fmt #t (fmt-green (cat " ✓ " implementation)) nl)]
+                   [_ #f])
+                  missing-libs)
+        (fmt #t nl "Unsupported implementations:" nl)
+        (for-each (match-lambda
+                   [(implementation . #()) #f]
+                   [(implementation . _)
+                    (fmt #t (fmt-red (cat " ✗ " implementation)) nl)])
+                  missing-libs)
+        (for-each (match-lambda
+                   [(implementation . #()) #f]
+                   [(implementation . missing)
+                    (vector-sort! (lambda (x y) (<? default-compare x y)) missing)
+                    (fmt #t (cat nl "Missing libraries for " implementation ":" nl
+                                 (fmt-join (lambda (lib) (cat " • " lib nl))
+                                           (vector->list missing))))])
+                  missing-libs)))))
 
 ;; Gather dependencies (as above) and notices and summarize them. It
 ;; would be great if this printed SPDX documents.
@@ -240,27 +335,26 @@
                      (unless (port-eof? p)
                        (let lp-restart ((line0 (get-line p))
                                         (prev-line prev-line))
-                         (let ((filtered (latin-1-filter line0)))
-                           (when (and (or (regexp-search rx-copyright-start filtered)
-                                          (regexp-search rx-copyright-started filtered))
-                                      (not (regexp-matches rx-code-line filtered)))
-                             (print-header)
-                             (when (and prev-line (regexp-search rx-copyright-started filtered))
-                               ;; The author was probably on the previous line.
-                               (display prev-line)
-                               (newline))
-                             (display line0)
-                             (newline)
-                             (let lp-copy ((prev-line prev-line))
-                               (let ((line (get-line p)))
-                                 (cond ((eof-object? line)
-                                        #f)
-                                       ((regexp-matches rx-code-start (latin-1-filter line))
-                                        (lp-restart line prev-line)) ;end of comment
-                                       (else
-                                        (display line)
-                                        (newline)
-                                        (lp-copy line)))))))
+                         (when (and (or (regexp-search rx-copyright-start line0)
+                                        (regexp-search rx-copyright-started line0))
+                                    (not (regexp-matches rx-code-line line0)))
+                           (print-header)
+                           (when (and prev-line (regexp-search rx-copyright-started line0))
+                             ;; The author was probably on the previous line.
+                             (display prev-line)
+                             (newline))
+                           (display line0)
+                           (newline)
+                           (let lp-copy ((prev-line prev-line))
+                             (let ((line (get-line p)))
+                               (cond ((eof-object? line)
+                                      #f)
+                                     ((regexp-matches rx-code-start line)
+                                      (lp-restart line prev-line)) ;end of comment
+                                     (else
+                                      (display line)
+                                      (newline)
+                                      (lp-copy line))))))
                          (lp line0))))
                    (print-footer)))
                (unless printed-header

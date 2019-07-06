@@ -1,6 +1,6 @@
 #!/usr/bin/env scheme-script
 ;; -*- mode: scheme; coding: utf-8 -*- !#
-;; Copyright © 2017-2018 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2017-2019 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 #!r6rs
 
@@ -73,7 +73,7 @@
     (lambda (outp)
       (let-values (((to-stdin from-stdout from-stderr _process-id)
                     (open-process-ports
-                     (string-append "bin/akku license-scan --implementation=chezscheme " source)
+                     (string-append "bin/akku license-scan --implementation=guile,chezscheme " source)
                      (buffer-mode block)
                      (native-transcoder))))
         (when (port-eof? from-stdout)
