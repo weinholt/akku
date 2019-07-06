@@ -19,5 +19,6 @@ akku list
 akku lock
 akku update
 akku lock
+akku compat-scan bin/akku.sps
 
 echo All tests passed
