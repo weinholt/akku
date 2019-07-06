@@ -44,7 +44,7 @@
     logger:akku.lock)
   (import
     (rnrs (6))
-    (only (srfi :1 lists) last iota append-map filter-map)
+    (only (srfi :1 lists) last iota append-map filter-map list-index)
     (only (srfi :13 strings) string-prefix?)
     (only (srfi :67 compare-procedures) <? string-compare-ci)
     (semver versions)
@@ -355,6 +355,45 @@
                  (package-version* pkg)))
      pkg-names pkgs)))
 
+;; Given a package, return just the names of the dependencies.
+(define (package->dependency-package-names package)
+  (append-map
+   (lambda (ver)
+     (append-map
+      (lambda (dep-spec)
+        (let lp ((dep-spec dep-spec))
+          (match dep-spec
+            [('or pkg* ...)
+             (append-map lp pkg*)]
+            [(name (? string? range))
+             (list name)]
+            [(name (? list? prop*) ...)
+             (list name)])))
+      (version-depends ver)))
+   (package-version* package)))
+
+;; Reorder the project list. First install projects which are not
+;; explicitly listed in the manifest, preserving the order used by the
+;; solver. Then install projects mentioned in the manifest, using the
+;; order given in the manifest. (The current project is implictly
+;; installed last).
+(define (reorder-project-list projects manifest-packages)
+  (define dep-names (append-map package->dependency-package-names
+                                manifest-packages))
+  (let-values ([(explicit implicit)
+                (partition
+                 (lambda (project)
+                   (member (project-name (parse-project project))
+                           dep-names))
+                 projects)])
+    (append implicit
+            (list-sort (lambda (p0 p1)
+                         (let ((name0 (project-name (parse-project p0)))
+                               (name1 (project-name (parse-project p1))))
+                           (< (list-index (lambda (x) (equal? x name0)) dep-names)
+                              (list-index (lambda (x) (equal? x name1)) dep-names))))
+                       explicit))))
+
 ;; Write the lockfile.
 (define (write-lockfile lockfile-filename projects dry-run?)
   (call-with-port (if dry-run?
@@ -379,7 +418,6 @@
     (if (file-exists? manifest-filename)
         (read-manifest manifest-filename 'mangle-names #f)
         '()))
-
   (let-values (((db packages) (read-package-index index-filename manifest-packages)))
     (add-package-dependencies db packages manifest-packages dev-mode?)
     (let-values (((version-scores initial-choices) (scores/choices db manifest-packages)))
@@ -388,15 +426,17 @@
                                   `((version-scores . ,version-scores)
                                     (initial-choices . ,initial-choices)))))
         (log/debug (dsp-universe universe))
+        (log/info "Solving dependencies...")
         (let lp ()
           (let ((solution (find-next-solution! solver 10000)))
             (cond
               (solution
-               (let ((projects
-                      (choice-set->project-list packages
-                                                manifest-packages
-                                                initial-choices
-                                                (solution-choices solution))))
+               (let* ((projects
+                       (choice-set->project-list packages
+                                                 manifest-packages
+                                                 initial-choices
+                                                 (solution-choices solution)))
+                      (projects (reorder-project-list projects manifest-packages)))
                  (cond ((not (exists not projects))
                         (write-lockfile lockfile-filename projects dry-run?))
                        (else
