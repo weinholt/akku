@@ -1,5 +1,5 @@
 #!r6rs ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2017, 2018 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2017, 2018, 2019 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: MIT
 
 ;; Permission is hereby granted, free of charge, to any person obtaining a
@@ -31,7 +31,7 @@
     get-token
     read-annotated read-datum
     detect-scheme-file-type
-    make-reader reader-warning
+    reader? make-reader reader-warning
     reader-mode reader-mode-set!
     reader-fold-case? reader-fold-case?-set!
     reader-tolerant? reader-tolerant?-set!
@@ -332,7 +332,7 @@
                (cond ((eof-object? c)
                       (eof-warning p)
                       c)
-                     ((or (memv c '(#\tab #\linefeed #\x0085 #\x2028))
+                     ((or (memv c '(#\tab #\linefeed #\x85 #\x2028))
                           (eq? (char-general-category c) 'Zs))
                       ;; \<intraline whitespace>*<line ending>
                       ;; <intraline whitespace>*
@@ -354,10 +354,10 @@
                                     ;; replace all these linefeeds
                                     ;; with #\linefeed.
                                     (cond ((eof-object? c) c)
-                                          ((memv c '(#\linefeed #\x0085 #\x2028)))
+                                          ((memv c '(#\linefeed #\x85 #\x2028)))
                                           ((char=? c #\return)
                                            (when (memv (lookahead-char p)
-                                                       '(#\linefeed #\x0085))
+                                                       '(#\linefeed #\x85))
                                              (get-char p)))
                                           (else
                                            (reader-warning p "Expected a line ending" c)))))))
@@ -432,11 +432,11 @@
        (let ((c (get-char reader)))
          (unless (eof-object? c)
            (rnrs:put-char out c)
-           (cond ((memv c '(#\linefeed #\x0085 #\x2028 #\x2029)))
+           (cond ((memv c '(#\linefeed #\x85 #\x2028 #\x2029)))
                  ((char=? c #\return)
                   ;; Weird line ending. This lookahead is what forces
                   ;; the procedure to include the terminator.
-                  (when (memv (lookahead-char reader) '(#\linefeed #\x0085))
+                  (when (memv (lookahead-char reader) '(#\linefeed #\x85))
                     (rnrs:put-char out (get-char reader))))
                  (else
                   (lp)))))))))
@@ -505,7 +505,7 @@
                       ((atmosphere? type)
                        (lp (cons (cons type token) atmosphere)))
                       (else
-                       (let-values (((d _) (handle-lexeme p type token #f #t)))
+                       (let-values ([(d _) (handle-lexeme p type token #f #t)])
                          (values 'inline-comment (cons (reverse atmosphere) d))))))))
            ((#\|)                     ;nested comment
             (values 'nested-comment (get-nested-comment p)))
@@ -607,7 +607,7 @@
                                                     ("backspace" #\backspace r6rs r7rs)
                                                     ("tab" #\tab r6rs r7rs)
                                                     ("linefeed" #\linefeed r6rs)
-                                                    ("newline" #\newline r5rs r6rs r7rs)
+                                                    ("newline" #\linefeed r5rs r6rs r7rs)
                                                     ("vtab" #\vtab r6rs)
                                                     ("page" #\page r6rs)
                                                     ("return" #\return r6rs r7rs)

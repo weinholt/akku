@@ -35,6 +35,7 @@
     (compression xz)
     (hashing sha-2)
     (laesare reader)
+    (laesare writer)
     (only (spells filesys) file-directory? file-regular?
           file-symbolic-link? rename-file)
     (wak fmt)
@@ -452,6 +453,58 @@
                          target-pathname))
          alias-targets)))
 
+;; Read an R6RS library from the reader and write it to a file, while
+;; renaming the library.
+(define (rewrite-r6rs-library target-directory target-filename source-pathname new-library-name reader)
+  (let ((target-pathname (path-join target-directory target-filename)))
+    (log/debug "Writing renamed R6RS library to " target-pathname)
+    (check-filename target-pathname (support-windows?))
+    (let ((target-pathname (path-join target-directory target-filename)))
+      (mkdir/recursive target-directory)
+      (when (file-symbolic-link? target-pathname)
+        (delete-file target-pathname))
+      (call-with-output-file/renaming target-pathname
+        (lambda (outp)
+          (let ((writer (make-writer outp target-pathname)))
+            (let loop ((directive-seen #f))
+              (let-values ([(type token) (get-token reader)])
+                (unless (eof-object? token)
+                  (cond ((and (eq? type 'identifier) (eq? token 'library))
+                         ;; Write the new library name.
+                         (put-token writer type token)
+                         (put-token writer 'whitespace " ")
+                         (read-datum reader)
+                         (write new-library-name outp))
+                        ((and (memq type '(openp openb))
+                              (not directive-seen))
+                         ;; Insert the #!r6rs token if it was not
+                         ;; seen. It is required for Racket.
+                         (put-token writer 'directive 'r6rs)
+                         (put-token writer 'whitespace " ")
+                         (put-token writer type token)
+                         (loop #t))
+                        (else
+                         (put-token writer type token)
+                         (loop (or directive-seen
+                                   (and (eq? type 'directive)
+                                        (eq? token 'r6rs)))))))))
+            ;; Copy the rest of the library
+            (let loop ((depth 1))
+              (let-values ([(type token) (get-token reader)])
+                (unless (eof-object? token)
+                  (case type
+                    ((openp openb vector bytevector)
+                     (put-token writer type token)
+                     (loop (+ depth 1)))
+                    ((closep closeb)
+                     (put-token writer type token)
+                     (unless (zero? depth)
+                       (loop (- depth 1))))
+                    (else
+                     (put-token writer type token)
+                     (loop depth))))))))))
+    target-pathname))
+
 ;; Install an R6RS library.
 (define (install-artifact/r6rs-library project artifact related-artifact* srcdir always-symlink?)
   (let* ((other-impl* (filter-map (lambda (artifact^)
@@ -498,13 +551,11 @@
                        (lambda (inp)
                          (let ((reader (make-reader inp fn)))
                            (reader-skip-to-form reader (artifact-form-index artifact))
-                           (let* ((original-lib (read-datum reader))
-                                  (lib `(library ,(r6rs-library-name artifact)
-                                          ,@(cddr original-lib))))
-                             (write-r6rs-library (path-join (libraries-directory) (car target))
+                           (rewrite-r6rs-library (path-join (libraries-directory) (car target))
                                                  (cdr target)
                                                  (artifact-path artifact)
-                                                 lib)))))))
+                                                 (r6rs-library-name artifact)
+                                                 reader))))))
                   ((and always-symlink? (zero? (artifact-form-index artifact))
                         (artifact-last-form? artifact))
                    ;; It's safe to symlink iff the file has a
