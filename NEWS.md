@@ -1,5 +1,48 @@
 # Akku.scm release notes
 
+## Version 1.0.0 (draft)
+
+This release introduces the `compat-scan` command, which scans a
+library or program for implementation compatibility. It is useful to
+find which `.<impl>.sls` files are missing when porting code to a new
+Scheme implementation.
+
+The order of the lockfile (and therefore the order in which packages
+are installed) is now based on the order in the manifest. Packages
+which are not in the manifest are installed first, followed by the
+packages in the manifest (and in the same order), followed by the
+current project. This allows for better control when you want to
+override some library in a package.
+
+This release adds support for Guile's `include-from-path`.
+
+The R7RS support is improved. The file parser recursively scans for
+R7RS includes in order to find include forms in included files. The
+`cond-expand` used in the R7RS -> R6RS conversion now has the features
+`r6rs` and `syntax-case`.
+
+The file extension `.sc`, as used by the package manager Raven, is now
+recognized.
+
+The `(include "filename")` form is now recognized as relative to the
+file containing the form.
+
+SPDX license expressions are now checked for validity and warnings are
+printed for unknown or deprecated license identifiers.
+
+The R6RS library name mangler now preserves the original code layout
+of libraries, including whitespace and comments (such as copyright
+notices).
+
+A bug was fixed in the library to filename mapping for Sagittarius
+Scheme and its list of supported SRFIs is amended.
+
+A crash in the installer was fixed. Libraries that included files
+which could not be found previously caused a crash.
+
+Thanks to Graham Watt, Amirouche Boubekki and Lassi Kortela for
+contributing to this release.
+
 ## Version 0.5.1
 
 This release blocks installation of some SRFI libraries for some
