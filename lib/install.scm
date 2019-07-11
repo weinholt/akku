@@ -770,11 +770,17 @@
 
 ;; Installs an asset, which can be any regular file.
 (define (install-asset asset always-symlink?)
-  (let ((target (split-path (include-reference-path asset))))
-    (list ((if always-symlink? symlink-file copy-file)
-           (path-join (libraries-directory) (car target))
-           (cdr target)
-           (include-reference-realpath asset)))))
+  (cond ((and (include-reference-realpath asset)
+              (file-exists? (include-reference-realpath asset)))
+         (let ((target (split-path (include-reference-path asset))))
+           (list ((if always-symlink? symlink-file copy-file)
+                  (path-join (libraries-directory) (car target))
+                  (cdr target)
+                  (include-reference-realpath asset)))))
+        (else
+         (log/debug "Not installing " (wrt (include-reference-path asset))
+                    "; no source")
+         '())))
 
 ;; Install a project and return a alist of artifact/asset => filename.
 (define (install-project project always-symlink?)
