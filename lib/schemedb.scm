@@ -41,7 +41,16 @@
 ;; True if lib-name is a built-in library provided by the implementation.
 (define (r6rs-builtin-library? lib-name implementation-name)
   (or (member lib-name r6rs-standard-libraries)
-      (is-implementation-specific? lib-name implementation-name)))
+      (is-implementation-specific? lib-name implementation-name)
+      (case implementation-name
+        ((ironscheme)
+         (member lib-name '((srfi private OS-id-features)
+                            (srfi private include)
+                            (srfi private include compat)
+                            (srfi private let-opt)
+                            (srfi private platform-features)
+                            (srfi private registry))))
+        (else #f))))
 
 (define (r7rs-builtin-library? lib-name implementation-name)
   (or (member lib-name r7rs-standard-libraries)
