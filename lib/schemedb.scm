@@ -35,7 +35,7 @@
     r6rs-library-block-for-implementations)
   (import
     (rnrs (6))
-    (only (srfi :1 lists) filter-map)
+    (only (srfi :1 lists) filter-map lset-intersection)
     (xitomatl AS-match))
 
 ;; True if lib-name is a built-in library provided by the implementation.
@@ -346,4 +346,11 @@
                      (and (memq srfi-n supported)
                           impl)))
                    supported-srfis))]
-    [else '()])))
+    [else
+     (cond ((member lib-name r7rs-standard-libraries)
+            ;; An R6RS implementation that supports R7RS should not
+            ;; have the R7RS standard libaries installed.
+            (lset-intersection eq? r6rs-implementation-names
+                               r7rs-implementation-names))
+           (else
+            '()))])))
