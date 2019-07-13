@@ -2,6 +2,15 @@
 
 ## Version 1.0.0 (draft)
 
+Akku releases are now installed to `~/.local/bin/akku` and Akku stores
+its files in `~/.local` instead of `~/.akku`. If you installed from
+Git then you need to migrate your installation:
+
+```
+mkdir -p ~/.local/share/akku
+mv ~/.akku/share/* ~/.local/share/akku/
+```
+
 This release introduces the `compat-scan` command, which scans a
 library or program for implementation compatibility. It is useful to
 find which `.<impl>.sls` files are missing when porting code to a new

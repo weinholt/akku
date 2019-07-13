@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2018 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2018-2019 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -23,7 +23,7 @@
     update-index)
   (import
     (rnrs (6))
-    (only (srfi :1 lists) iota)
+    (only (srfi :1 lists) iota append-map)
     (only (srfi :13 strings) string-prefix? string-suffix?)
     (only (srfi :67 compare-procedures) <? default-compare)
     (hashing sha-2)
@@ -46,15 +46,19 @@
 
 ;; Verify the OpenPGP signature. The signature file can have multiple
 ;; signatures and only one valid signature is needed.
-(define (verify-signature signed-filename signature-filename keys-directory keyfile-glob)
-  (let ((keyfiles (filter (lambda (fn)
-                            ;; TODO: Use keyfile-glob here to bind the
-                            ;; repository index signature to a
-                            ;; particular set of keys.
-                            (string-suffix? ".gpg" fn))
-                          (if (file-directory? keys-directory)
-                              (directory-list keys-directory)
-                              '()))))
+(define (verify-signature signed-filename signature-filename keys-directories keyfile-glob)
+  ;; TODO: Use keyfile-glob here to bind the repository index
+  ;; signature to a particular set of keys.
+  (let ((keyfiles
+         (append-map (lambda (dir)
+                       (if (file-directory? dir)
+                           (append-map (lambda (fn)
+                                         (if (string-suffix? ".gpg" fn)
+                                             (list (path-join dir fn))
+                                             '()))
+                                       (directory-list dir))
+                           '()))
+                     keys-directories)))
     (call-with-port (open-file-input-port signed-filename)
       (lambda (signed-port)
         (call-with-port (open-file-input-port signature-filename)
@@ -63,7 +67,7 @@
               (let ((sig (get-openpgp-packet p)))
                 (define (try-verify-with-keyfile keyfile)
                   (let ((keyring
-                         (call-with-port (open-file-input-port (path-join keys-directory keyfile))
+                         (call-with-port (open-file-input-port keyfile)
                            (lambda (p)
                              (get-openpgp-keyring/keyid p (openpgp-signature-issuer sig))))))
                     (set-port-position! signed-port 0)
@@ -71,7 +75,7 @@
                       (case result
                         ((missing-key)
                          ;; FIXME: warning makes no sense due to the loop
-                         (log/warn "Signed by unknown key with ID "
+                         (log/warn "Signed by an unknown key with ID "
                                    (pad/left 16 (num key 16))))
                         (else
                          (let ((signature-info
@@ -90,13 +94,13 @@
                       (and (eq? result 'good-signature) result))))
                 (cond ((eof-object? sig) #f)
                       ((null? keyfiles)
-                       (log/warn "Please copy a trusted key to " keys-directory)
+                       (log/warn "Please copy a trusted key to " (car keys-directories))
                        #f)
                       ((exists try-verify-with-keyfile keyfiles))
                       (else (lp)))))))))))
 
 ;; Download indices and merge them into one.
-(define (update-index full-index-filename keys-directory repositories)
+(define (update-index full-index-filename keys-directories repositories)
   (define (fetch-index suffix tag repository-url keyfile-glob)
     (let ((index-filename (string-append full-index-filename suffix))
           (sig-filename (string-append full-index-filename suffix ".sig"))
@@ -124,7 +128,7 @@
                                                 "/" index-sha256 ".sig"))
                        temp-sig-filename #f)
         ;; Verify the signature.
-        (case (verify-signature temp-filename temp-sig-filename keys-directory keyfile-glob)
+        (case (verify-signature temp-filename temp-sig-filename keys-directories keyfile-glob)
           ((good-signature)
            (rename-file temp-filename index-filename)
            (rename-file temp-sig-filename sig-filename)

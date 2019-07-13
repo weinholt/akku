@@ -22,8 +22,8 @@ sudo apt install git chezscheme libcurl4
 git clone https://gitlab.com/akkuscm/akku
 cd akku
 .akku/env
-mkdir -p ~/.akku/share/keys.d
-cp akku-archive-*.gpg ~/.akku/share/keys.d
+mkdir -p ~/.local/share/akku/keys.d
+cp akku-archive-*.gpg ~/.local/share/akku/keys.d
 bin/akku.sps update
 bin/akku.sps install
 ```

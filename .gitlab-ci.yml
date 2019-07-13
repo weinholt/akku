@@ -2,7 +2,7 @@ image: "weinholt/chezscheme"
 
 variables:
   AKKU_LOG_LEVEL: "info"
-  AKKU_CACHE_DIR: "$CI_PROJECT_DIR/.cache/akku"
+  XDG_CACHE_HOME: "$CI_PROJECT_DIR/.cache"
 
 cache:
   key: "$CI_JOB_STAGE-$CI_COMMIT_REF_SLUG"
@@ -17,8 +17,8 @@ build:debian:
     - apt-get install --no-install-recommends -qq git xz-utils
     - apt-get install -qq curl
     - eval $(.akku/env -s)
-    - mkdir -p ~/.akku/share/keys.d
-    - cp akku-archive-*.gpg ~/.akku/share/keys.d
+    - mkdir -p ~/.local/share/akku/keys.d
+    - cp akku-archive-*.gpg ~/.local/share/akku/keys.d
   script:
     - bin/akku.sps update
     - bin/akku.sps install
@@ -34,8 +34,8 @@ build:alpine:
   before_script:
     - apk add --no-cache curl git xz tar
     - source .akku/bin/activate
-    - mkdir -p ~/.akku/share/keys.d
-    - cp akku-archive-*.gpg ~/.akku/share/keys.d
+    - mkdir -p ~/.local/share/akku/keys.d
+    - cp akku-archive-*.gpg ~/.local/share/akku/keys.d
   script:
     - bin/akku.sps update
     - bin/akku.sps install
@@ -51,7 +51,7 @@ build:alpine:
 .job_template: &job_definition
   stage: test
   script:
-    - export PATH=$HOME/bin:$PATH
+    - export PATH=$HOME/.local/bin:$PATH
     - akku version
     - akku update
     - mkdir new-project

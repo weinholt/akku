@@ -58,7 +58,7 @@ How to get started with a new project:
    the package index).
  - Run `akku install <pkg>` to install a named package. This also
    installs the code in your current directory into `.akku`. If you
-   add local source files you'll need to rerun `akku install`.
+   add new source code files you'll need to rerun `akku install`.
  - Run `.akku/env` to get a shell in an environment that uses the
    programs and libraries in `.akku`.
 

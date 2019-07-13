@@ -43,7 +43,8 @@
   (only (akku lib scan) scan-repository)
   (only (akku lib scripts) run-scripts)
   (only (akku lib update) update-index)
-  (only (akku lib utils) path-join application-home-directory
+  (only (akku lib utils) path-join
+        application-data-directory system-data-directory
         get-log-threshold get-index-filename)
   (only (akku metadata) main-package-version)
   (akku private logging))
@@ -222,13 +223,20 @@ your implementation.") nl))
   (scan-repository (if (null? arg*) "." (car arg*))))
 
 (define (cmd-update arg*)
-  (define repositories                  ;TODO: should be in a config file
+  (define repositories               ;TODO: should be in a config file
     '([(tag . akku)
        (url . "https://archive.akkuscm.org/archive/")
        (keyfile . "akku-archive-*.gpg")]))
-  (define keys-directory (path-join (application-home-directory) "share/keys.d"))
-  (define index-filename (path-join (application-home-directory) "share/index.db"))
-  (update-index index-filename keys-directory repositories))
+  (let ((index-fn (path-join (application-data-directory) "index.db"))
+        (app-keys-dir (path-join (application-data-directory) "keys.d"))
+        (sys-keys-dir (cond ((system-data-directory) =>
+                             (lambda (dir) (path-join dir "keys.d")))
+                            (else #f))))
+    (update-index index-fn
+                  (if sys-keys-dir
+                      (list app-keys-dir sys-keys-dir)
+                      (list app-keys-dir))
+                  repositories)))
 
 (define (cmd-graph . _)
   (print-gv-file "."))

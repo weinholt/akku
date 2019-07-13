@@ -3,6 +3,7 @@
 # and makes it part of the commit. This is needed to keep the project
 # buildable without any bootstrapping problems.
 
+rm -rf dist
 bin/akku.sps 2>/dev/null || exit 0
 echo "Doing git rm/add on dependencies..."
 git rm --quiet -r --cached .akku/lib

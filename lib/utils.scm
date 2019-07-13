@@ -26,7 +26,7 @@
     mkdir/recursive split-path path-join (rename (path-join url-join))
     read-shebang
     pipe-ports
-    application-home-directory
+    application-data-directory system-data-directory
     cache-directory
     local-ignore-file
     running-from-home?
@@ -52,6 +52,7 @@
     (only (spells process) run-shell-command)
     (only (industria strings) string-split)
     (xitomatl AS-match)
+    (akku config)
     (only (akku private compat) cd getcwd mkdir symlink get-passwd-realname))
 
 ;; Split directory name and filename components.
@@ -119,14 +120,31 @@
          (assert (getenv "HOME"))
          (path-join (getenv "HOME") ".akku"))))
 
+(define (application-data-directory)
+  (cond ((getenv "XDG_DATA_HOME") =>
+         (lambda (dir)
+           (path-join dir "akku")))
+        (else
+         (assert (getenv "HOME"))
+         (path-join (getenv "HOME") ".local/share/akku"))))
+
 (define (cache-directory)
-  (cond ((getenv "AKKU_CACHE_DIR"))
+  (cond ((getenv "XDG_CACHE_HOME") =>
+         (lambda (dir)
+           (path-join dir "akku")))
         (else
          (assert (getenv "HOME"))
          (path-join (getenv "HOME") ".cache/akku"))))
 
 (define (local-ignore-file directory)
   (path-join directory ".akkuignore"))
+
+;; System-wide data directory, e.g. /usr/share/akku
+(define (system-data-directory)
+  (cond ((install-prefix) =>
+         (lambda (dir)
+           (path-join dir "share/akku")))
+        (else #f)))
 
 (define (running-from-home?)
   (equal? (string-trim-right (getcwd) #\/)
@@ -220,11 +238,16 @@
   (get-passwd-realname))
 
 (define (get-index-filename)
-  (let ((index (path-join (application-home-directory) "share/index.db"))
-        (bootstrap (path-join (application-home-directory) "share/bootstrap.db")))
+  (define (maybe-join x y)
+    (and x (path-join x y)))
+  (let ((index (path-join (application-data-directory) "index.db"))
+        (bootstrap (path-join (application-data-directory) "bootstrap.db"))
+        (sys-bootstrap (maybe-join (system-data-directory) "bootstrap.db")))
     (cond ((file-exists? index) index)
           ((file-exists? bootstrap) bootstrap)
-          (else (error 'cmd-lock "Unable to locate the package index")))))
+          ((and sys-bootstrap (file-exists? sys-bootstrap)) sys-bootstrap)
+          (else (error 'cmd-lock "Unable to locate the package index"
+                       index bootstrap sys-bootstrap)))))
 
 (define (check-filename filename windows?)
   ;; Protection against path traversal attacks and other types of

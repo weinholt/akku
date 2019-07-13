@@ -10,7 +10,7 @@
   (chezscheme)
   (only (srfi :1 lists) delete-duplicates)
   (only (akku lib utils) string-split path-join mkdir/recursive
-        application-home-directory)
+        application-data-directory)
   (semver versions))
 
 (define (which filename)                ;same as which(1)
@@ -26,8 +26,12 @@
 (define (cp src dst)
   (putenv "SRC" src)
   (putenv "DST" dst)
-  ;; FIXME: do it in-process
   (system "set -x;/bin/cp -H \"$SRC\" \"$DST\""))
+
+(define (mv src dst)
+  (putenv "SRC" src)
+  (putenv "DST" dst)
+  (system "set -x;/bin/mv \"$SRC\" \"$DST\""))
 
 (define (ln/s src dst)
   (putenv "SRC" src)
@@ -106,24 +110,18 @@
     (format #t "built bin/akku~%")))
 
 (define (copy-common-files)
-  ;; Licenses, copyrights, etc
-  (mkdir/recursive "dist/docs")
-  (copy-chez-notice "dist/docs/ChezScheme.txt")
-  (guard (exn
-          ((and (who-condition? exn)
-                (eq? (condition-who exn) 'copy-notices))
-           (display "WARNING: Could not gather copyright notices\n"
-                    (current-error-port))))
-    (copy-notices "dist/docs/copyright.txt" "bin/akku.sps"))
-  (cp "README.md" "dist/docs")
-  (cp "CONTRIBUTING.md" "dist/docs")
-  (cp "docs/akku.1" "dist/docs")
+  (mkdir/recursive "dist")
+  (cp "LICENSES/GPL-3.0.txt" "dist/COPYING")
+  (cp "README.md" "dist/")
+  (cp "CONTRIBUTING.md" "dist/")
+  (mkdir/recursive "dist/share/man/man1")
+  (cp "docs/akku.1" "dist/share/man/man1")
   ;; Bootstrap data
-  (mkdir/recursive "dist/share")
-  (cp (path-join (application-home-directory) "share/index.db")
-      "dist/share/bootstrap.db")
-  (mkdir/recursive "dist/share/keys.d")
-  (cp "akku-archive-2018.gpg" "dist/share/keys.d/akku-archive-2018.gpg"))
+  (mkdir/recursive "dist/share/akku")
+  (cp (path-join (application-data-directory) "index.db")
+      "dist/share/akku/bootstrap.db")
+  (mkdir/recursive "dist/share/akku/keys.d")
+  (cp "akku-archive-2018.gpg" "dist/share/akku/keys.d/akku-archive-2018.gpg"))
 
 (define (build-binary-distribution)
   ;; Build the distribution.
@@ -137,7 +135,25 @@
            ((arm32le tarm32le) "arm-linux")
            (else
             (symbol->string (machine-type)))))
+        (multiarch-name
+         ;; https://wiki.debian.org/Multiarch/Tuples
+         (case (machine-type)
+           ((a6le ta6le) "x86_64-linux-gnu")
+           ((i3le ti3le) "i386-linux-gnu")
+           ((arm32le tarm32le) "arm-linux-gnueabihf")
+           (else
+            (error 'build-binary-distribution
+                   "Unknown machine type" (machine-type)))))
         (akku-version (get-version "Akku.manifest")))
+    ;; Licenses, copyrights, etc
+    (mkdir/recursive "dist/notices")
+    (copy-chez-notice "dist/notices/ChezScheme.txt")
+    (guard (exn
+            ((and (who-condition? exn)
+                  (eq? (condition-who exn) 'copy-notices))
+             (display "WARNING: Could not gather copyright notices\n"
+                      (current-error-port))))
+      (copy-notices "dist/notices/copyright.txt" "bin/akku.sps"))
     ;; Chez doesn't provide an easy way to find the default boot files...
     (let ((default-heap-path (format #f "lib/csv~d/~d" chez-version machine))
           (petite (which "petite")))
@@ -149,36 +165,40 @@
           (error 'build "Could not find petite.boot"))
         (copy-common-files)
         (format #t "bundling with ~d and ~d~%" petite petite-boot)
-        (mkdir/recursive (path-join "dist/boot" machine))
-        (mkdir/recursive (path-join "dist/bin" machine))
+        (mkdir/recursive (format #f "dist/lib/~d/akku" multiarch-name))
         ;; Petite boot file
-        (let ((dist-petite-boot (format #f "dist/boot/~d/petite.boot" machine)))
+        (let ((dist-petite-boot (format #f "dist/lib/~d/akku/petite.boot" multiarch-name)))
           (cp petite-boot dist-petite-boot)
           (chmod dist-petite-boot #o644))
-        (ln/s "petite.boot" (format #f "dist/boot/~d/scheme-script.boot" machine))
+        (ln/s "petite.boot" (format #f "dist/lib/~d/akku/scheme-script.boot" multiarch-name))
         ;; Petite binary
-        (let ((dist-petite (format #f "dist/bin/~d/petite" machine)))
+        (let ((dist-petite (format #f "dist/lib/~d/akku/petite" multiarch-name)))
           (cp petite dist-petite)
           (chmod dist-petite #o755))
-        (ln/s "petite" (format #f "dist/bin/~d/scheme-script" machine))
-        (cp "bin/akku" (format #f "dist/bin/~d/akku"  machine))
+        (ln/s "petite" (format #f "dist/lib/~d/akku/scheme-script" multiarch-name))
+        (cp "bin/akku" (format #f "dist/lib/~d/akku/akku" multiarch-name))
+        ;; Shell wrapper script
+        (let ((wrapper (format #f "dist/lib/~d/akku/akku.sh" multiarch-name)))
+          (call-with-output-file wrapper
+            (lambda (p)
+              (format p "#!/bin/sh~%")
+              (format p "LIBARCHDIR=~~/.local/lib/~d/akku~%" multiarch-name)
+              (format p "exec \"$LIBARCHDIR/petite\" -b \"$LIBARCHDIR/petite.boot\" --program \"$LIBARCHDIR/akku\" \"$@\"~%")))
+          (chmod wrapper #o755))
         ;; Install script
         (call-with-output-file "dist/install.sh"
           (lambda (p)
             (format p "#!/bin/sh~%")
-            (format p "PREFIX=$HOME/.akku~%")
-            (format p "MACHINE=~d~%" machine)
-            (format p "mkdir -p \"$PREFIX\"~%")
-            (format p "cp -a bin boot share \"$PREFIX/\"~%")
-            (format p "cat > \"$PREFIX/bin/akku\" << EOF~%")
-            (format p "#!/bin/sh~%")
-            (format p "exec \"$PREFIX/bin/$MACHINE/petite\" -b \"$PREFIX/boot/$MACHINE/petite.boot\" --program \"$PREFIX/bin/$MACHINE/akku\" \"\\$@\"~%")
-            (format p "EOF~%")
-            (format p "chmod 0755 \"$PREFIX/bin/akku\"~%")
-            (format p "mkdir -p \"$HOME/bin\"~%")
-            (format p "rm -f \"$HOME/bin/akku\"~%")
-            (format p "ln -s \"$PREFIX/bin/akku\" \"$HOME/bin/\"~%")
-            (format p "echo You can now run '~~/bin/akku'~%")))
+            (format p "set -eu~%")
+            (format p "datadir=${XDG_DATA_HOME:-~~/.local/share}~%")
+            (format p "mkdir -p ~~/.local/bin \"$datadir\"~%")
+            (format p "cp -a lib ~~/.local/~%")
+            (format p "cp -a share/* \"$datadir\"~%")
+            (format p "rm -f ~~/.local/bin/akku~%")
+            (format p "ln -s ../lib/~d/akku/akku.sh ~~/.local/bin/akku~%" multiarch-name)
+            (format p "echo You can now run '~~/.local/bin/akku'~%")
+            (format p "[ -d ~~/.akku ] && echo To remove the legacy version: rm -rf '~~/.akku' '~~/bin/akku'~%")
+            (format p "exit 0~%")))
         (chmod "dist/install.sh" #o755)
         ;; Build a tarball.
         (let* ((build-version (format #f "~d.~d" akku-version long-machine-type))
@@ -217,11 +237,12 @@
     (system "/bin/rm -rf dist")
     (copy-common-files)
     (for-each (lambda (fn)
-                (let ((dir (path-parent (string-append "dist/" fn))))
+                (let* ((dest (path-join "dist/lib/akku" (path-rest fn)))
+                       (dir (path-parent dest)))
                   (mkdir/recursive dir)
-                  (cp fn dir)))
+                  (cp fn dest)))
               (dependency-scan ".akku/bin/akku.sps" '("chezscheme" "guile")))
-    (cp ".akku/bin/activate" "dist/.akku/bin")
+    (mkdir/recursive "dist/lib/akku")
     ;; Install script
     (cp "private/install-src.sh" "dist/install.sh")
     (chmod "dist/install.sh" #o755)
@@ -234,7 +255,9 @@
       (format #t "built ~d~%" tarfile))))
 
 (assert (not (petite?)))
+(system "/bin/rm -rf dist")
 (system "akku.sps install")
 (compile-akku)
 (build-binary-distribution)
 (build-source-distribution)
+(system "/bin/rm -rf dist")
