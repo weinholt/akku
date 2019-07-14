@@ -204,8 +204,10 @@
             (delete-file target-pathname))
           (call-with-output-file/renaming target-pathname
             (lambda (outp)
-              ;; TODO: Only add #!r6rs if it's not in the original source.
-              (display "#!r6rs " outp) ;XXX: required for Racket
+              ;; TODO: Only add #!r6rs if it's not in the original
+              ;; source. XXX: The #!r6rs directive is needed by
+              ;; Racket. Mosh needs a newline after the directive.
+              (display "#!r6rs\n" outp)
               (cond ((and (= form-index 0) last-form?)
                      ;; The source has a single form, so it's safe to
                      ;; copy the text.
@@ -353,7 +355,7 @@
         (delete-file target-pathname))
       (call-with-output-file/renaming target-pathname
         (lambda (outp)
-          (display "#!r6rs " outp)      ;XXX: required for Racket
+          (display "#!r6rs\n" outp)     ;XXX: required for Racket
           (when source-pathname
             (display ";; Copyright notices may be found in " outp)
             (write source-pathname outp)
@@ -480,7 +482,7 @@
                          ;; Insert the #!r6rs token if it was not
                          ;; seen. It is required for Racket.
                          (put-token writer 'directive 'r6rs)
-                         (put-token writer 'whitespace " ")
+                         (put-token writer 'whitespace "\n")
                          (put-token writer type token)
                          (loop #t))
                         (else

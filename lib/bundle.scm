@@ -164,13 +164,12 @@
 ;; Scan the files and their dependencies. Print an analysis of their
 ;; implementation compatibility.
 (define (compat-scan lockfile-location filenames)
-
   (assert (for-all file-exists? filenames))
   ;; Make a hashtable from library/module names to lists of artifacts
   (let ((lib-name->artifact* (scan-projects-for-artifacts lockfile-location)))
     (define (trace artifact implementation used-artifacts missing-lib-names)
       (unless (hashtable-ref used-artifacts artifact #f)
-        (log/trace "Adding artifact " artifact)
+        (log/trace "Tracing artifact " artifact " for " implementation)
         (hashtable-set! used-artifacts artifact #t)
         ;; Recursively add imported artifacts.
         (for-each
@@ -211,8 +210,6 @@
                     (define used-artifacts (make-eq-hashtable))
                     (define missing-lib-names (make-hashtable equal-hash equal?))
                     (log/trace "Tracing dependencies for " implementation)
-                    (hashtable-clear! used-artifacts)
-                    (hashtable-clear! missing-lib-names)
                     (for-each (lambda (artifact)
                                 (trace artifact implementation
                                        used-artifacts missing-lib-names))

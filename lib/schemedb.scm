@@ -173,7 +173,7 @@
     (('ikarus . _) 'ikarus)
     (('ironscheme . _) 'ironscheme)
     (('mosh . _) 'mosh)
-    (('nmosh . _) 'mosh)
+    (('nmosh . _) 'nmosh)
     (('sagittarius . _) 'sagittarius)
     (('vicare . _) 'vicare)
     (else #f)))
@@ -210,6 +210,7 @@
     larceny
     mosh
     mzscheme
+    nmosh
     sagittarius
     vicare
     ypsilon))
