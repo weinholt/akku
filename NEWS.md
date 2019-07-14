@@ -46,8 +46,11 @@ notices).
 A bug was fixed in the library to filename mapping for Sagittarius
 Scheme and its list of supported SRFIs is amended.
 
-A crash in the installer was fixed. Libraries that included files
-which could not be found previously caused a crash.
+A crash in the installer was fixed. Libraries that included
+non-existent files caused a crash.
+
+Mosh support was fixed and this release also provides a Docker image
+prepared with Mosh and Akku.
 
 Thanks to Graham Watt, Amirouche Boubekki and Lassi Kortela for
 contributing to this release.
