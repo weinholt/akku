@@ -1,4 +1,4 @@
-#!r6rs #!r6rs
+#!r6rs
 ;;; xvector.sls --- Extensible vectors
 
 ;; Copyright (C) 2009, 2011 Andreas Rottmann <a.rottmann@gmx.at>

@@ -1,4 +1,4 @@
-#!r6rs ;; -*- mode: scheme; coding: utf-8 -*-
+;; -*- mode: scheme; coding: utf-8 -*-
 ;; Copyright © 2016, 2018 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: MIT
 #!r6rs

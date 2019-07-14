@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2017-2018 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2017-2019 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: MIT
 #!r6rs
 
@@ -10,8 +10,7 @@
     lockfile-filename
     projects)
   (import
-    (rnrs)
-    (only (xitomatl common) pretty-print))
+    (rnrs))
 
 (define lockfile-filename "Akku.lock")
 
@@ -25,8 +24,10 @@
     (syntax-case x (name)
       ((_ ((name name*) attr* ...) ...)
        (unique-names? (syntax->datum #'(name* ...)))
-       #'(pretty-print `(projects ,(check-project ((name name*) attr* ...))
-                                  ...))))))
+       #'(begin
+           (write `(projects ,(check-project ((name name*) attr* ...))
+                             ...))
+           (newline))))))
 
 (define-syntax check-project
   (lambda (x)

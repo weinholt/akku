@@ -1,4 +1,4 @@
-#!r6rs #!r6rs
+#!r6rs
 ;;; opt-args.sls --- Optional arguments
 
 ;; Copyright (C) 2001-2011, 2015, several authors -- see below.

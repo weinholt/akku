@@ -21,6 +21,7 @@
 (library (akku lib utils)
   (export
     append-map filter-map map-in-order delete-duplicates
+    assq-ref assq-update assoc-replace
     string-prefix? string-suffix? string-index
     string-split
     mkdir/recursive split-path path-join (rename (path-join url-join))
@@ -51,9 +52,39 @@
     (only (spells filesys) file-directory?)
     (only (spells process) run-shell-command)
     (only (industria strings) string-split)
-    (xitomatl AS-match)
+    (chibi match)
     (akku config)
     (only (akku private compat) cd getcwd mkdir symlink get-passwd-realname))
+
+(define assq-ref
+  (case-lambda
+    ((alist key)
+     (cond ((assq key alist) => cdr)
+           (else
+            (error 'assq-ref "Key not found" key alist))))
+    ((alist key default)
+     (cond ((assq key alist) => cdr)
+           (else default)))))
+
+(define (assq-update alist key proc default)
+  (cond ((assq key alist)
+         (map (lambda (x)
+                (if (eq? (car x) key)
+                    (cons key (proc (cdr x)))
+                    x))
+              alist))
+        (else
+         (cons (cons key (proc default)) alist))))
+
+(define (assoc-replace alist key value)
+  (cond ((assoc key alist)
+         (map (lambda (x)
+                (if (equal? (car x) key)
+                    (cons key value)
+                    x))
+              alist))
+        (else
+         (cons (cons key value) alist))))
 
 ;; Split directory name and filename components.
 (define (split-path filename)

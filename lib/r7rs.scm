@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2018 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2018, 2019 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -42,7 +42,7 @@
     (rnrs (6))
     (only (srfi :1 lists) append-map delete-duplicates)
     (only (wak fmt) wrt)
-    (xitomatl AS-match)
+    (chibi match)
     (akku lib schemedb)
     (akku private logging))
 

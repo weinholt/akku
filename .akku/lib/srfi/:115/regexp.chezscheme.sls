@@ -1,4 +1,4 @@
-#!r6rs #!r6rs
+#!r6rs
 ;; Copyright (c) 2009-2015 Alex Shinn
 ;; All rights reserved.
 ;;

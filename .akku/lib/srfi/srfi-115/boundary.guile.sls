@@ -8,7 +8,8 @@
 
 ;; Converted from lib/chibi/char-set/boundary.sld to R6RS by Göran Weinholt.
 
-#!r6rs (library (srfi srfi-115 boundary)
+#!r6rs
+(library (srfi srfi-115 boundary)
   (export char-set:regional-indicator
           char-set:extend-or-spacing-mark
           char-set:hangul-l

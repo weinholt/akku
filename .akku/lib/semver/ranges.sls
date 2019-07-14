@@ -1,5 +1,5 @@
-#!r6rs ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2018 Göran Weinholt <goran@weinholt.se>
+;; -*- mode: scheme; coding: utf-8 -*-
+;; Copyright © 2018, 2019 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: MIT
 #!r6rs
 
@@ -13,9 +13,9 @@
   (import
     (rnrs)
     (srfi :67 compare-procedures)
+    (chibi match)
     (packrat)
-    (semver versions)
-    (xitomatl AS-match))
+    (semver versions))
 
 (define range-parser
   (packrat-parser

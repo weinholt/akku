@@ -31,6 +31,7 @@
     (only (srfi :1 lists) filter-map append-map lset-difference)
     (only (srfi :13 strings) string-index string-prefix?)
     (only (srfi :67 compare-procedures) <? default-compare)
+    (chibi match)
     (prefix (compression tar) tar:)
     (compression xz)
     (hashing sha-2)
@@ -39,8 +40,6 @@
     (only (spells filesys) file-directory? file-regular?
           file-symbolic-link? rename-file)
     (wak fmt)
-    (xitomatl alists)
-    (xitomatl AS-match)
     (only (akku private compat) chmod file-exists/no-follow?
           directory-list delete-directory os-name chmod
           pretty-print)

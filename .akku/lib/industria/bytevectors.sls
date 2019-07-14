@@ -1,4 +1,4 @@
-#!r6rs ;; -*- mode: scheme; coding: utf-8 -*-
+;; -*- mode: scheme; coding: utf-8 -*-
 ;; Bytevector utilities
 ;; Copyright © 2009, 2010, 2012, 2018, 2019 Göran Weinholt <goran@weinholt.se>
 

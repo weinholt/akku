@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2017-2018 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2017-2019 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -23,7 +23,7 @@
     print-gv-file)
   (import
     (rnrs (6))
-    (xitomatl AS-match)
+    (chibi match)
     (akku lib file-parser)
     (akku lib repo-scanner)
     (akku lib schemedb))

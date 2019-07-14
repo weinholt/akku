@@ -1,4 +1,4 @@
-#!r6rs #!r6rs
+#!r6rs
 ;;; expand-drt.sls --- Macro expanders for `define-record-type*'
 
 ;; Copyright (C) 2009, 2011, 2015 Andreas Rottmann <a.rottmann@gmx.at>

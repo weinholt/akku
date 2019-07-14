@@ -1,4 +1,4 @@
-#!r6rs #!r6rs
+#!r6rs
 ;;; os-string.sls --- Operating-system string abstraction.
 
 ;; Copyright (C) 2008-2009, 2015 Andreas Rottmann <a.rottmann@gmx.at>

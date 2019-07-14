@@ -31,10 +31,10 @@
     (semver versions)
     (only (spells filesys) rename-file file-directory?)
     (wak fmt)
-    (xitomatl alists)
-    (xitomatl AS-match)
+    (chibi match)
     (only (akku private compat) directory-list pretty-print)
-    (only (akku lib utils) path-join url-join mkdir/recursive split-path)
+    (only (akku lib utils) path-join url-join mkdir/recursive split-path
+          assq-ref)
     (akku private http)
     (akku private logging))
 

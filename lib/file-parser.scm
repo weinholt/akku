@@ -45,7 +45,7 @@
     (srfi :115 regexp)
     (laesare reader)
     (wak fmt)
-    (xitomatl AS-match)
+    (chibi match)
     (akku lib r7rs)
     (akku lib schemedb)
     (akku lib utils)

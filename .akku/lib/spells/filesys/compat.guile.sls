@@ -1,4 +1,4 @@
-#!r6rs #!r6rs
+#!r6rs
 ;;; compat.guile.sls --- filesys compat library for Guile.
 
 ;; Copyright (C) 2010, 2011, 2012, 2015 Andreas Rottmann <a.rottmann@gmx.at>

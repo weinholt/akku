@@ -1,17 +1,7 @@
-#!r6rs ;;;; match.scm -- portable hygienic pattern matcher -*- coding: utf-8 -*-
+;;;; match.scm -- portable hygienic pattern matcher -*- coding: utf-8 -*-
 ;;
 ;; This code is written by Alex Shinn and placed in the
 ;; Public Domain.  All warranties are disclaimed.
-
-;; Turned into an R6RS library by Derick Eddington, and modified to use
-;; only-hygienic syntax-case so that ... can be used (original version
-;; had to use ___), and modified to remove _ from syntax-rules/syntax-case
-;; literals lists. Updated to the 2016/03/06 version by Göran Weinholt.
-;; Auxiliary syntax has been exported so that the library will work in
-;; the Chez Scheme REPL.
-
-;; ..1 => __1
-;;   @ => &
 
 ;;> \example-import[(srfi 9)]
 
@@ -237,7 +227,6 @@
 ;; performance can be found at
 ;;   http://synthcode.com/scheme/match-cond-expand.scm
 ;;
-;; 2016/03/06 - fixing named match-let (thanks to Stefan Israelsson Tampe)
 ;; 2015/05/09 - fixing bug in var extraction of quasiquote patterns
 ;; 2014/11/24 - adding Gauche's `@' pattern for named record field matching
 ;; 2012/12/26 - wrapping match-let&co body in lexical closure
@@ -259,33 +248,6 @@
 ;; 2007/04/08 - clean up, commenting
 ;; 2006/12/24 - bugfixes
 ;; 2006/12/01 - non-linear patterns, shared variables in OR, get!/set!
-
-(library (xitomatl AS-match)
-  (export
-    match match-let match-let* match-letrec match-lambda match-lambda*
-    ___ __1 *** ? $ struct & object = and or not set! get!
-    quote quasiquote unquote unquote-splicing)
-  (import
-    (rnrs) (rnrs mutable-pairs))
-
-;; Create exports for auxiliary keyword so that they work in the Chez repl.
-(define-syntax define-auxiliary-keyword
-  (lambda (x)
-    (syntax-case x ()
-      ((_ keyword)
-       #'(define-syntax keyword
-           (lambda (x)
-             (syntax-violation #f "incorrect usage of auxiliary keyword" x)))))))
-
-(define-auxiliary-keyword ___)
-(define-auxiliary-keyword __1)
-(define-auxiliary-keyword ***)
-(define-auxiliary-keyword ?)
-(define-auxiliary-keyword $)
-(define-auxiliary-keyword struct)
-(define-auxiliary-keyword &)
-(define-auxiliary-keyword object)
-(define-auxiliary-keyword get!)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; force compile-time syntax errors with useful messages
@@ -388,95 +350,87 @@
 ;; pattern so far.
 
 (define-syntax match-two
-  (lambda (stx)
-    (define (ellipses? x)
-      (and (identifier? x)
-           (or (free-identifier=? x #'(... ...))
-               (free-identifier=? x #'___))))
-    (define (underscore? x)
-      (and (identifier? x) (free-identifier=? x #'_)))
-    (syntax-case stx (__1 *** quote quasiquote ? $ struct & object = and or not set! get!)
-      ((match-two v () g+s (sk ...) fk i)
-       #'(if (null? v) (sk ... i) fk))
-      ((match-two v (quote p) g+s (sk ...) fk i)
-       #'(if (equal? v 'p) (sk ... i) fk))
-      ((match-two v (quasiquote p) . x)
-       #'(match-quasiquote v p . x))
-      ((match-two v (and) g+s (sk ...) fk i) #'(sk ... i))
-      ((match-two v (and p q ...) g+s sk fk i)
-       #'(match-one v p g+s (match-one v (and q ...) g+s sk fk) fk i))
-      ((match-two v (or) g+s sk fk i) #'fk)
-      ((match-two v (or p) . x)
-       #'(match-one v p . x))
-      ((match-two v (or p ...) g+s sk fk i)
-       #'(match-extract-vars (or p ...) (match-gen-or v (p ...) g+s sk fk i) i ()))
-      ((match-two v (not p) g+s (sk ...) fk i)
-       #'(match-one v p g+s (match-drop-ids fk) (sk ... i) i))
-      ((match-two v (get! getter) (g s) (sk ...) fk i)
-       #'(let ((getter (lambda () g))) (sk ... i)))
-      ((match-two v (set! setter) (g (s ...)) (sk ...) fk i)
-       #'(let ((setter (lambda (x) (s ... x)))) (sk ... i)))
-      ((match-two v (? pred . p) g+s sk fk i . _)
-       #'(if (pred v) (match-one v (and . p) g+s sk fk i) fk))
-      ((match-two v (= proc p) . x)
-       #'(let ((w (proc v))) (match-one w p . x)))
-      ((match-two v (p ___ . r) g+s sk fk i)
-       (ellipses? #'___)
-       #'(match-extract-vars p (match-gen-ellipsis v p r g+s sk fk i) i ()))
-      ((match-two v (p) g+s sk fk i)
-       #'(if (and (pair? v) (null? (cdr v)))
-             (let ((w (car v)))
-               (match-one w p ((car v) (set-car! v)) sk fk i))
-             fk))
-      ((match-two v (p *** q) g+s sk fk i)
-       #'(match-extract-vars p (match-gen-search v p q g+s sk fk i) i ()))
-      ((match-two v (p *** . q) g+s sk fk i)
-       #'(match-syntax-error "invalid use of ***" (p *** . q)))
-      ((match-two v (p __1) g+s sk fk i)
-       #'(if (pair? v)
-             (match-one v (p ___) g+s sk fk i)
-             fk))
-      ((match-two v ($ rec p ...) g+s sk fk i)
-       #'(if (is-a? v rec)
-             (match-record-refs v rec 0 (p ...) g+s sk fk i)
-             fk))
-      ((match-two v (struct rec p ...) g+s sk fk i)
-       #'(if (is-a? v rec)
-             (match-record-refs v rec 0 (p ...) g+s sk fk i)
-             fk))
-      ((match-two v (& rec p ...) g+s sk fk i)
-       #'(if (is-a? v rec)
-             (match-record-named-refs v rec (p ...) g+s sk fk i)
-             fk))
-      ((match-two v (object rec p ...) g+s sk fk i)
-       #'(if (is-a? v rec)
-             (match-record-named-refs v rec (p ...) g+s sk fk i)
-             fk))
-      ((match-two v (p . q) g+s sk fk i)
-       #'(if (pair? v)
-             (let ((w (car v)) (x (cdr v)))
-               (match-one w p ((car v) (set-car! v))
-                          (match-one x q ((cdr v) (set-cdr! v)) sk fk)
-                          fk
-                          i))
-             fk))
-      ((match-two v #(p ...) g+s . x)
-       #'(match-vector v 0 () (p ...) . x))
-      ((match-two v us g+s (sk ...) fk i) (underscore? #'us) #'(sk ... i))
-      ;; Not a pair or vector or special literal, test to see if it's a
-      ;; new symbol, in which case we just bind it, or if it's an
-      ;; already bound symbol or some other literal, in which case we
-      ;; compare it with EQUAL?.
-      ((match-two v x g+s (sk ...) fk (id ...))
-       #'(let-syntax
-             ((new-sym?
-               (syntax-rules (id ...)
-                 ((new-sym? x sk2 fk2) sk2)
-                 ((new-sym? y sk2 fk2) fk2))))
-           (new-sym? random-sym-to-match
-                     (let ((x v)) (sk ... (id ... x)))
-                     (if (equal? v x) (sk ... (id ...)) fk))))
-      )))
+  (syntax-rules (_ ___ ..1 *** quote quasiquote ? $ struct @ object = and or not set! get!)
+    ((match-two v () g+s (sk ...) fk i)
+     (if (null? v) (sk ... i) fk))
+    ((match-two v (quote p) g+s (sk ...) fk i)
+     (if (equal? v 'p) (sk ... i) fk))
+    ((match-two v (quasiquote p) . x)
+     (match-quasiquote v p . x))
+    ((match-two v (and) g+s (sk ...) fk i) (sk ... i))
+    ((match-two v (and p q ...) g+s sk fk i)
+     (match-one v p g+s (match-one v (and q ...) g+s sk fk) fk i))
+    ((match-two v (or) g+s sk fk i) fk)
+    ((match-two v (or p) . x)
+     (match-one v p . x))
+    ((match-two v (or p ...) g+s sk fk i)
+     (match-extract-vars (or p ...) (match-gen-or v (p ...) g+s sk fk i) i ()))
+    ((match-two v (not p) g+s (sk ...) fk i)
+     (match-one v p g+s (match-drop-ids fk) (sk ... i) i))
+    ((match-two v (get! getter) (g s) (sk ...) fk i)
+     (let ((getter (lambda () g))) (sk ... i)))
+    ((match-two v (set! setter) (g (s ...)) (sk ...) fk i)
+     (let ((setter (lambda (x) (s ... x)))) (sk ... i)))
+    ((match-two v (? pred . p) g+s sk fk i)
+     (if (pred v) (match-one v (and . p) g+s sk fk i) fk))
+    ((match-two v (= proc p) . x)
+     (let ((w (proc v))) (match-one w p . x)))
+    ((match-two v (p ___ . r) g+s sk fk i)
+     (match-extract-vars p (match-gen-ellipsis v p r g+s sk fk i) i ()))
+    ((match-two v (p) g+s sk fk i)
+     (if (and (pair? v) (null? (cdr v)))
+         (let ((w (car v)))
+           (match-one w p ((car v) (set-car! v)) sk fk i))
+         fk))
+    ((match-two v (p *** q) g+s sk fk i)
+     (match-extract-vars p (match-gen-search v p q g+s sk fk i) i ()))
+    ((match-two v (p *** . q) g+s sk fk i)
+     (match-syntax-error "invalid use of ***" (p *** . q)))
+    ((match-two v (p ..1) g+s sk fk i)
+     (if (pair? v)
+         (match-one v (p ___) g+s sk fk i)
+         fk))
+    ((match-two v ($ rec p ...) g+s sk fk i)
+     (if (is-a? v rec)
+         (match-record-refs v rec 0 (p ...) g+s sk fk i)
+         fk))
+    ((match-two v (struct rec p ...) g+s sk fk i)
+     (if (is-a? v rec)
+         (match-record-refs v rec 0 (p ...) g+s sk fk i)
+         fk))
+    ((match-two v (@ rec p ...) g+s sk fk i)
+     (if (is-a? v rec)
+         (match-record-named-refs v rec (p ...) g+s sk fk i)
+         fk))
+    ((match-two v (object rec p ...) g+s sk fk i)
+     (if (is-a? v rec)
+         (match-record-named-refs v rec (p ...) g+s sk fk i)
+         fk))
+    ((match-two v (p . q) g+s sk fk i)
+     (if (pair? v)
+         (let ((w (car v)) (x (cdr v)))
+           (match-one w p ((car v) (set-car! v))
+                      (match-one x q ((cdr v) (set-cdr! v)) sk fk)
+                      fk
+                      i))
+         fk))
+    ((match-two v #(p ...) g+s . x)
+     (match-vector v 0 () (p ...) . x))
+    ((match-two v _ g+s (sk ...) fk i) (sk ... i))
+    ;; Not a pair or vector or special literal, test to see if it's a
+    ;; new symbol, in which case we just bind it, or if it's an
+    ;; already bound symbol or some other literal, in which case we
+    ;; compare it with EQUAL?.
+    ((match-two v x g+s (sk ...) fk (id ...))
+     (let-syntax
+         ((new-sym?
+           (syntax-rules (id ...)
+             ((new-sym? x sk2 fk2) sk2)
+             ((new-sym? y sk2 fk2) fk2))))
+       (new-sym? random-sym-to-match
+                 (let ((x v)) (sk ... (id ... x)))
+                 (if (equal? v x) (sk ... (id ...)) fk))))
+    ))
 
 ;; QUASIQUOTE patterns
 
@@ -690,21 +644,15 @@
 ;; matched.
 
 (define-syntax match-vector
-  (lambda (stx)
-    (define (ellipses? x)
-      (and (identifier? x)
-           (or (free-identifier=? x #'(... ...))
-               (free-identifier=? x #'___))))
-    (syntax-case stx ()
-      ((_ v n pats (p q) . x)
-       #'(match-check-ellipsis q
-                               (match-gen-vector-ellipsis v n pats p . x)
-                               (match-vector-two v n pats (p q) . x)))
-      ((_ v n pats (p ___) sk fk i)
-       (ellipses? #'___)
-       #'(match-gen-vector-ellipsis v n pats p sk fk i))
-      ((_ . x)
-       #'(match-vector-two . x)))))
+  (syntax-rules (___)
+    ((_ v n pats (p q) . x)
+     (match-check-ellipsis q
+                          (match-gen-vector-ellipsis v n pats p . x)
+                          (match-vector-two v n pats (p q) . x)))
+    ((_ v n pats (p ___) sk fk i)
+     (match-gen-vector-ellipsis v n pats p sk fk i))
+    ((_ . x)
+     (match-vector-two . x))))
 
 ;; Check the exact vector length, then check each element in turn.
 
@@ -791,63 +739,56 @@
 ;; (match-extract-vars pattern continuation (ids ...) (new-vars ...))
 
 (define-syntax match-extract-vars
-  (lambda (stx)
-    (define (ellipses? x)
-      (and (identifier? x)
-           (or (free-identifier=? x #'(... ...))
-               (free-identifier=? x #'___))))
-    (define (underscore? x)
-      (and (identifier? x) (free-identifier=? x #'_)))
-    (syntax-case stx (__1 *** ? $ struct & object = quote quasiquote and or not get! set!)
-      ((match-extract-vars (? pred . p) . x)
-       #'(match-extract-vars p . x))
-      ((match-extract-vars ($ rec . p) . x)
-       #'(match-extract-vars p . x))
-      ((match-extract-vars (struct rec . p) . x)
-       #'(match-extract-vars p . x))
-      ((match-extract-vars (& rec (f p) ...) . x)
-       #'(match-extract-vars (p ...) . x))
-      ((match-extract-vars (object rec (f p) ...) . x)
-       #'(match-extract-vars (p ...) . x))
-      ((match-extract-vars (= proc p) . x)
-       #'(match-extract-vars p . x))
-      ((match-extract-vars (quote x) (k ...) i v)
-       #'(k ... v))
-      ((match-extract-vars (quasiquote x) k i v)
-       #'(match-extract-quasiquote-vars x k i v (#t)))
-      ((match-extract-vars (and . p) . x)
-       #'(match-extract-vars p . x))
-      ((match-extract-vars (or . p) . x)
-       #'(match-extract-vars p . x))
-      ((match-extract-vars (not . p) . x)
-       #'(match-extract-vars p . x))
-      ;; A non-keyword pair, expand the CAR with a continuation to
-      ;; expand the CDR.
-      ((match-extract-vars (p q . r) k i v)
-       #'(match-check-ellipsis
-          q
-          (match-extract-vars (p . r) k i v)
-          (match-extract-vars p (match-extract-vars-step (q . r) k i v) i ())))
-      ((match-extract-vars (p . q) k i v)
-       #'(match-extract-vars p (match-extract-vars-step q k i v) i ()))
-      ((match-extract-vars #(p ...) . x)
-       #'(match-extract-vars (p ...) . x))
-      ((match-extract-vars us (k ...) i v)  (underscore? #'us) #'(k ... v))
-      ((match-extract-vars ___ (k ...) i v) (ellipses? #'___)  #'(k ... v))
-      ((match-extract-vars *** (k ...) i v)                    #'(k ... v))
-      ((match-extract-vars __1 (k ...) i v)                    #'(k ... v))
-      ;; This is the main part, the only place where we might add a new
-      ;; var if it's an unbound symbol.
-      ((match-extract-vars p (k ...) (i ...) v)
-       #'(let-syntax
-             ((new-sym?
-               (syntax-rules (i ...)
-                 ((new-sym? p sk fk) sk)
-                 ((new-sym? any sk fk) fk))))
-           (new-sym? random-sym-to-match
-                     (k ... ((p p-ls) . v))
-                     (k ... v))))
-      )))
+  (syntax-rules (_ ___ ..1 *** ? $ struct @ object = quote quasiquote and or not get! set!)
+    ((match-extract-vars (? pred . p) . x)
+     (match-extract-vars p . x))
+    ((match-extract-vars ($ rec . p) . x)
+     (match-extract-vars p . x))
+    ((match-extract-vars (struct rec . p) . x)
+     (match-extract-vars p . x))
+    ((match-extract-vars (@ rec (f p) ...) . x)
+     (match-extract-vars (p ...) . x))
+    ((match-extract-vars (object rec (f p) ...) . x)
+     (match-extract-vars (p ...) . x))
+    ((match-extract-vars (= proc p) . x)
+     (match-extract-vars p . x))
+    ((match-extract-vars (quote x) (k ...) i v)
+     (k ... v))
+    ((match-extract-vars (quasiquote x) k i v)
+     (match-extract-quasiquote-vars x k i v (#t)))
+    ((match-extract-vars (and . p) . x)
+     (match-extract-vars p . x))
+    ((match-extract-vars (or . p) . x)
+     (match-extract-vars p . x))
+    ((match-extract-vars (not . p) . x)
+     (match-extract-vars p . x))
+    ;; A non-keyword pair, expand the CAR with a continuation to
+    ;; expand the CDR.
+    ((match-extract-vars (p q . r) k i v)
+     (match-check-ellipsis
+      q
+      (match-extract-vars (p . r) k i v)
+      (match-extract-vars p (match-extract-vars-step (q . r) k i v) i ())))
+    ((match-extract-vars (p . q) k i v)
+     (match-extract-vars p (match-extract-vars-step q k i v) i ()))
+    ((match-extract-vars #(p ...) . x)
+     (match-extract-vars (p ...) . x))
+    ((match-extract-vars _ (k ...) i v)    (k ... v))
+    ((match-extract-vars ___ (k ...) i v)  (k ... v))
+    ((match-extract-vars *** (k ...) i v)  (k ... v))
+    ((match-extract-vars ..1 (k ...) i v)  (k ... v))
+    ;; This is the main part, the only place where we might add a new
+    ;; var if it's an unbound symbol.
+    ((match-extract-vars p (k ...) (i ...) v)
+     (let-syntax
+         ((new-sym?
+           (syntax-rules (i ...)
+             ((new-sym? p sk fk) sk)
+             ((new-sym? any sk fk) fk))))
+       (new-sym? random-sym-to-match
+                 (k ... ((p p-ls) . v))
+                 (k ... v))))
+    ))
 
 ;; Stepper used in the above so it can expand the CAR and CDR
 ;; separately.
@@ -915,7 +856,7 @@
     ((_ ((var value) ...) . body)
      (match-let/helper let () () ((var value) ...) . body))
     ((_ loop ((var init) ...) . body)
-     (match-named-let loop () ((var init) ...) . body))))
+     (match-named-let loop ((var init) ...) . body))))
 
 ;;> Similar to \scheme{match-let}, but analogously to \scheme{letrec}
 ;;> matches and binds the variables with all match variables in scope.
@@ -964,18 +905,68 @@
     ((_ ((pat expr) . rest) . body)
      (match expr (pat (match-let* rest . body))))))
 
-(define-syntax match-check-ellipsis
-  (lambda (x)
-    (define (ellipses? x)
-      (and (identifier? x)
-           (or (free-identifier=? x #'(... ...))
-               (free-identifier=? x #'___))))
-    (syntax-case x ()
-      ((_ ___ sk fk) (ellipses? #'___) #'sk)
-      ((_ x sk fk) #'fk))))
 
-(define-syntax match-check-identifier
-  (lambda (x)
-    (syntax-case x ()
-      ((_ x sk fk) (identifier? #'x) #'sk)
-      ((_ x sk fk) #'fk)))))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Otherwise COND-EXPANDed bits.
+
+(cond-expand
+ (chibi
+  (define-syntax match-check-ellipsis
+    (er-macro-transformer
+     (lambda (expr rename compare)
+       (if (compare '... (cadr expr))
+           (car (cddr expr))
+           (cadr (cddr expr))))))
+  (define-syntax match-check-identifier
+    (er-macro-transformer
+     (lambda (expr rename compare)
+       (if (identifier? (cadr expr))
+           (car (cddr expr))
+           (cadr (cddr expr)))))))
+
+ (else
+  ;; Portable versions
+  ;;
+  ;; This *should* work, but doesn't :(
+  ;;   (define-syntax match-check-ellipsis
+  ;;     (syntax-rules (...)
+  ;;       ((_ ... sk fk) sk)
+  ;;       ((_ x sk fk) fk)))
+  ;;
+  ;; This is a little more complicated, and introduces a new let-syntax,
+  ;; but should work portably in any R[56]RS Scheme.  Taylor Campbell
+  ;; originally came up with the idea.
+  (define-syntax match-check-ellipsis
+    (syntax-rules ()
+      ;; these two aren't necessary but provide fast-case failures
+      ((match-check-ellipsis (a . b) success-k failure-k) failure-k)
+      ((match-check-ellipsis #(a ...) success-k failure-k) failure-k)
+      ;; matching an atom
+      ((match-check-ellipsis id success-k failure-k)
+       (let-syntax ((ellipsis? (syntax-rules ()
+                                 ;; iff `id' is `...' here then this will
+                                 ;; match a list of any length
+                                 ((ellipsis? (foo id) sk fk) sk)
+                                 ((ellipsis? other sk fk) fk))))
+         ;; this list of three elements will only match the (foo id) list
+         ;; above if `id' is `...'
+         (ellipsis? (a b c) success-k failure-k)))))
+
+  ;; This is portable but can be more efficient with non-portable
+  ;; extensions.  This trick was originally discovered by Oleg Kiselyov.
+  (define-syntax match-check-identifier
+    (syntax-rules ()
+      ;; fast-case failures, lists and vectors are not identifiers
+      ((_ (x . y) success-k failure-k) failure-k)
+      ((_ #(x ...) success-k failure-k) failure-k)
+      ;; x is an atom
+      ((_ x success-k failure-k)
+       (let-syntax
+           ((sym?
+             (syntax-rules ()
+               ;; if the symbol `abracadabra' matches x, then x is a
+               ;; symbol
+               ((sym? x sk fk) sk)
+               ;; otherwise x is a non-symbol datum
+               ((sym? y sk fk) fk))))
+         (sym? abracadabra success-k failure-k)))))))

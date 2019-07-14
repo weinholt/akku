@@ -1,4 +1,4 @@
-#!r6rs #!r6rs
+#!r6rs
 ;;; helper.sls --- Helper procedures for (wak private include)
 
 ;; Copyright (C) 2009, 2010 Andreas Rottmann <a.rottmann@gmx.at>

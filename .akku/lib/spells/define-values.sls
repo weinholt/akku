@@ -1,4 +1,4 @@
-#!r6rs #!r6rs
+#!r6rs
 ;;; define-values.sls --- define-values syntax.
 
 ;; Copyright (C) 2009, 2011 Andreas Rottmann <a.rottmann@gmx.at>

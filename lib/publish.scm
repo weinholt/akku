@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2018 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2018, 2019 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -27,8 +27,7 @@
     (srfi :115 regexp)
     (wak fmt)
     (wak fmt color)
-    (only (xitomatl common) pretty-print)
-    (only (akku private compat) putenv)
+    (only (akku private compat) putenv pretty-print)
     (akku lib git)
     (akku lib manifest)
     (akku lib utils)

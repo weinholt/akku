@@ -1,4 +1,4 @@
-#!r6rs #!r6rs
+#!r6rs
 ;;; include.sls --- `include' macros
 
 ;; Copyright (C) 2010 Andreas Rottmann <a.rottmann@gmx.at>

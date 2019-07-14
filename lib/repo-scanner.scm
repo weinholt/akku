@@ -29,7 +29,7 @@
     (industria strings)
     (only (spells filesys) file-regular? file-directory? file-symbolic-link?)
     (wak fmt)
-    (xitomatl AS-match)
+    (chibi match)
     (only (akku private compat) readlink directory-list)
     (akku lib git)
     (akku lib file-parser)

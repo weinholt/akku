@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2018 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2018, 2019 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -27,9 +27,8 @@
     (only (srfi :13 strings) string-suffix?)
     (only (srfi :67 compare-procedures) <? default-compare)
     (wak fmt)
-    (xitomatl AS-match)
-    (only (xitomatl common) pretty-print)
-    (only (akku private compat) directory-list)
+    (chibi match)
+    (only (akku private compat) directory-list pretty-print)
     (only (akku lib utils) path-join))
 
 ;; Scan a list of directories and print an archive index. It is

@@ -1,4 +1,4 @@
-#!r6rs #!r6rs
+#!r6rs
 ;;; mit-compat.sls --- MIT compatibility shims for R6RS
 
 ;; Copyright (C) 2011 Andreas Rottmann <a.rottmann@gmx.at>

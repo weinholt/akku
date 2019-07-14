@@ -1,4 +1,4 @@
-#!r6rs #!r6rs
+#!r6rs
 (library (spells ports)
   (export copy-port
           port->sexps

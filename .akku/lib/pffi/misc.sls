@@ -1,4 +1,5 @@
-#!r6rs ;;; -*- mode:scheme; coding: utf-8; -*-
+#!r6rs
+;;; -*- mode:scheme; coding: utf-8; -*-
 ;;;
 ;;; src/pffi/misc.sls - Misc
 ;;;  

@@ -1,4 +1,4 @@
-#!r6rs #!r6rs
+#!r6rs
 ;; Copyright André van Tonder. All Rights Reserved.
 ;;
 ;; Permission is hereby granted, free of charge, to any person

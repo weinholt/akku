@@ -1,4 +1,5 @@
-#!r6rs ;;; compat.guile.sls --- GC-interacting procedures for Guile
+#!r6rs
+;;; compat.guile.sls --- GC-interacting procedures for Guile
 
 ;; Copyright (C) 2010, 2015 Andreas Rottmann <a.rottmann@gmx.at>
 

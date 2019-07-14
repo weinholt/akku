@@ -1,4 +1,4 @@
-#!r6rs #!r6rs
+#!r6rs
 ;;; compat.chezscheme.sls --- OS processes for Chez Scheme
 
 ;; Copyright (C) 2010, 2011, 2015 Andreas Rottmann <a.rottmann@gmx.at>

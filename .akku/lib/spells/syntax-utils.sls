@@ -1,4 +1,4 @@
-#!r6rs #!r6rs
+#!r6rs
 ;;; syntax-utils.sls --- Helpers for syntax-case
 
 ;; Copyright (C) 2009, 2015 Andreas Rottmann <a.rottmann@gmx.at>

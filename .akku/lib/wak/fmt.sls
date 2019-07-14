@@ -1,4 +1,4 @@
-#!r6rs ;;; fmt.sls --- R6RS library for the fmt core
+;;; fmt.sls --- R6RS library for the fmt core
 ;;
 ;; Based on fmt-scheme48.scm, which is
 ;; Copyright (c) 2007, 2009, 2011 Alex Shinn.  All rights reserved.

@@ -31,7 +31,7 @@
     (hashing sha-2)
     (only (spells filesys) file-directory? file-symbolic-link? rename-file)
     (wak fmt)
-    (xitomatl AS-match)
+    (chibi match)
     (akku lib git)
     (akku lib lock)
     (akku lib utils)

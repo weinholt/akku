@@ -1,4 +1,4 @@
-#!r6rs #!r6rs
+#!r6rs
 ;;; Code taken from Ikarus Scheme, and tweaked.
 ;;;
 ;;; Ikarus Scheme -- A compiler for R6RS Scheme.

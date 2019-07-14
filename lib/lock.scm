@@ -53,17 +53,17 @@
     (spdx parser)
     (wak fmt)
     (wak fmt color)
-    (xitomatl alists)
-    (xitomatl AS-match)
-    (only (xitomatl common) pretty-print)
+    (chibi match)
     (akku lib manifest)
     (akku lib solver)
     (akku lib solver choice)
     (akku lib solver dummy-db)          ;TODO: Make a proper database
     (only (akku lib solver internals) make-universe)
     (only (akku lib solver logging) dsp-universe)
-    (only (akku lib utils) split-path get-terminal-size sanitized-name)
+    (only (akku lib utils) split-path get-terminal-size sanitized-name
+          assq-ref assoc-replace assq-update)
     (prefix (akku lib solver universe) universe-)
+    (only (akku private compat) pretty-print)
     (akku private logging))
 
 (define logger:akku.lock (make-logger logger:akku 'lock))

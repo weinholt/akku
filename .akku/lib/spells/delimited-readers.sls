@@ -1,4 +1,4 @@
-#!r6rs #!r6rs
+#!r6rs
 ;;; delimited-readers.sls --- Read delimited strings.
 
 ;; Based on code snarfed from scsh, see the file AUTHORS for copyright

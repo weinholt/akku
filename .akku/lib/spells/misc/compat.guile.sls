@@ -1,4 +1,4 @@
-#!r6rs #!r6rs
+#!r6rs
 ;;; compat.guile.sls --- Misc functions, Guile compatibility
 
 ;; Copyright (C) 2010, 2012 Andreas Rottmann <a.rottmann@gmx.at>

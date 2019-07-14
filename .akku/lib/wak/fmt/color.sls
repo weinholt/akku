@@ -1,4 +1,4 @@
-#!r6rs ;;; color.sls --- R6RS library for fmt-color.scm
+;;; color.sls --- R6RS library for fmt-color.scm
 ;;
 ;; Based on fmt-scheme48.scm, which is
 ;; Copyright (c) 2007 Alex Shinn.  All rights reserved.

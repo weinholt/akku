@@ -1,4 +1,4 @@
-#!r6rs ;; -*- mode: scheme; coding: utf-8 -*-
+;; -*- mode: scheme; coding: utf-8 -*-
 ;;; sliding-buffer.sls --- A circular buffer attached to a data sink
 
 ;; Copyright (C) 2009 Andreas Rottmann <a.rottmann@gmx.at>

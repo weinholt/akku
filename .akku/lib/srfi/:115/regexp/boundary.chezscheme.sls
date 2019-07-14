@@ -1,4 +1,5 @@
-#!r6rs ;; Character sets for Unicode boundaries, TR29.
+#!r6rs
+;; Character sets for Unicode boundaries, TR29.
 ;; This code is written by Alex Shinn and placed in the
 ;; Public Domain.  All warranties are disclaimed.
 

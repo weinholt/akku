@@ -27,7 +27,7 @@
   (only (srfi :13 strings) string-prefix?)
   (wak fmt)
   (wak fmt color)
-  (xitomatl AS-match)
+  (chibi match)
   (akku lib bundle)
   (only (akku format lockfile) lockfile-filename)
   (only (akku format manifest) manifest-filename)

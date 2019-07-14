@@ -1,4 +1,5 @@
-#!r6rs (library (spells misc compat)
+#!r6rs
+(library (spells misc compat)
   (export sleep-seconds scheme-implementation)
   (import (rnrs base)
           (only (chezscheme) sleep make-time))

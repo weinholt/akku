@@ -32,7 +32,7 @@
     (industria strings)
     (wak fmt)
     (wak fmt color)
-    (xitomatl AS-match)
+    (chibi match)
     (akku lib file-parser)
     (only (akku lib install) make-r6rs-library-filenames libraries-directory
           file-list-filename)

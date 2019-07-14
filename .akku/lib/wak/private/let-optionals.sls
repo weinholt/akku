@@ -1,4 +1,4 @@
-#!r6rs #!r6rs
+#!r6rs
 ;;; let-optionals.sls --- Optional arguments
 
 ;; Copyright (c) 2001 Olin Shivers

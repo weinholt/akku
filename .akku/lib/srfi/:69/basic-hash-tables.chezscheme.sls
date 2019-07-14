@@ -1,4 +1,4 @@
-#!r6rs #!r6rs
+#!r6rs
 ;; Copyright (C) 2009 Andreas Rottmann. All rights reserved. Licensed
 ;; under an MIT-style license. See the file LICENSE in the original
 ;; collection this file is distributed with.

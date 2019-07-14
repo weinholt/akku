@@ -1,4 +1,4 @@
-#!r6rs ;;; -*- mode:scheme; coding: utf-8; -*-
+;;; -*- mode:scheme; coding: utf-8; -*-
 ;;;
 ;;; src/pffi/compat.guile.sls - Compatible layer for Guile
 ;;;  

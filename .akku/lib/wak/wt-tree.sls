@@ -1,4 +1,4 @@
-#!r6rs ;;; wt-tree.sls --- R6RS port of MIT/GNU Scheme's weight-balanced trees
+;;; wt-tree.sls --- R6RS port of MIT/GNU Scheme's weight-balanced trees
 #!r6rs
 #|
 Copyright (C) 2009, 2010, 2011 Andreas Rottmann <a.rottmann@gmx.at>

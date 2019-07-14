@@ -36,7 +36,7 @@
   (import
     (rnrs (6))
     (only (srfi :1 lists) filter-map lset-intersection)
-    (xitomatl AS-match))
+    (chibi match))
 
 ;; True if lib-name is a built-in library provided by the implementation.
 (define (r6rs-builtin-library? lib-name implementation-name)

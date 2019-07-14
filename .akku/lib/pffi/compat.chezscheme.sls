@@ -1,4 +1,4 @@
-#!r6rs ;;; -*- mode:scheme; coding: utf-8; -*-
+;;; -*- mode:scheme; coding: utf-8; -*-
 ;;;
 ;;; src/pffi/compat.chezscheme.sls - Compatible layer for Chez Scheme
 ;;;  

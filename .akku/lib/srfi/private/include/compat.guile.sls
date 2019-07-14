@@ -1,4 +1,5 @@
-#!r6rs (library (srfi private include compat)
+#!r6rs
+(library (srfi private include compat)
   (export search-paths)
   (import (rnrs) (only (guile) %load-path))
 

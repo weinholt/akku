@@ -1,4 +1,4 @@
-#!r6rs #!r6rs
+#!r6rs
 ;;; compat.chezscheme.sls --- include compatibility for Chez Scheme
 
 ;; Copyright (C) 2009, 2010, 2011 Andreas Rottmann <a.rottmann@gmx.at>

@@ -38,7 +38,7 @@ Security goals for scripts
     (rnrs (6))
     (only (srfi :1 lists) append-map delete-duplicates)
     (wak fmt)
-    (xitomatl AS-match)
+    (chibi match)
     (only (akku lib fetch) project-source-directory)
     (only (akku lib install) akku-directory ffi-libraries-directory
           libraries-directory r7rs-libraries-directory

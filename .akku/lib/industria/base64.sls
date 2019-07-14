@@ -1,4 +1,4 @@
-#!r6rs ;; -*- mode: scheme; coding: utf-8 -*-
+;; -*- mode: scheme; coding: utf-8 -*-
 ;; Copyright © 2009, 2010, 2012, 2013, 2018 Göran Weinholt <goran@weinholt.se>
 
 ;; Permission is hereby granted, free of charge, to any person obtaining a

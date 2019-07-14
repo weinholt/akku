@@ -1,4 +1,5 @@
-#!r6rs ;;; compat.ikarus.sls --- GC-interacting procedures for Ikarus.
+#!r6rs
+;;; compat.ikarus.sls --- GC-interacting procedures for Ikarus.
 
 ;; Copyright (C) 2009 Andreas Rottmann <a.rottmann@gmx.at>
 

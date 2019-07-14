@@ -1,4 +1,4 @@
-#!r6rs #!r6rs
+#!r6rs
 ;;; utils.sls --- utilities for `include-file'
 
 ;; Copyright (C) 2010 Andreas Rottmann <a.rottmann@gmx.at>

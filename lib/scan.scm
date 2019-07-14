@@ -25,7 +25,7 @@
     (rnrs (6))
     (only (srfi :67 compare-procedures) <? default-compare)
     (wak fmt)
-    (xitomatl AS-match)
+    (chibi match)
     (akku private compat)
     (akku lib file-parser)
     (akku lib repo-scanner)
