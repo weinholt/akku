@@ -39,11 +39,11 @@
     (only (spells filesys) file-directory? file-regular?
           file-symbolic-link? rename-file)
     (wak fmt)
-    (only (xitomatl common) pretty-print)
     (xitomatl alists)
     (xitomatl AS-match)
     (only (akku private compat) chmod file-exists/no-follow?
-          directory-list delete-directory os-name chmod)
+          directory-list delete-directory os-name chmod
+          pretty-print)
     (akku lib fetch)
     (akku lib file-parser)
     (akku lib git)
@@ -187,28 +187,48 @@
           (split-path filename))))
     (map library-name->file-name-variant/r7rs r7rs-implementation-names))))
 
+;; Find the #!r6rs directive in the reader. Stops at the first form.
+;; Meant to see if the source code already has #!r6rs before the
+;; library form.
+(define (reader-find-r6rs-directive reader inp)
+  (let ((start (port-position inp)))
+    (let ((directive-seen
+           (let loop ()
+             (let-values ([(type token) (get-token reader)])
+               (cond ((eof-object? token) #f)
+                     ((memq type '(openp openb)) #f)
+                     ((and (eq? type 'directive)
+                           (eq? token 'r6rs))
+                      #t)
+                     (else
+                      (loop)))))))
+      ;; Rewind the port
+      (set-port-position! inp start)
+      directive-seen)))
+
 ;; Copies a single R6RS library form from one file to another.
 (define (copy-r6rs-library target-directory target-filename source-pathname form-index last-form?)
   (let ((target-pathname (path-join target-directory target-filename)))
     (log/debug "Copying R6RS library " source-pathname (if (zero? form-index) "" " ")
-           (if (zero? form-index) "" (list 'form form-index))
-           " to " target-pathname)
+               (if (zero? form-index) "" (list 'form form-index))
+               " to " target-pathname)
     (check-filename target-pathname (support-windows?))
     (call-with-port (open-input-file source-pathname)
       (lambda (inp)
         (read-shebang inp)
-        (let* ((start (port-position inp))
+        (let* ((reader (make-reader inp source-pathname))
                (target-pathname (path-join target-directory target-filename)))
           (mkdir/recursive target-directory)
           (when (file-symbolic-link? target-pathname)
             (delete-file target-pathname))
+          (reader-skip-to-form reader form-index)
           (call-with-output-file/renaming target-pathname
             (lambda (outp)
-              ;; TODO: Only add #!r6rs if it's not in the original
-              ;; source. XXX: The #!r6rs directive is needed by
-              ;; Racket. Mosh needs a newline after the directive.
-              (display "#!r6rs\n" outp)
-              (cond ((and (= form-index 0) last-form?)
+              (cond (last-form?
+                     ;; XXX: The #!r6rs directive is needed by Racket.
+                     ;; Mosh needs a newline after the directive.
+                     (unless (reader-find-r6rs-directive reader inp)
+                       (display "#!r6rs\n" outp))
                      ;; The source has a single form, so it's safe to
                      ;; copy the text.
                      (pipe-ports outp inp))
@@ -218,21 +238,12 @@
                      ;; license compliance if form 0 is not used in a
                      ;; compiled program, but form 1 is.
                      (log/debug "Reformatting " target-pathname)
-                     (let* ((f0 (read inp))
-                            (f1 (read inp)))
-                       (let ((form (case form-index
-                                     ((0) f0)
-                                     ((1) f1)
-                                     (else
-                                      (let lp ((form-index (- form-index 2)))
-                                        (let ((form (read inp)))
-                                          (if (zero? form-index)
-                                              form
-                                              (lp (- form-index 1)))))))))
-                         (display ";; Copyright notices may be found in " outp)
-                         (write source-pathname outp)
-                         (display "\n;; This file was copied by Akku.scm\n" outp)
-                         (pretty-print form outp))))))))))
+                     (let ((form (read)))
+                       (display "#!r6rs\n" outp)
+                       (display ";; Copyright notices may be found in " outp)
+                       (write source-pathname outp)
+                       (display "\n;; This file was copied by Akku.scm\n" outp)
+                       (pretty-print form outp)))))))))
     target-pathname))
 
 ;; Copies a single form from one file to another.
