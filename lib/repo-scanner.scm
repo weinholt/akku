@@ -100,7 +100,7 @@
              (and (file-symbolic-link? realpath)
                   (symlink-inside-repo? realpath relpath-list))
              (member fn ignored-files))
-         (log/debug "Ignored " relpath)
+         (log/debug "Ignored " realpath)
          '())                        ;ignore
         ((file-regular? realpath)
          (let ([path-list (reverse (cons (filename->component fn) relpath-list))])
@@ -123,7 +123,7 @@
                           (directory-list realpath)
                           tracked-files ignored-files))
         (else
-         (log/debug "Ignored " relpath " because it is not a regular file or directory")
+         (log/debug "Ignored " realpath " because it is not a regular file or directory")
          '()))))
   (append-map filename->record* (list-sort string<? files)))
 

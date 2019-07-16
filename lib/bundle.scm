@@ -52,97 +52,100 @@
 ;; Trace the dependencies of `files`, returning a subset of
 ;; filename->artifact.
 (define (trace-dependencies filenames files lib-dir implementations
-                            filename->artifact r6rs-lib-name->artifact*
-                            only-first?)
+                            filename->artifact)
   (define used-files (make-hashtable string-hash string=?))
-  (define (trace filename file)
+  (define (trace filename file implementation scanned-files)
     (unless (or (hashtable-ref filename->artifact filename #f)
                 (member filename filenames))
       (error 'trace-dependencies "Accidentally added a non-artifact" filename))
-    (unless (hashtable-ref used-files filename #f)
-      (log/trace "Adding artifact " filename)
+    (unless (hashtable-ref scanned-files filename #f)
+      (log/trace "Adding artifact " filename " for " implementation)
       (hashtable-set! used-files filename file)
+      (hashtable-set! scanned-files filename #t)
       ;; Add included files.
       (for-each
        (lambda (asset)
          ;; XXX: Is the artifact really needed?
          (log/trace "Adding asset " (include-reference-realpath asset)
-                    " for " filename)
+                    " for " filename " for " implementation)
          (hashtable-set! used-files
                          (include-reference-realpath asset)
                          (hashtable-ref filename->artifact
                                         (include-reference-realpath asset)
                                         #f)))
        (artifact-assets file))
-      ;; Add imported files.
+      ;; Add imported files. For each implementation, check which file
+      ;; it would import and recursively trace that files' dependencies.
       (for-each
        (lambda (import)
          (let* ((lib-name (library-reference-name import))
-                (candidate-filenames
-                 (map (match-lambda
-                       ((dir . fn) (path-join lib-dir (path-join dir fn))))
-                      (append-map (lambda (impl)
-                                    (make-r6rs-library-filenames lib-name impl '()))
-                                  (append implementations '(#f))))))
-           ;; FIXME: if only-first?, then stop on the first hit.
-           ;; Otherwise keep going.
-           (unless (find (lambda (fn)
-                           (cond ((hashtable-ref filename->artifact fn #f)
-                                  => (lambda (library-artifact)
-                                       ;; lib-name was mapped to an artifact.
-                                       (trace fn library-artifact)))
-                                 (else #f)))
-                         candidate-filenames)
-             (unless (r6rs-builtin-library? lib-name (artifact-implementation file))
-               (log/warn "Can not import " lib-name)))))
+                (block-by-omission (r6rs-library-omit-for-implementations lib-name))
+                (block-by-exclusion (r6rs-library-block-for-implementations lib-name)))
+           (unless (or (memq implementation block-by-omission)
+                       (memq implementation block-by-exclusion)
+                       (r6rs-builtin-library? lib-name implementation))
+             (let ((candidate-filenames
+                    (map (match-lambda
+                          ((dir . fn) (path-join lib-dir (path-join dir fn))))
+                         (append (make-r6rs-library-filenames lib-name implementation '())
+                                 (if (pair? block-by-exclusion)
+                                     '()
+                                     (make-r6rs-library-filenames lib-name #f '()))))))
+               (log/trace "Candidate filenames: " candidate-filenames)
+               (unless (find (lambda (fn)
+                               (cond ((hashtable-ref filename->artifact fn #f)
+                                      => (lambda (library-artifact)
+                                           ;; lib-name was mapped to an artifact.
+                                           (trace fn library-artifact implementation scanned-files)
+                                           #t))
+                                     (else #f)))
+                             candidate-filenames)
+                 (log/warn "Can not import " lib-name))))))
        (artifact-imports file))))
   (log/trace "Tracing dependencies")
-  (for-each trace filenames files)
+  (for-each (lambda (filename file)
+              (for-each (lambda (implementation)
+                          (let ((scanned-files (make-hashtable string-hash string=?)))
+                            (trace filename file implementation scanned-files)))
+                        implementations))
+            filenames files)
   used-files)
 
-;; Scan the directory for all artifacts (libraries, included files)
-;; and create hashtables for them.
-(define (scan-installed-artifacts dir)
-  (define filename->artifact (make-hashtable string-hash string=?))
-  (define r6rs-lib-name->artifact* (make-hashtable equal-hash equal?)) ;XXX: not needed?
-  (for-each
-   (lambda (artifact)
-     (hashtable-set! filename->artifact
-                     (path-join dir (artifact-path artifact))
-                     artifact)
-     (when (r6rs-library? artifact)
-       (hashtable-update! r6rs-lib-name->artifact* (r6rs-library-name artifact)
-                          (lambda (acc) (cons artifact acc))
-                          '())))
-   (find-artifacts dir #f))
-  (values filename->artifact r6rs-lib-name->artifact*))
-
 ;; Get a list of filenames for all source needed to compile the files.
-(define (find-used-source filenames implementations only-first?)
+(define (find-used-source filenames implementations)
+  ;; Scan the directory for all artifacts (libraries, included files)
+  ;; and create hashtables for them.
+  (define (scan-installed-artifacts dir)
+    (define filename->artifact (make-hashtable string-hash string=?))
+    ;; FIXME: One filename could map to multiple artifacts, but that
+    ;; should not be possible when scanning installed artifacts
+    (for-each (lambda (artifact)
+                (hashtable-set! filename->artifact
+                                (path-join dir (artifact-path artifact))
+                                artifact))
+              (find-artifacts dir #f))
+    filename->artifact)
   (assert (for-all file-exists? filenames))
-  ;; FIXME: One filename can map to multiple artifacts...
   (let ((files-to-scan (append-map (lambda (filename)
                                      (or (examine-source-file filename filename '())
                                          (error 'find-used-source
                                                 "The file is not understood by file-parser"
                                                 filename)))
-                                   filenames)))
-    (let-values ([(filename->artifact r6rs-lib-name->artifact*)
-                  (scan-installed-artifacts (libraries-directory))])
-      (trace-dependencies filenames files-to-scan (libraries-directory)
-                          implementations filename->artifact
-                          r6rs-lib-name->artifact* only-first?))))
+                                   filenames))
+        (filename->artifact (scan-installed-artifacts (libraries-directory))))
+    (trace-dependencies filenames files-to-scan (libraries-directory)
+                        implementations filename->artifact)))
 
 ;; Each file's dependencies is traced by searching through the
 ;; libraries directory.
 (define (dependency-scan filenames implementations)
-  (for-each (lambda (x)
-              (display x)
-              (newline))
-            (list-sort string<?
-                       (vector->list
-                        (hashtable-keys
-                         (find-used-source filenames implementations #f))))))
+  (log/debug "Invoking dependency-scan: " filenames " " implementations)
+  (vector-for-each (lambda (x)
+                     (display x)
+                     (newline))
+                   (vector-sort string<?
+                                (hashtable-keys
+                                 (find-used-source filenames implementations)))))
 
 (define (scan-projects-for-artifacts lockfile-location)
   (let ((lib-name->artifact* (make-hashtable equal-hash equal?)))
@@ -201,7 +204,7 @@
          (artifact-imports artifact))))
     (let ((files-to-scan (append-map (lambda (filename)
                                        (or (examine-source-file filename filename '())
-                                           (error 'find-used-source
+                                           (error 'compat-scan
                                                   "The file is not understood by file-parser"
                                                   filename)))
                                      filenames)))
@@ -265,7 +268,7 @@
         (* any)))
   (define rx-code-line
     (rx (* space) (or "(" "\"") (* any) (or ")" "\"") (* any)))
-  (let ((used-source-files (find-used-source filenames implementations 'only-first))
+  (let ((used-source-files (find-used-source filenames implementations))
         (filename->project-name (make-hashtable string-hash string=?))
         (project->file* (make-hashtable string-hash string=?)))
     ;; Read the file list.

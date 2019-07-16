@@ -1,6 +1,6 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2017, 2018 Göran Weinholt <goran@weinholt.se>
-;; SPDX-License-Identifier: MIT
+;; Copyright © 2017-2019 Göran Weinholt <goran@weinholt.se>
+;; SPDX-License-Identifier: GPL-3.0-or-later
 #!r6rs
 
 ;; Definition of the manifest format.

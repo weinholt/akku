@@ -1,6 +1,7 @@
 set --export CHEZSCHEMELIBDIRS "$PWD/.akku/lib::$PWD/.akku/libobj"
 set --erase CHEZSCHEMELIBEXTS
 set --export GUILE_LOAD_PATH "$PWD/.akku/lib"
+set --export GUILE_LOAD_COMPILED_PATH "$PWD/.akku/libobj"
 set --export IKARUS_LIBRARY_PATH "$PWD/.akku/lib"
 set --export MOSH_LOADPATH "$PWD/.akku/lib"
 set --export PLTCOLLECTS ":$PWD/.akku/lib"

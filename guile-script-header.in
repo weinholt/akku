@@ -1,0 +1,8 @@
+#!@GUILE@ \
+--no-auto-compile -s
+!#
+
+(set! %load-compiled-path (cons "@godir@" %load-compiled-path))
+(set! %load-path (cons "@moddir@" %load-path))
+(read-enable 'r6rs-hex-escapes)
+(read-enable 'hungry-eol-escapes)

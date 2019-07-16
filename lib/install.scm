@@ -861,6 +861,7 @@
                "export CHEZSCHEMELIBDIRS=\"$PWD/.akku/lib::$PWD/.akku/libobj\";" nl
                "unset CHEZSCHEMELIBEXTS;" nl
                "export GUILE_LOAD_PATH=\"$PWD/.akku/lib\";" nl
+               "export GUILE_LOAD_COMPILED_PATH=\"$PWD/.akku/libobj\";" nl
                "export IKARUS_LIBRARY_PATH=\"$PWD/.akku/lib\";" nl
                "export MOSH_LOADPATH=\"$PWD/.akku/lib\";" nl
                "export PLTCOLLECTS=\":$PWD/.akku/lib\";" nl
@@ -894,6 +895,7 @@
                "set --export CHEZSCHEMELIBDIRS \"$PWD/.akku/lib::$PWD/.akku/libobj\"" nl
                "set --erase CHEZSCHEMELIBEXTS" nl
                "set --export GUILE_LOAD_PATH \"$PWD/.akku/lib\"" nl
+               "set --export GUILE_LOAD_COMPILED_PATH \"$PWD/.akku/libobj\"" nl
                "set --export IKARUS_LIBRARY_PATH \"$PWD/.akku/lib\"" nl
                "set --export MOSH_LOADPATH \"$PWD/.akku/lib\"" nl
                "set --export PLTCOLLECTS \":$PWD/.akku/lib\"" nl
