@@ -31,7 +31,6 @@
 ;;; Generic graphviz code
 
 (define-record-type graph
-  (nongenerative)
   (fields name strict? directed? (mutable node*) (mutable subgraph*) (mutable attr*))
   (protocol
    (lambda (p)
@@ -50,7 +49,7 @@
     sg))
 
 (define-record-type node
-  (nongenerative) (sealed #t)
+  (sealed #t)
   (fields name (mutable edge*) (mutable attr*))
   (protocol
    (lambda (p)
@@ -61,7 +60,7 @@
   (node-attr*-set! node (cons (cons attr value) (node-attr* node))))
 
 (define-record-type edge
-  (nongenerative) (sealed #t)
+  (sealed #t)
   (fields node (mutable attr*)))
 
 (define (node-connect! v w . attr*)

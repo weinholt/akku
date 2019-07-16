@@ -78,8 +78,7 @@
           scripts
           ;; one of these:
           tag revision content)
-  (sealed #t)
-  (nongenerative))
+  (sealed #t))
 
 ;; Turns a project name into something that works as a directory name.
 (define (project-sanitized-name project)

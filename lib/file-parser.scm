@@ -73,7 +73,6 @@
 (define-record-type generic-file
   (parent artifact)
   (sealed #t)
-  (nongenerative)
   (protocol
    (lambda (p)
      (lambda (path path-list)
@@ -83,7 +82,6 @@
 (define-record-type legal-notice-file   ;copyright notices etc
   (parent artifact)
   (sealed #t)
-  (nongenerative)
   (protocol
    (lambda (p)
      (lambda (path path-list)
@@ -93,44 +91,37 @@
 (define-record-type r6rs-library
   (parent artifact)
   (sealed #t)
-  (nongenerative)
   (fields name version exports
           original-name))               ;#f or unmangled name
 
 (define-record-type r6rs-program
   (parent artifact)
-  (sealed #t)
-  (nongenerative))
+  (sealed #t))
 
 (define-record-type r7rs-library
   (parent artifact)
   (sealed #t)
-  (nongenerative)
   (fields name exports))
 
 (define-record-type r7rs-program
   (parent artifact)
-  (sealed #t)
-  (nongenerative))
+  (sealed #t))
 
 (define-record-type module
   (parent artifact)
   (sealed #t)
-  (nongenerative)
   (fields name))
 
 (define-record-type library-reference
   (fields name version-reference original-import-spec)
-  (sealed #t)
-  (nongenerative))
+  (sealed #t))
 
 (define-record-type include-reference
   (fields path                          ;path from libpath root
           realpath                      ;real path
           conversion                    ;#f, foldcase, downcase
           original-include-spec)
-  (sealed #t)
-  (nongenerative))
+  (sealed #t))
 
 (define (include-reference-path=? x y)
   (string=? (include-reference-path x) (include-reference-path y)))

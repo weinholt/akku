@@ -41,7 +41,6 @@
 (define log/trace (make-fmt-log logger:akku.scan 'trace))
 
 (define-record-type package
-  (nongenerative)
   (fields name artifacts))
 
 (define (print-package pkg)

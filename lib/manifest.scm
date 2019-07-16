@@ -65,12 +65,10 @@
   (make-parameter "NOASSERTION"))
 
 (define-record-type package
-  (nongenerative package-v0-48a50174-b2c8-442f-a6e5-e82de44dbae3)
   (sealed #t)
   (fields name version*))
 
 (define-record-type version
-  (nongenerative version-v0-8bad67a4-a936-4950-990a-4c42343e76ee)
   (sealed #t)
   (fields number semver (mutable lock) depends depends/dev conflicts
           synopsis description authors homepage license scripts))
