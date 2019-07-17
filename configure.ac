@@ -18,7 +18,7 @@ dnl Convert .akku/lib from an R6RS source library tree to a Guile
 dnl build directory. When these libraries are packaged in generally
 dnl available Guile packages then they should be filtered out here or
 dnl in the installation step.
-for fn in `<"$srcdir"/guile-deps.txt`; do
+for fn in `cat "$srcdir"/guile-deps.txt`; do
     case "$fn" in
     (*/akku/config.sls)
         ;;

@@ -24,7 +24,7 @@ GUILE_WARNINGS = -Wunbound-variable -Warity-mismatch -Wformat
 SUFFIXES = .scm .go
 
 .scm.go:
-	$(AM_V_GEN)$(top_builddir)/pre-inst-env $(GUILD) compile $(GUILE_WARNINGS) -o "$@" "$<"
+	$(AM_V_GEN)$(top_builddir)/pre-inst-env $(GUILD) compile $(GUILE_WARNINGS) -o $@ $<
 
 SOURCES = $(akku_libs)
 NOCOMP_SOURCES = $(akku_incs)
@@ -33,7 +33,7 @@ bin_SCRIPTS = bin/akku
 
 bin/akku: bin/akku.sps Makefile guile-script-header.in
 	@$(MKDIR_P) bin
-	$(AM_V_GEN)( $(do_subst) < $(srcdir)/guile-script-header.in; cat "$<" ) > bin/akku
+	$(AM_V_GEN)( $(do_subst) < $(srcdir)/guile-script-header.in; cat $(srcdir)/bin/akku.sps ) > bin/akku
 	chmod +x bin/akku
 
 CLEANFILES += bin/akku
