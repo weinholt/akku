@@ -13,7 +13,7 @@ behaves properly.
   project.
 * Convert R7RS libraries for use with Chez Scheme and other R6RS
   Scheme implementations.
-* Numerous R6RS [packages][packages] and as well as R7RS libraries
+* Numerous R6RS [packages][packages], as well as R7RS libraries
   mirrored from [Snow][snow].
 
  [packages]: https://akkuscm.org/packages/
@@ -21,23 +21,26 @@ behaves properly.
 
 ## Dependencies
 
-Akku.scm requires git and libcurl. It has been tested on GNU/Linux and
-macOS. (Windows users can run Akku through WSL for now). Assistance in
-porting is very welcome.
+Akku requires git and libcurl. It has been tested on GNU/Linux,
+FreeBSD, macOS and Cygwin. Although it supports many Scheme
+implementations, Akku itself currently requires either GNU Guile or
+Chez Scheme.
 
 ## Installation
 
-There are two options:
+There are these options:
 
- - Download, unpack and run the binary installer
-   from [GitLab][GitLabTags]. Pre-built versions are available for
-   GNU/Linux amd64. The installation is completely contained to
-   `~/.akku`.
+ - Use the release source tarball. This option uses the GNU build
+   system and requires Guile 2.2 (the development package),
+   pkg-config, make, git and libcurl. This works on the widest range
+   of operating systems and architectures.
 
- - Download the source bundle from [GitLab][GitLabTags] (files ending
-   with `+src.tar.xz`). This version is a little slower and takes
-   longer to install, but runs on more types of systems. It requires
-   Chez Scheme 9.5+ or GNU Guile 2.2+.
+ - Use the pre-built version from [GitLab][GitLabTags]. Pre-built
+   versions based on Chez Scheme are available for GNU/Linux amd64.
+   Use the file ending with src.tar.xz for other architectures.
+
+ - If you would like to install directly from Git, then
+   see [CONTRIBUTING](CONTRIBUTING.md) for instructions.
 
 Please remember to verify the OpenPGP signatures. The releases are
 signed with [E33E61A2E9B8C3A2][key]. The releases are also mirrored on
@@ -55,7 +58,7 @@ How to get started with a new project:
    template. You can also safely run akku in your existing project
    directory.
  - Run `akku list` to list available packages (`akku update` downloads
-   the package index).
+   the latest package index).
  - Run `akku install <pkg>` to install a named package. This also
    installs the code in your current directory into `.akku`. If you
    add new source code files you'll need to rerun `akku install`.
@@ -68,18 +71,25 @@ GNU Guile (with R6RS settings), Ikarus, Larceny, Mosh, Racket
 will be available to Chibi, Gauche, Larceny and Sagittarius. Any
 installed programs are available in your shell's path.
 
+Most implementations can use the libraries as-is. GNU Guile requires a
+small adjustment: `guile -x .guile.sls -x .sls`. You may also need to
+enable R6RS syntax with `(read-enable 'r6rs-hex-escapes)`
+and `(read-enable 'hungry-eol-escapes)`.
+
 Your users can unpack your source code and run `akku install` to get
 the same dependencies that you used during development.
 
-More details are in the manpage: `man docs/akku.1`.
+When you have a new package you want to make available to others, you
+can publish it with `akku publish`.
+
+More details are in [akku.1](https://akkuscm.org/docs/manpage.html) manpage.
 
 ## Docker image
 
 The [akkuscm/akku](https://hub.docker.com/r/akkuscm/akku) image is
 automatically built in Docker hub from the repository at GitHub. It is
-based on Alpine Linux and comes with a stripped down Chez Scheme that
-doesn't require X or ncurses. Here's a simple way to use this image to
-run tests with GitLab CI:
+stripped down build based on Alpine Linux. Here's a simple way to use
+this image to run tests with GitLab CI:
 
 ```yaml
 image: "akkuscm/akku:latest"
@@ -88,8 +98,7 @@ build:
   before_script:
     - akku install
   script:
-    - . .akku/bin/activate
-    - tests/test-foo.sps
+    - .akku/env ./run-tests.sh
 ```
 
 Debian-based images are available for a few Scheme implementations.
