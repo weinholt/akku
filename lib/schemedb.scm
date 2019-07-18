@@ -35,7 +35,7 @@
     r6rs-library-block-for-implementations)
   (import
     (rnrs (6))
-    (only (srfi :1 lists) filter-map lset-intersection)
+    (only (srfi :1 lists) filter-map lset-intersection lset-union)
     (chibi match))
 
 ;; True if lib-name is a built-in library provided by the implementation.
@@ -53,7 +53,7 @@
         (else #f))))
 
 (define (r7rs-builtin-library? lib-name implementation-name)
-  (or (member lib-name r7rs-standard-libraries)
+  (or (member lib-name r7rs-small-standard-libraries)
       (is-implementation-specific? lib-name implementation-name)))
 
 (define (is-implementation-specific? lib-name implementation-name)
@@ -145,7 +145,7 @@
     (rnrs records procedural)
     (rnrs records syntactic)))
 
-(define r7rs-standard-libraries
+(define r7rs-small-standard-libraries
   '((scheme base)
     (scheme case-lambda)
     (scheme char)
@@ -304,6 +304,8 @@
                   62 63 64 66 67 69 71 74 78 87 95 98 99 101))
     (mosh . (0 1 2 6 8 9 11 13 14 16 19 23 26 27 31 37 38 39
                41 42 43 48 61 64 67 78 98 99))
+    (nmosh . (0 1 2 6 8 9 11 13 14 16 19 23 26 27 31 37 38 39
+                41 42 43 48 61 64 67 78 98 99))
     (mzscheme . (1 2 5 6 8 9 11 13 14 16 17 18 19 23 25 26 27
                    28 29 31 38 39 41 42 43 45 48 54 57 59 60 61
                    63 64 66 67 69 71 74 78 86 87 98))
@@ -351,10 +353,12 @@
                           impl)))
                    supported-srfis))]
     [else
-     (cond ((member lib-name r7rs-standard-libraries)
+     (cond ((member lib-name r7rs-small-standard-libraries)
             ;; An R6RS implementation that supports R7RS should not
-            ;; have the R7RS standard libaries installed.
-            (lset-intersection eq? r6rs-implementation-names
-                               r7rs-implementation-names))
+            ;; have the R7RS standard libaries installed. The same for
+            ;; Mosh/nmosh, which has the R7RS small libraries.
+            (lset-union eq? '(mosh nmosh)
+                        (lset-intersection eq? r6rs-implementation-names
+                                           r7rs-implementation-names)))
            (else
             '()))])))
