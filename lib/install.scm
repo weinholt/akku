@@ -98,6 +98,28 @@
         (lp (- form-index 1))))
     (reader-tolerant?-set! reader tolerant)))
 
+;; Lookahead for all comment tokens from the reader, while keeping the
+;; port position.
+(define (reader-lookahead-comments reader port)
+  (let ((tolerant (reader-tolerant? reader))
+        (pos (port-position port)))
+    (dynamic-wind
+      (lambda ()
+        (reader-tolerant?-set! reader #t))
+      (lambda ()
+        (let lp ((tokens '()))
+          (let-values ([(type lexeme) (get-token reader)])
+            (cond
+              ((or (eof-object? lexeme)
+                   (not (memq type '(directive inline-comment whitespace shebang
+                                               comment nested-comment))))
+               (reverse tokens))
+              (else
+               (lp (cons (cons type lexeme) tokens)))))))
+      (lambda ()
+        (reader-tolerant?-set! reader tolerant)
+        (set-port-position! port pos)))))
+
 ;; Makes all known variants of the path and name for the library.
 ;; Returns a list of (directory-name file-name).
 (define (make-r6rs-library-filenames name implementation other-impl*)
@@ -216,33 +238,37 @@
       (lambda (inp)
         (read-shebang inp)
         (let* ((reader (make-reader inp source-pathname))
-               (target-pathname (path-join target-directory target-filename)))
+               (target-pathname (path-join target-directory target-filename))
+               (comment-tokens (reader-lookahead-comments reader inp)))
           (mkdir/recursive target-directory)
           (when (file-symbolic-link? target-pathname)
             (delete-file target-pathname))
           (reader-skip-to-form reader form-index)
           (call-with-output-file/renaming target-pathname
             (lambda (outp)
-              (cond (last-form?
-                     ;; XXX: The #!r6rs directive is needed by Racket.
-                     ;; Mosh needs a newline after the directive.
-                     (unless (reader-find-r6rs-directive reader inp)
-                       (display "#!r6rs\n" outp))
-                     ;; The source has a single form, so it's safe to
-                     ;; copy the text.
-                     (pipe-ports outp inp))
-                    (else
-                     ;; TODO: Include comments and original formatting
-                     ;; for this case. This will be a problem for
-                     ;; license compliance if form 0 is not used in a
-                     ;; compiled program, but form 1 is.
-                     (log/debug "Reformatting " target-pathname)
-                     (let ((form (read)))
-                       (display "#!r6rs\n" outp)
-                       (display ";; Copyright notices may be found in " outp)
+              (let ((writer (make-writer outp target-pathname)))
+                ;; Copy the comments first, as they may contain
+                ;; copyright notices
+                (unless (= form-index 0)
+                  (for-each (lambda (t+t)
+                              (put-token writer (car t+t) (cdr t+t)))
+                            comment-tokens))
+                (cond (last-form?
+                       ;; XXX: The #!r6rs directive is needed by Racket.
+                       ;; Mosh needs a newline after the directive.
+                       (unless (reader-find-r6rs-directive reader inp)
+                         (display "#!r6rs\n" outp))
+                       ;; The source has a single form, so it's safe to
+                       ;; copy the text.
+                       (pipe-ports outp inp))
+                      (else
+                       (log/debug "Reformatting " target-pathname)
+                       (put-token writer 'directive 'r6rs)
+                       (put-token writer 'whitespace "\n")
+                       (display ";; Akku.scm extracted this library from " outp)
                        (write source-pathname outp)
-                       (display "\n;; This file was copied by Akku.scm\n" outp)
-                       (pretty-print form outp)))))))))
+                       (newline outp)
+                       (copy-form-from-reader-to-writer reader writer 0)))))))))
     target-pathname))
 
 ;; Copies a single form from one file to another.
@@ -355,7 +381,8 @@
   (%call-with-output-file/renaming filename #f proc))
 
 ;; Write out an R6RS library form.
-(define (write-r6rs-library target-directory target-filename source-pathname form)
+(define (write-r6rs-library target-directory target-filename source-pathname
+                            tokens form)
   (let ((target-pathname (path-join target-directory target-filename)))
     (log/debug "Writing R6RS library to " target-pathname)
     (check-filename target-pathname (support-windows?))
@@ -366,11 +393,16 @@
       (call-with-output-file/renaming target-pathname
         (lambda (outp)
           (display "#!r6rs\n" outp)     ;XXX: required for Racket
-          (when source-pathname
-            (display ";; Copyright notices may be found in " outp)
-            (write source-pathname outp)
-            (newline outp))
-          (display ";; This file was written by Akku.scm\n" outp)
+          (cond (source-pathname
+                 (display ";; Akku.scm wrote this file based on " outp)
+                 (write source-pathname outp)
+                 (newline outp))
+                (else
+                 (display ";; This file was written by Akku.scm\n" outp)))
+          (let ((writer (make-writer outp target-pathname)))
+            (for-each (lambda (t+t)
+                        (put-token writer (car t+t) (cdr t+t)))
+                      tokens))
           (pretty-print form outp))))
     target-pathname))
 
@@ -465,9 +497,28 @@
                          target-pathname))
          alias-targets)))
 
+;; Equivalent to (write (read inp) outp)
+(define (copy-form-from-reader-to-writer reader writer current-depth)
+  (let loop ((depth current-depth))
+    (let-values ([(type token) (get-token reader)])
+      (unless (eof-object? token)
+        (case type
+          ((openp openb vector bytevector)
+           (put-token writer type token)
+           (loop (+ depth 1)))
+          ((closep closeb)
+           (put-token writer type token)
+           (if (<= depth 1)
+               (put-token writer 'whitespace "\n")
+               (loop (- depth 1))))
+          (else
+           (put-token writer type token)
+           (loop depth)))))))
+
 ;; Read an R6RS library from the reader and write it to a file, while
 ;; renaming the library.
-(define (rewrite-r6rs-library target-directory target-filename source-pathname new-library-name reader)
+(define (rewrite-r6rs-library target-directory target-filename source-pathname
+                              new-library-name comment-tokens reader)
   (let ((target-pathname (path-join target-directory target-filename)))
     (log/debug "Writing renamed R6RS library to " target-pathname)
     (check-filename target-pathname (support-windows?))
@@ -478,6 +529,10 @@
       (call-with-output-file/renaming target-pathname
         (lambda (outp)
           (let ((writer (make-writer outp target-pathname)))
+            (writer-mode-set! writer 'r6rs)
+            (for-each (lambda (t+t)
+                        (put-token writer (car t+t) (cdr t+t)))
+                      comment-tokens)
             (let loop ((directive-seen #f))
               (let-values ([(type token) (get-token reader)])
                 (unless (eof-object? token)
@@ -501,20 +556,7 @@
                                    (and (eq? type 'directive)
                                         (eq? token 'r6rs)))))))))
             ;; Copy the rest of the library
-            (let loop ((depth 1))
-              (let-values ([(type token) (get-token reader)])
-                (unless (eof-object? token)
-                  (case type
-                    ((openp openb vector bytevector)
-                     (put-token writer type token)
-                     (loop (+ depth 1)))
-                    ((closep closeb)
-                     (put-token writer type token)
-                     (unless (zero? depth)
-                       (loop (- depth 1))))
-                    (else
-                     (put-token writer type token)
-                     (loop depth))))))))))
+            (copy-form-from-reader-to-writer reader writer 1)))))
     target-pathname))
 
 ;; Install an R6RS library.
@@ -561,13 +603,17 @@
                    (let ((fn (path-join srcdir (artifact-path artifact))))
                      (call-with-input-file fn
                        (lambda (inp)
-                         (let ((reader (make-reader inp fn)))
+                         (let* ((reader (make-reader inp fn))
+                                (comment-tokens
+                                 (if (zero? (artifact-form-index artifact))
+                                     '()  ;comments will be copied anyway
+                                     (reader-lookahead-comments reader inp))))
                            (reader-skip-to-form reader (artifact-form-index artifact))
                            (rewrite-r6rs-library (path-join (libraries-directory) (car target))
                                                  (cdr target)
                                                  (artifact-path artifact)
                                                  (r6rs-library-name artifact)
-                                                 reader))))))
+                                                 comment-tokens reader))))))
                   ((and always-symlink? (zero? (artifact-form-index artifact))
                         (artifact-last-form? artifact))
                    ;; It's safe to symlink iff the file has a
@@ -577,8 +623,8 @@
                                  (path-join srcdir (artifact-path artifact))))
                   (else
                    (when always-symlink?
-                     (log/warn "Refusing to symlink multi-form file "
-                               (artifact-path artifact)))
+                     (log/warn "The multi-form file "
+                               (artifact-path artifact) " will not be symlinked"))
                    (copy-r6rs-library (path-join (libraries-directory) (car target))
                                       (cdr target)
                                       (path-join srcdir (artifact-path artifact))
@@ -625,7 +671,8 @@
                   (let ((fn (path-join srcdir (artifact-path artifact))))
                     (call-with-input-file fn
                       (lambda (inp)
-                        (let ((reader (make-reader inp fn)))
+                        (let* ((reader (make-reader inp fn))
+                               (comment-tokens (reader-lookahead-comments reader inp)))
                           (reader-skip-to-form reader (artifact-form-index artifact))
                           (reader-mode-set! reader 'r7rs)
                           (cond
@@ -651,7 +698,7 @@
                                                                 (car target))
                                                      (cdr target)
                                                      (artifact-path artifact)
-                                                     lib)))))))))))
+                                                     comment-tokens lib)))))))))))
              (make-alias-symlinks target-pathname
                                   (libraries-directory)
                                   aliases))))))))
@@ -1011,7 +1058,7 @@
              (write-r6rs-library
               (path-join (libraries-directory) (car target))
               (cdr target)
-              #f
+              #f '()
               `(library ,library-name
                  (export main-package-name main-package-version
                          installed-libraries installed-assets)

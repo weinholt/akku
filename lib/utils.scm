@@ -145,12 +145,6 @@
             (put-bytevector outp buf)
             (lp))))))
 
-(define (application-home-directory)
-  (cond ((getenv "AKKU_HOME"))
-        (else
-         (assert (getenv "HOME"))
-         (path-join (getenv "HOME") ".akku"))))
-
 (define (application-data-directory)
   (cond ((getenv "XDG_DATA_HOME") =>
          (lambda (dir)
