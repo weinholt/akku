@@ -2,7 +2,7 @@ AC_INIT([akku], [1.0.0-alpha.0])
 AC_CONFIG_SRCDIR([bin/akku.sps])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
-AM_INIT_AUTOMAKE([-Wall -Werror foreign dist-xz no-dist-gzip])
+AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_PROG_MKDIR_P
 AC_PATH_PROG([GIT], [git], [])
 AC_PATH_PROG([CURL], [curl], [])

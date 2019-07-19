@@ -62,7 +62,7 @@ build:autotools:
   artifacts:
     name: "akku-$CI_COMMIT_REF_NAME"
     paths:
-      - akku-*.tar.xz
+      - akku-*.tar.gz
 
 # Tests the newly built Akku under Chez and Guile.
 
@@ -124,7 +124,7 @@ test:autotools:debian:
   before_script:
     - apt-get update -qq
     - apt-get install -qq curl libcurl4-gnutls-dev git xz-utils pkg-config guile-2.2-dev make
-    - mkdir akku; tar -C akku --strip-components 1 -xvJf akku-*.tar.xz; cd akku
+    - mkdir akku; tar -C akku --strip-components 1 -xvzf akku-*.tar.gz; cd akku
     - ./configure
     - make -j`nproc`
     - make install
@@ -138,19 +138,19 @@ test:autotools:debian:
     - akku install
 
 # Some weirdness with "guile22" vs "guile"
-# test:autotools:fedora:
-#   image: "fedora"
-#   dependencies: ["build:autotools"]
-#   before_script:
-#     - yum install -y curl git xz pkgconfig guile22-devel make
-#     - mkdir akku; tar -C akku --strip-components 1 -xvJf akku-*.tar.xz; cd akku
-#     - ./configure
-#     - make install
-#   script:
-#     - akku version
-#     - mkdir new-project
-#     - cd new-project
-#     - akku install packrat
-#     - akku update
-#     - akku lock
-#     - akku install
+.test:autotools:fedora:
+  image: "fedora"
+  dependencies: ["build:autotools"]
+  before_script:
+    - yum install -y curl git xz pkgconfig guile22-devel make
+    - mkdir akku; tar -C akku --strip-components 1 -xvJf akku-*.tar.gz; cd akku
+    - ./configure
+    - make install
+  script:
+    - akku version
+    - mkdir new-project
+    - cd new-project
+    - akku install packrat
+    - akku update
+    - akku lock
+    - akku install
