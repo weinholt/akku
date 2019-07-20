@@ -2,9 +2,7 @@
 set -eu
 
 #SCHEMESCRIPT=".akku/env guile -x .guile.sls -x .sls"
-SCHEMESCRIPT=".akku/env"
-
-$SCHEMESCRIPT bin/akku.sps dependency-scan --implementation=guile bin/akku.sps > guile-deps.txt
+SCHEMESCRIPT=${SCHEMESCRIPT:-.akku/env}
 
 datadir=${XDG_DATA_HOME:-~/.local/share}
 

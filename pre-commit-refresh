@@ -1,7 +1,7 @@
 #!/bin/sh
 # This is a git pre-commit hook that automatically refreshes .akku/lib
-# and makes it part of the commit. This is needed to keep the project
-# buildable without any bootstrapping problems.
+# and guile-deps.txt and makes it part of the commit. This is needed
+# to keep the project buildable without any bootstrapping problems.
 
 rm -rf dist
 bin/akku.sps 2>/dev/null || exit 0
@@ -13,3 +13,5 @@ git add -f .akku/lib/akku/metadata.sls
 git add -f .akku/bin/activate
 git add -f .akku/bin/activate.fish
 git add -f .akku/env
+bin/akku.sps dependency-scan --implementation=guile bin/akku.sps > guile-deps.txt
+git add guile-deps.txt
