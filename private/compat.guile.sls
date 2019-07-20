@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2017-2018 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2017-2019 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -84,6 +84,9 @@
 
 (define (os-name)
   (let ((os (utsname:sysname (uname))))
-    (if (string-prefix? "CYGWIN_NT-" os)
-        'cygwin
-        (string->symbol (string-downcase os))))))
+    (cond ((string-prefix? "CYGWIN_NT-" os)
+           'cygwin)
+          ((string-prefix? "MSYS_NT-" os)
+           'msys)
+          (else
+           (string->symbol (string-downcase os)))))))

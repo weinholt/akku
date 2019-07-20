@@ -64,7 +64,7 @@
 (define log/trace (make-fmt-log logger:akku.install 'trace))
 
 (define (support-windows?)
-  (eq? (os-name) 'cygwin))
+  (memq (os-name) '(cygwin msys)))
 
 (define (akku-directory)
   ".akku")
