@@ -67,6 +67,7 @@
     (akku private logging))
 
 (define logger:akku.lock (make-logger logger:akku 'lock))
+(define log/error (make-fmt-log logger:akku.lock 'error))
 (define log/info (make-fmt-log logger:akku.lock 'info))
 (define log/warn (make-fmt-log logger:akku.lock 'warning))
 (define log/debug (make-fmt-log logger:akku.lock 'debug))
@@ -510,9 +511,11 @@
                       (list (draft-akku-package #f
                                                 `(,(if dev? 'depends/dev 'depends)
                                                   (,package-name ,range)))))
-                     (log/info "Created a draft manifest in " manifest-filename))))))
+                     (log/info "Created a draft manifest in " manifest-filename)))
+              #t)))
       (else
-       (error 'add-dependency "Package not found" dep-name)))))
+       (log/error "Package not found: " (wrt dep-name))
+       #f))))
 
 (define (remove-dependencies manifest-filename dep-name*)
   (cond ((file-exists? manifest-filename)
