@@ -2,7 +2,7 @@
 # This is a git pre-commit hook that automatically refreshes .akku/lib
 # and guile-deps.txt and makes it part of the commit. This is needed
 # to keep the project buildable without any bootstrapping problems.
-
+set -eu
 rm -rf dist
 bin/akku.sps 2>/dev/null || exit 0
 echo "Doing git rm/add on dependencies..."
