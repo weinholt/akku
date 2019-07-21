@@ -294,13 +294,13 @@
              (assertion-violation 'library-name->file-name/sagittarius
                                   "NUL characters are not supported" c))
            (let ([n (char->integer c)])
+             (when (> n #x7f)
+               (assertion-violation 'library-name->file-name/sagittarius
+                                    "Characters above U+007F are not supported" c))
              (cond
                ((not (memv c '(#\/ #\\ #\: #\* #\? #\" #\< #\> #\|)))
                 (write-char c p))
                (else
-                (when (> n #x7f)
-                  (assertion-violation 'library-name->file-name/sagittarius
-                                       "Characters above U+007F are not supported" c))
                 (write-char #\% p)
                 (display-hex (quotient n 16))
                 (display-hex (remainder n 16))))))
