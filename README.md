@@ -22,7 +22,7 @@ behaves properly.
 ## Dependencies
 
 Akku requires git and libcurl. It has been tested on GNU/Linux, macOS,
-FreeBSD, Cygwin and OpenBSD. Although it supports many Scheme
+FreeBSD, Cygwin, OpenBSD and MSYS2. Although it supports many Scheme
 implementations, Akku itself currently requires either GNU Guile or
 Chez Scheme.
 

@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2018 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2018, 2019 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -92,8 +92,8 @@
         ;; Initialize libcurl and get a handle
         (log/trace "Initializing libcurl")
         (case (os-name)
-          ((darwin)
-           (set! libcurl (open-shared-object "libcurl.dylib")))
+          ((darwin) (set! libcurl (open-shared-object "libcurl.dylib")))
+          ((msys) (set! libcurl (open-shared-object "msys-curl-4")))
           (else
            (guard (exn
                    (else
