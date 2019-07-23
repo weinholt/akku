@@ -170,7 +170,17 @@
   (assert (for-all file-exists? filenames))
   ;; Make a hashtable from library/module names to lists of artifacts
   (let ((lib-name->artifact* (scan-projects-for-artifacts lockfile-location)))
-    (define (trace artifact implementation used-artifacts missing-lib-names)
+    (define (log-chain chain)
+      (log/debug "Dependency chain: "
+                 (reverse (map (lambda (artifact)
+                                 (cond ((r6rs-library? artifact)
+                                        (r6rs-library-name artifact))
+                                       ((r7rs-library? artifact)
+                                        (r7rs-library-name artifact))
+                                       (else
+                                        (artifact-path artifact))))
+                               chain))))
+    (define (trace artifact implementation used-artifacts missing-lib-names chain)
       (unless (hashtable-ref used-artifacts artifact #f)
         (log/trace "Tracing artifact " artifact " for " implementation)
         (hashtable-set! used-artifacts artifact #t)
@@ -191,16 +201,19 @@
                                artifact*)
                          => (lambda (imported)
                               (trace imported implementation
-                                     used-artifacts missing-lib-names)))
+                                     used-artifacts missing-lib-names (cons artifact chain))))
                         ((hashtable-ref missing-lib-names lib-name #f))
                         (else
                          (hashtable-set! missing-lib-names lib-name #t)
-                         (log/debug "Missing import " lib-name " for " implementation)))))
+                         (log/debug "Missing import " lib-name " for " implementation)
+                         (log-chain chain)))))
                ((eq? (artifact-implementation artifact) implementation)
                 (log/debug "Missing library for " (wrt lib-name) " used in "
-                           (artifact-path artifact) ", assuming built-in"))
+                           (artifact-path artifact) ", assuming built-in")
+                (log-chain chain))
                (else
-                (log/warn "Could not find import " (wrt lib-name) " for " implementation)))))
+                (log/warn "Could not find import " (wrt lib-name) " for " implementation)
+                (log-chain chain)))))
          (artifact-imports artifact))))
     (let ((files-to-scan (append-map (lambda (filename)
                                        (or (examine-source-file filename filename '())
@@ -212,10 +225,10 @@
              (map (lambda (implementation)
                     (define used-artifacts (make-eq-hashtable))
                     (define missing-lib-names (make-hashtable equal-hash equal?))
-                    (log/trace "Tracing dependencies for " implementation)
+                    (log/debug "Tracing dependencies for " implementation)
                     (for-each (lambda (artifact)
                                 (trace artifact implementation
-                                       used-artifacts missing-lib-names))
+                                       used-artifacts missing-lib-names '()))
                               files-to-scan)
                     (cons implementation (hashtable-keys missing-lib-names)))
                   r6rs-implementation-names)))
