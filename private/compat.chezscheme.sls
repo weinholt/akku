@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2017-2018 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2017-2019 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -22,13 +22,16 @@
     (rename (cd getcwd))
     mkdir
     chmod
+    rename-file
     delete-directory
     symlink
     readlink
     putenv
     open-process-ports
     directory-list
-    file-exists/no-follow?
+    ;; Single-argument versions
+    file-exists/no-follow? file-symbolic-link?
+    file-regular? file-directory?       ;follow symlinks
     pretty-print
     get-passwd-realname
     os-name)
@@ -37,11 +40,19 @@
     (only (srfi :13 strings) string-suffix?)
     (only (chezscheme) cd mkdir chmod putenv rename-file delete-directory
           system process open-process-ports directory-list
-          pretty-print file-exists?
-          machine-type load-shared-object foreign-procedure))
+          pretty-print file-exists? file-symbolic-link? rename-file
+          machine-type load-shared-object foreign-procedure)
+    (prefix (only (chezscheme) file-regular? file-directory?)
+            chez:))
 
 (define (file-exists/no-follow? filename)
   (file-exists? filename #f))
+
+(define (file-regular? filename)
+  (chez:file-regular? filename #t))
+
+(define (file-directory? filename)
+  (chez:file-directory? filename #t))
 
 (define (symlink from to)
   (define %symlink (foreign-procedure "symlink" (string string) int))
@@ -76,6 +87,7 @@
 
 (case (os-name)
   ((linux) (load-shared-object "libc.so.6"))
+  ((freebsd) (load-shared-object "libc.so.7"))
   ((darwin) (load-shared-object "libc.dylib"))
   ((cygwin) (load-shared-object "crtdll.dll"))
   (else (load-shared-object "libc.so"))))

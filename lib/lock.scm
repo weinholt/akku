@@ -49,7 +49,6 @@
     (only (srfi :67 compare-procedures) <? string-compare-ci)
     (semver versions)
     (semver ranges)
-    (only (spells filesys) rename-file)
     (spdx parser)
     (wak fmt)
     (wak fmt color)
@@ -63,7 +62,7 @@
     (only (akku lib utils) split-path get-terminal-size sanitized-name
           assq-ref assoc-replace assq-update)
     (prefix (akku lib solver universe) universe-)
-    (only (akku private compat) pretty-print)
+    (only (akku private compat) pretty-print rename-file)
     (akku private logging))
 
 (define logger:akku.lock (make-logger logger:akku 'lock))

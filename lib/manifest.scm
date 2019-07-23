@@ -39,12 +39,11 @@
     (rnrs (6))
     (srfi :39 parameters)
     (semver versions)
-    (only (spells filesys) rename-file)
     (spdx ids)
     (spdx parser)
     (wak fmt)
     (chibi match)
-    (only (akku private compat) getcwd pretty-print)
+    (only (akku private compat) getcwd pretty-print rename-file)
     (only (akku lib utils) split-path get-realname assq-ref)
     (akku private logging))
 

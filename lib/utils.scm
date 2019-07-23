@@ -49,12 +49,12 @@
     (only (srfi :13 strings) string-prefix? string-suffix? string-index string-trim-right
           string-join)
     (rename (srfi :98 os-environment-variables) (get-environment-variable getenv))
-    (only (spells filesys) file-directory?)
     (only (spells process) run-shell-command)
     (only (industria strings) string-split)
     (chibi match)
     (akku config)
-    (only (akku private compat) cd getcwd mkdir symlink get-passwd-realname))
+    (only (akku private compat) cd getcwd mkdir symlink get-passwd-realname
+          file-directory?))
 
 (define assq-ref
   (case-lambda

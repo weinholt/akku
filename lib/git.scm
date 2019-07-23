@@ -36,8 +36,7 @@
   (import
     (rnrs (6))
     (only (srfi :13 strings) string-trim-right)
-    (only (spells filesys) file-directory?)
-    (only (akku private compat) open-process-ports putenv)
+    (only (akku private compat) open-process-ports putenv file-directory?)
     (only (akku lib utils) string-split path-join run-command))
 
 (define (get-command-output cmd)

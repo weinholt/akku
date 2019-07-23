@@ -29,12 +29,13 @@
     (compression gzip)
     (compression xz)
     (hashing sha-2)
-    (only (spells filesys) file-directory? file-symbolic-link? rename-file)
     (wak fmt)
     (chibi match)
     (akku lib git)
     (akku lib lock)
     (akku lib utils)
+    (only (akku private compat) file-directory?
+          file-symbolic-link? rename-file)
     (akku private http)
     (akku private logging))
 

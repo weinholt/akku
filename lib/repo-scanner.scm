@@ -27,10 +27,10 @@
     (only (srfi :1 lists) take-while)
     (only (srfi :13 strings) string-prefix?)
     (industria strings)
-    (only (spells filesys) file-regular? file-directory? file-symbolic-link?)
     (wak fmt)
     (chibi match)
-    (only (akku private compat) readlink directory-list)
+    (only (akku private compat) readlink directory-list
+          file-symbolic-link? file-regular? file-directory?)
     (akku lib git)
     (akku lib file-parser)
     (akku lib utils)

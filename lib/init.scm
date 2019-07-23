@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2018 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2018, 2019 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -26,10 +26,9 @@
     (srfi :19 time)
     (srfi :39 parameters)
     (industria strings)
-    (only (spells filesys) file-directory?)
     (wak fmt)
     (only (akku format manifest) manifest-filename)
-    (only (akku private compat) chmod)
+    (only (akku private compat) chmod file-directory?)
     (only (akku lib manifest) default-manifest-name
           default-manifest-version default-manifest-license)
     (only (akku lib lock) add-dependency)

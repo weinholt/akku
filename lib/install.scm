@@ -37,12 +37,11 @@
     (hashing sha-2)
     (laesare reader)
     (laesare writer)
-    (only (spells filesys) file-directory? file-regular?
-          file-symbolic-link? rename-file)
     (wak fmt)
     (only (akku private compat) chmod file-exists/no-follow?
           directory-list delete-directory os-name chmod
-          pretty-print)
+          pretty-print file-directory? file-regular?
+          file-symbolic-link? rename-file)
     (akku lib fetch)
     (akku lib file-parser)
     (akku lib git)

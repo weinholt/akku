@@ -26,12 +26,12 @@
     (rename (rmdir delete-directory))
     symlink
     readlink
-    getenv
     putenv
-    process
     open-process-ports
     directory-list
-    file-exists/no-follow?
+    ;; Single-argument versions
+    file-exists/no-follow? file-symbolic-link?
+    file-regular? file-directory?       ;follow symlinks
     pretty-print
     get-passwd-realname
     os-name)
@@ -41,7 +41,7 @@
     (only (guile)
           chdir getcwd
           mkdir chmod rename-file rmdir
-          lstat stat:type
+          lstat stat stat:type
           symlink readlink
           opendir readdir closedir
           string-split passwd:gecos getpwnam getlogin
@@ -51,12 +51,29 @@
     (prefix (spells process) spells:))
 
 (define (file-exists/no-follow? fn)
-  (guard (exn
-          ((and (who-condition? exn)
-                (member (condition-who exn) '("lstat" lstat)))
-           #f))
+  (guard (exn ((and (who-condition? exn)
+                    (member (condition-who exn) '("lstat" lstat)))
+               #f))
     (lstat fn)
     #t))
+
+(define (file-regular? fn)
+  (guard (exn ((and (who-condition? exn)
+                    (member (condition-who exn) '("stat" stat)))
+               #f))
+    (eq? (stat:type (stat fn)) 'regular)))
+
+(define (file-directory? fn)
+  (guard (exn ((and (who-condition? exn)
+                    (member (condition-who exn) '("stat" stat)))
+               #f))
+    (eq? (stat:type (stat fn)) 'directory)))
+
+(define (file-symbolic-link? fn)
+  (guard (exn ((and (who-condition? exn)
+                    (member (condition-who exn) '("lstat" lstat)))
+               #f))
+    (eq? (stat:type (lstat fn)) 'symlink)))
 
 (define (directory-list dirname)
   (let ((dir (opendir dirname)))
