@@ -1,0 +1,87 @@
+# Use cirrus-ci.com to build a release tarball on Debian GNU/Linux and
+# test it on FreeBSD, macOS and MSYS2.
+
+build_task:
+  container:
+    image: debian:buster
+  env:
+    LANG: C.UTF-8
+  deps_script:
+    - apt update
+    - apt-get -y --no-install-recommends install git xz-utils guile-2.2-dev chezscheme autoconf automake pkg-config make
+    - apt-get -y install curl
+  bootstrap_script:
+    - ./bootstrap
+    - ./configure
+    - make -j`nproc` distcheck
+  source_artifacts:
+    path: "akku-*.tar.gz"
+
+freebsd_test_task:
+  depends_on:
+    - build
+  freebsd_instance:
+    image: freebsd-12-0-release-amd64
+  deps_script: pkg install -y guile2 pkgconf zip curl git
+  fetch_script:
+    - curl -O https://api.cirrus-ci.com/v1/artifact/build/${CIRRUS_BUILD_ID}/build/source.zip
+    - unzip source.zip
+  install_script:
+    - tar -xvzf akku-*.tar.gz
+    - mkdir build && cd build
+    - ../akku-*/configure
+    - make -j2
+    - make install
+  script:
+    - akku init test && cd test
+    - akku install
+
+osx_test_task:
+  depends_on:
+    - build
+  osx_instance:
+    image: mojave-xcode-10.2
+  deps_script: brew install gnu-tar guile pkg-config make curl
+  fetch_script:
+    - curl -O https://api.cirrus-ci.com/v1/artifact/build/${CIRRUS_BUILD_ID}/build/source.zip
+    - unzip source.zip
+  install_script:
+    - tar -xvzf akku-*.tar.gz
+    - mkdir build && cd build
+    - ../akku-*/configure
+    - make -j2
+    - make install
+  script:
+    - akku init test && cd test
+    - akku install
+
+windows_test_task:
+  depends_on:
+    - build
+  windows_container:
+    image: cirrusci/windowsservercore:cmake
+    os_version: 2019
+  clone_script: |
+    @echo Not cloning
+  fetch_script:
+    - set MSYSTEM=MSYS
+    - ps: Invoke-WebRequest -Uri "https://api.cirrus-ci.com/v1/artifact/build/$env:CIRRUS_BUILD_ID/build/source.zip" -OutFile source.zip
+    - ps: Expand-Archive source.zip
+  deps_script:
+    - C:\tools\msys64\usr\bin\bash.exe -lc "pacman -Sy --noconfirm pkg-config guile libguile-devel make git curl"
+  install_script:
+    - echo set -eux >> user_script
+    - echo tar -xvzf source/akku-*.tar.gz >> user_script
+    - echo mkdir build >> user_script
+    - echo cd build >> user_script
+    - echo ../akku-*/configure >> user_script
+    - echo make -j2 >> user_script
+    - echo make install >> user_script
+    - C:\tools\msys64\usr\bin\bash.exe -lc "cd '%cd%'; sh user_script"
+  script:
+    - del user_script
+    - echo set -eux >> user_script
+    - echo akku init test >> user_script
+    - echo cd test >> user_script
+    - echo akku install >> user_script
+    - C:\tools\msys64\usr\bin\bash.exe -lc "cd '%cd%'; sh user_script"
