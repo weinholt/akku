@@ -12,7 +12,6 @@ env:
 
 matrix:
   allow_failures:
-    - env: SCHEME="ChezScheme_master"
     - env: SCHEME="Larceny"
     - env: SCHEME="Racket_HEAD"
     - env: SCHEME="SagittariusScheme"
@@ -55,8 +54,8 @@ before_script:
   - eval "$(INSTALL_TARGET=$HOME/opt scheme-ci-master/install-scheme.sh $SCHEME)"
   - rm -rf build-*/*/
   - source .akku/bin/activate
-  - mkdir -p ~/.akku/share/keys.d
-  - cp akku-archive-*.gpg ~/.akku/share/keys.d
+  - mkdir -p ~/.local/share/akku/keys.d
+  - cp akku-archive-*.gpg ~/.local/share/akku/keys.d
 
 script:
   - bin/akku.sps update
