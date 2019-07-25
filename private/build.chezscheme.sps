@@ -111,7 +111,7 @@
 
 (define (copy-common-files)
   (mkdir/recursive "dist")
-  (cp "LICENSES/GPL-3.0.txt" "dist/COPYING")
+  (cp "COPYING" "dist/COPYING")
   (cp "README.md" "dist/")
   (cp "CONTRIBUTING.md" "dist/")
   (mkdir/recursive "dist/share/man/man1")
