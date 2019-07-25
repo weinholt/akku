@@ -212,8 +212,12 @@
                            (artifact-path artifact) ", assuming built-in")
                 (log-chain chain))
                (else
-                (log/warn "Could not find import " (wrt lib-name) " for " implementation)
-                (log-chain chain)))))
+                ;; This is a library that doesn't exist in any
+                ;; dependency and not in the current project.
+                (unless (hashtable-ref missing-lib-names lib-name #f)
+                  (hashtable-set! missing-lib-names lib-name #t)
+                  (log/debug "Could not find import " (wrt lib-name) " for " implementation)
+                  (log-chain chain))))))
          (artifact-imports artifact))))
     (let ((files-to-scan (append-map (lambda (filename)
                                        (or (examine-source-file filename filename '())
