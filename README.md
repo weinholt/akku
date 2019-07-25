@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.org/weinholt/akku.svg?branch=master)](https://travis-ci.org/weinholt/akku)
 [![pipeline status](https://gitlab.com/akkuscm/akku/badges/master/pipeline.svg)](https://gitlab.com/akkuscm/akku/commits/master)
+[![Build Status](https://api.cirrus-ci.com/github/weinholt/akku.svg)](https://cirrus-ci.com/github/weinholt/akku)
 
 [Akku.scm](https://akkuscm.org/) is a language package manager for
 Scheme. It grabs hold of code and vigorously shakes it until it
