@@ -916,6 +916,7 @@
                "export YPSILON_SITELIB=\"$PWD/.akku/lib\";" nl
                "export LARCENY_LIBPATH=\"$PWD/" lib "\";" nl
                "export IRONSCHEME_LIBRARY_PATH=\"$PWD/" lib "\";" nl ;nonstandard
+               "export LOKO_LIBRARY_PATH=\"$PWD/" lib "\";" nl
                ;; R7RS
                "export CHIBI_MODULE_PATH=\"$PWD/" lib7 "\";" nl
                "export GAUCHE_LOAD_PATH=\"$PWD/" lib7 "\";" nl
@@ -950,6 +951,7 @@
                "set --export YPSILON_SITELIB \"$PWD/.akku/lib\"" nl
                "set --export LARCENY_LIBPATH \"$PWD/" lib "\"" nl
                "set --export IRONSCHEME_LIBRARY_PATH \"$PWD/" lib "\"" nl  ;nonstandard
+               "set --export LOKO_LIBRARY_PATH \"$PWD/" lib "\"" nl
                ;; R7RS
                "set --export CHIBI_MODULE_PATH \"$PWD/" lib7 "\"" nl
                "set --export GAUCHE_LOAD_PATH \"$PWD/" lib7 "\"" nl

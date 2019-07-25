@@ -29,6 +29,7 @@
     library-name->file-name/ikarus
     library-name->file-name/ironscheme
     library-name->file-name/larceny
+    library-name->file-name/loko
     library-name->file-name/mosh
     library-name->file-name/psyntax
     library-name->file-name/racket
@@ -346,6 +347,38 @@
           (f (car ls) (cdr ls)))))
     (extract)))
 
+(define (library-name->file-name/loko ls)
+  (call-with-string-output-port
+    (lambda (p)
+      (define (display-hex n)
+        (cond
+          ((fx<=? 0 n 9) (display n p))
+          (else (write-char
+                 (integer->char
+                  (fx+ (char->integer #\a)
+                       (fx- n 10)))
+                 p))))
+      (for-each
+       (lambda (x)
+         (write-char #\/ p)
+         (let ([name (symbol->string x)])
+           (for-each
+            (lambda (n)
+              (let ([c (integer->char n)])
+                (cond
+                  ((or (char<=? #\a c #\z)
+                       (char<=? #\A c #\Z)
+                       (char<=? #\0 c #\9)
+                       (memv c '(#\- #\. #\_ #\~)))
+                   (write-char c p))
+                  (else
+                   (write-char #\% p)
+                   (let-values ([(h l) (fxdiv-and-mod n 16)])
+                     (display-hex h)
+                     (display-hex l))))))
+            (bytevector->u8-list (string->utf8 name)))))
+       ls))))
+
 (define (library-name->file-name-variant implementation)
   (case implementation
     ((chezscheme) library-name->file-name/chezscheme)
@@ -358,6 +391,7 @@
     ((nmosh) library-name->file-name/mosh)
     ((sagittarius) library-name->file-name/sagittarius)
     ((ypsilon) library-name->file-name/ypsilon)
+    ((loko) library-name->file-name/loko)
     (else                               ;default fallback
      library-name->file-name/chezscheme)))
 

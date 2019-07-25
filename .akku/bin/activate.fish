@@ -10,6 +10,7 @@ set --export VICARE_SOURCE_PATH "$PWD/.akku/lib"
 set --export YPSILON_SITELIB "$PWD/.akku/lib"
 set --export LARCENY_LIBPATH "$PWD/.akku/lib"
 set --export IRONSCHEME_LIBRARY_PATH "$PWD/.akku/lib"
+set --export LOKO_LIBRARY_PATH "$PWD/.akku/lib"
 set --export CHIBI_MODULE_PATH "$PWD/.akku/lib"
 set --export GAUCHE_LOAD_PATH "$PWD/.akku/lib"
 set --export --prepend PATH $PWD/.akku/bin

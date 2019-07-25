@@ -98,6 +98,8 @@
     (larceny (primitives *)
              (larceny *)
              (rnrs eval reflection))    ;van Tonder macros
+    (loko (loko *)
+          (psyntax system $bootstrap))
     (mosh (core *)
           (mosh *)
           (nmosh *)
@@ -175,6 +177,7 @@
     (('guile . _) 'guile)
     (('ikarus . _) 'ikarus)
     (('ironscheme . _) 'ironscheme)
+    (('loko 'system . _) 'loko)
     (('mosh . _) 'mosh)
     (('nmosh . _) 'nmosh)
     (('sagittarius . _) 'sagittarius)
@@ -211,6 +214,7 @@
     ikarus
     ironscheme
     larceny
+    loko
     mosh
     mzscheme
     nmosh
@@ -302,6 +306,7 @@
     (larceny . (1 2 5 6 8 9 11 13 14 16 17 19 23 25 26 27 28 29 30
                   31 34 37 38 39 41 42 43 45 48 51 54 55 59 60 61
                   62 63 64 66 67 69 71 74 78 87 95 98 99 101))
+    (loko . (98))
     (mosh . (0 1 2 6 8 9 11 13 14 16 19 23 26 27 31 37 38 39
                41 42 43 48 61 64 67 78 98 99))
     (nmosh . (0 1 2 6 8 9 11 13 14 16 19 23 26 27 31 37 38 39
