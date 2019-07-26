@@ -32,6 +32,7 @@
     read-annotated read-datum
     detect-scheme-file-type
     reader? make-reader reader-warning
+    reader-port
     reader-mode reader-mode-set!
     reader-fold-case? reader-fold-case?-set!
     reader-tolerant? reader-tolerant?-set!

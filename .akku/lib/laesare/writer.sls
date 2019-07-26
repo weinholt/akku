@@ -80,6 +80,10 @@
                       (put-string p (string-downcase (number->string (char->integer token) 16)))))))
          ((eqv? token #\linefeed)
           (put-string p "#\\linefeed"))
+         ((eqv? token #\esc)
+          (if (eq? (writer-mode writer) 'r6rs)
+              (put-string p "#\\esc")   ;workaround for Larceny 1.3
+              (put-string p "#\\x1b")))
          ((and (char? token) (memq (char-general-category token) '(Cf Zp So)))
           (put-string p "#\\x")
           (put-string p (string-downcase (number->string (char->integer token) 16))))
