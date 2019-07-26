@@ -976,21 +976,25 @@
              "# For fish, use:                          .akku/env -f | source" nl
              "export AKKU_ENV=$(CDPATH='' cd -- \"$(dirname -- \"$0\")/..\" && pwd)" nl
              "dir=$(pwd)" nl
-             "cd \"$AKKU_ENV\" || exit 1" nl
-             ". \"$AKKU_ENV/.akku/bin/activate\"" nl
-             "" nl
-             "if [ \"$1\" = \"-s\" ]; then" nl
-             "    echo \"AKKU_ENV=\\\"$AKKU_ENV\\\";\"" nl
-             "    sed -e \"s/\\$PWD/\\$AKKU_ENV/g\" \"$AKKU_ENV/.akku/bin/activate\"" nl
-             "    cd \"$dir\" || exit 1" nl
-             "elif [ \"$1\" = \"-f\" ]; then" nl
-             "    echo \"set AKKU_ENV \\\"$AKKU_ENV\\\"\"" nl
-             "    sed -e \"s/\\$PWD/\\$AKKU_ENV/g\" \"$AKKU_ENV/.akku/bin/activate.fish\"" nl
-             "    cd \"$dir\" || exit 1" nl
+             "if [ ! -d \"$AKKU_ENV\" ] || [ ! -e \"$AKKU_ENV/.akku/bin/activate\" ]; then" nl
+             "    echo The .akku/env script should be run, not sourced" nl
              "else" nl
-             "    cd \"$dir\" || exit 1" nl
-             "    SHELL=${SHELL:-/bin/sh}" nl
-             "    exec \"${@:-$SHELL}\"" nl
+             "    cd \"$AKKU_ENV\" || exit 1" nl
+             "    . \"$AKKU_ENV/.akku/bin/activate\"" nl
+             "" nl
+             "    if [ \"$1\" = \"-s\" ]; then" nl
+             "        echo \"AKKU_ENV=\\\"$AKKU_ENV\\\";\"" nl
+             "        sed -e \"s/\\$PWD/\\$AKKU_ENV/g\" \"$AKKU_ENV/.akku/bin/activate\"" nl
+             "        cd \"$dir\" || exit 1" nl
+             "    elif [ \"$1\" = \"-f\" ]; then" nl
+             "        echo \"set AKKU_ENV \\\"$AKKU_ENV\\\"\"" nl
+             "        sed -e \"s/\\$PWD/\\$AKKU_ENV/g\" \"$AKKU_ENV/.akku/bin/activate.fish\"" nl
+             "        cd \"$dir\" || exit 1" nl
+             "    else" nl
+             "        cd \"$dir\" || exit 1" nl
+             "        SHELL=${SHELL:-/bin/sh}" nl
+             "        exec \"${@:-$SHELL}\"" nl
+             "    fi" nl
              "fi" nl)))
     (chmod filename #o755)))
 
