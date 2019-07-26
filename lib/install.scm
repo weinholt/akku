@@ -989,6 +989,7 @@
              "    cd \"$dir\" || exit 1" nl
              "else" nl
              "    cd \"$dir\" || exit 1" nl
+             "    SHELL=${SHELL:-/bin/sh}" nl
              "    exec \"${@:-$SHELL}\"" nl
              "fi" nl)))
     (chmod filename #o755)))

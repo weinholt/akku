@@ -17,5 +17,6 @@ elif [ "$1" = "-f" ]; then
     cd "$dir" || exit 1
 else
     cd "$dir" || exit 1
+    SHELL=${SHELL:-/bin/sh}
     exec "${@:-$SHELL}"
 fi
