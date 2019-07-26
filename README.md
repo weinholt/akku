@@ -89,8 +89,8 @@ More details are in [akku.1](https://akkuscm.org/docs/manpage.html) manpage.
 
 The [akkuscm/akku](https://hub.docker.com/r/akkuscm/akku) image is
 automatically built in Docker hub from the repository at GitHub. It is
-stripped down build based on Alpine Linux. Here's a simple way to use
-this image to run tests with GitLab CI:
+a stripped down build based on Alpine Linux. Here's a simple way to
+use this image to run tests with GitLab CI:
 
 ```yaml
 image: "akkuscm/akku:latest"

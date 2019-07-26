@@ -1,10 +1,14 @@
 # Akku.scm release notes
 
-## Version 1.0.0 (draft)
+## Version 1.0.0
 
-Akku releases are now installed to `~/.local/bin/akku` and Akku stores
-its files in `~/.local` instead of `~/.akku`. If you installed from
-Git then you need to migrate your installation:
+Akku releases are now built with autotools for improved portability.
+The types of releases that use Chez Scheme are still available as the
+"pre-built" tarballs.
+
+Pre-built Akku releases are now installed to `~/.local/bin/akku` and
+Akku stores its files in `~/.local` instead of `~/.akku`. If you
+installed from Git then you need to migrate your installation:
 
 ```
 mkdir -p ~/.local/share/akku
@@ -45,6 +49,9 @@ notices).
 
 A bug was fixed in the library to filename mapping for Sagittarius
 Scheme and its list of supported SRFIs is amended.
+
+A bug was fixed in the dependency-scan and license-scan commands that
+stopped them working on GNU Guile.
 
 A crash in the installer was fixed. Libraries that included
 non-existent files caused a crash.

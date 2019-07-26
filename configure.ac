@@ -1,4 +1,4 @@
-AC_INIT([akku], [1.0.0-alpha.0])
+AC_INIT([akku], [1.0.0])
 AC_CONFIG_SRCDIR([bin/akku.sps])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
