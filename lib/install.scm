@@ -1107,7 +1107,7 @@
                          ((other-project . other-artifact)
                           (letrec ((fmt-name
                                     (lambda (name)
-                                      (if (string=? name "")
+                                      (if (equal? name "")
                                           "the current project"
                                           name))))
                             (log/info "File " filename  " in "
