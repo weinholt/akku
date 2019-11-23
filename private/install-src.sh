@@ -31,7 +31,7 @@ bindir=$PREFIX/bin
 libdir=$PREFIX/lib/akku
 datadir=${XDG_DATA_HOME:-$PREFIX/share}
 if [ -d "$libdir" ]; then
-    rm -rf "$libdir"
+    rm -rf "$libdir".old
     mv "$libdir" "$libdir".old
 fi
 mkdir -p "$bindir" "$libdir" "$datadir"
