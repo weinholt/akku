@@ -9,7 +9,7 @@
     installed-assets)
   (import (only (rnrs) define quote))
   (define main-package-name '"akku")
-  (define main-package-version '"1.0.0")
+  (define main-package-version '"1.0.1-beta.0")
   (define installed-libraries
     '((akku config) (akku format lockfile) (akku format manifest)
       (akku lib archive-maint) (akku lib bundle) (akku lib fetch)
