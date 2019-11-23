@@ -148,7 +148,10 @@
   (let ((tempfile (string-append full-index-filename ".tmp")))
     (when (file-exists? tempfile)
       (delete-file tempfile))
-    (call-with-output-file tempfile
+    (call-with-port (open-file-output-port tempfile (file-options no-fail)
+                                           (buffer-mode block)
+                                           (make-transcoder (utf-8-codec)
+                                                            (eol-style none)))
       (lambda (outp)
         (define packages (make-hashtable equal-hash equal?))
         (display "#!r6rs ; -*- mode: scheme; coding: utf-8 -*-\n" outp)
@@ -157,8 +160,12 @@
         (for-each
          (lambda (i repo)
            (let ((tag (assq-ref repo 'tag)))
-             (call-with-input-file (string-append full-index-filename "."
-                                                  (number->string i))
+             (call-with-port (open-file-input-port (string-append full-index-filename "."
+                                                                  (number->string i))
+                                                   (file-options)
+                                                   (buffer-mode block)
+                                                   (make-transcoder (utf-8-codec)
+                                                                    (eol-style none)))
                (lambda (inp)
                  (let lp ()
                    (match (read inp)
