@@ -1183,6 +1183,23 @@
                 (for-each handle-file filename*))))
       (recurse (libraries-directory) (directory-list (libraries-directory))))))
 
+(define (post-install-checkups installed-project/artifact*)
+  ;; Small advert for akku-r7rs if the user didn't install it but
+  ;; there are R7RS libraries or programs installed.
+  (when (and (not (exists (match-lambda
+                           [#(project _artifact/fn*)
+                            (equal? (project-name project) "akku-r7rs")])
+                          installed-project/artifact*))
+             (exists (match-lambda
+                      [#(_project artifact/fn*)
+                       (exists (match-lambda
+                                [(artifact . fn*)
+                                 (or (r7rs-library? artifact)
+                                     (r7rs-program? artifact))])
+                               artifact/fn*)])
+                     installed-project/artifact*))
+    (log/info "R7RS-small libraries are available in the akku-r7rs package")))
+
 ;; Install all projects, assuming that fetch already ran.
 (define (install lockfile-location manifest-filename)
   (let ((project-list (read-lockfile lockfile-location))
@@ -1204,5 +1221,6 @@
                                            (install-metadata installed-project/artifact*
                                                              manifest-filename))))))
       (install-file-list complete-list)
-      (remove-extraneous-files complete-list))
+      (remove-extraneous-files complete-list)
+      (post-install-checkups complete-list))
     (install-activate-scripts))))
