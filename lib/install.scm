@@ -131,9 +131,11 @@
                  (when (and (who-condition? exn)
                             (message-condition? exn)
                             (irritants-condition? exn))
-                   (log/error "(" (condition-who exn) ") "
+                   (log/debug "(" (condition-who exn) ") "
                               (condition-message exn) ": "
-                              (condition-irritants exn)))
+                              (condition-irritants exn))
+                   (log/info "The name " (wrt name) " has been rejected by "
+                             (condition-who exn)))
                  #f))
           (let* ((filename (library-name->file-name name))
                  (filename (substring filename 1 (string-length filename)))
@@ -195,10 +197,14 @@
     (lambda (library-name->file-name)
       (guard (exn
               ((serious-condition? exn)
-               (when (and (message-condition? exn)
+               (when (and (who-condition? exn)
+                          (message-condition? exn)
                           (irritants-condition? exn))
-                 (log/error (condition-message exn) ": "
-                            (condition-irritants exn)))
+                 (log/debug "(" (condition-who exn) ") "
+                            (condition-message exn) ": "
+                            (condition-irritants exn))
+                 (log/info "The name " (wrt name) " has been rejected by "
+                           (condition-who exn)))
                #f))
         (let* ((filename (library-name->file-name name))
                (filename (substring filename 1 (string-length filename)))
@@ -622,7 +628,7 @@
                                  (path-join srcdir (artifact-path artifact))))
                   (else
                    (when always-symlink?
-                     (log/warn "The multi-form file "
+                     (log/info "The multi-form file "
                                (artifact-path artifact) " will not be symlinked"))
                    (guard (exn
                            ((lexical-violation? exn)
@@ -671,12 +677,12 @@
                        (irritants-condition? exn)
                        (lexical-violation? exn)
                        (source-condition? exn))
-                  (log/error "Not installing " (wrt (path-join (car target) (cdr target)))
-                             " due to syntax error: "
-                             (condition-message exn) " with irritants "
-                             (condition-irritants exn)
-                             " at line " (source-line exn)
-                             ", column " (source-column exn))
+                  (log/info "Not installing " (wrt (path-join (car target) (cdr target)))
+                            " due to syntax error: "
+                            (condition-message exn) " with irritants "
+                            (condition-irritants exn)
+                            " at line " (source-line exn)
+                            ", column " (source-column exn))
                   '()))
            (let ((target-pathname
                   (let ((fn (path-join srcdir (artifact-path artifact))))
@@ -770,7 +776,7 @@
                     (else
                      ;; Copy only the module form.
                      (when always-symlink?
-                       (log/warn "Refusing to symlink multi-form module "
+                       (log/info "Refusing to symlink multi-form module "
                                  (artifact-path artifact)))
                      (copy-source-form (path-join (libraries-directory) (car target))
                                        (cdr target)
@@ -1122,9 +1128,9 @@
                                       (if (equal? name "")
                                           "the current project"
                                           name))))
-                            (log/info "File " filename  " in "
+                            (log/info "The file " filename " in "
                                       (fmt-name (project-name other-project))
-                                      " shadows that from "
+                                      " shadows the one from "
                                       (fmt-name (project-name project)))))))
                     (else
                      (hashtable-set! printed-files filename (cons project artifact))
