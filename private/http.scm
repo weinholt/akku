@@ -91,14 +91,24 @@
       (unless libcurl
         ;; Initialize libcurl and get a handle
         (log/trace "Initializing libcurl")
-        (case (os-name)
-          ((darwin) (set! libcurl (open-shared-object "libcurl.dylib")))
-          ((msys) (set! libcurl (open-shared-object "msys-curl-4")))
-          (else
-           (guard (exn
-                   (else
-                    (set! libcurl (open-shared-object "libcurl.so.3"))))
-             (set! libcurl (open-shared-object "libcurl.so.4")))))
+        (guard (exn
+                ((and (who-condition? exn)
+                      (message-condition? exn)
+                      (member (condition-who exn) '("dynamic-link")))
+                 (log/debug (condition-message exn) ": "
+                            (condition-irritants exn))
+                 ;; Guile/libtool needs the development package. It
+                 ;; shouldn't, but it's an old issue.
+                 (log/error "Could not load libcurl. Please install the curl development(!) package.")
+                 (exit 1)))
+          (case (os-name)
+            ((darwin) (set! libcurl (open-shared-object "libcurl.dylib")))
+            ((msys) (set! libcurl (open-shared-object "msys-curl-4")))
+            (else
+             (guard (exn
+                     (else
+                      (set! libcurl (open-shared-object "libcurl.so.3"))))
+               (set! libcurl (open-shared-object "libcurl.so.4"))))))
         (letrec ()
           (define %curl_global_init (foreign-procedure libcurl int curl_global_init (long)))
           (call %curl_global_init #b11)))
