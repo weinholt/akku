@@ -26,7 +26,7 @@
     (only (srfi :1 lists) iota append-map)
     (only (srfi :13 strings) string-prefix? string-suffix?)
     (only (srfi :67 compare-procedures) <? default-compare)
-    (hashing sha-2)
+    (hashing sha-1)
     (industria openpgp)
     (semver versions)
     (wak fmt)
@@ -106,26 +106,26 @@
           (sig-filename (string-append full-index-filename suffix ".sig"))
           (temp-filename (string-append full-index-filename suffix ".tmp"))
           (temp-sig-filename (string-append full-index-filename suffix ".tmp.sig"))
-          (index-checksum (make-sha-256)))
+          (index-checksum (make-sha-1)))
       (when (file-exists? temp-filename)
         (delete-file temp-filename))
       (when (file-exists? temp-sig-filename)
         (delete-file temp-sig-filename))
       (mkdir/recursive (car (split-path temp-filename)))
       ;; Fetch the index to e.g. "index.db.0".
-      (log/info "Fetching index from " repository-url " ...")
+      (log/info "Fetching the index from " repository-url)
       (download-file (url-join repository-url "Akku-index.scm")
                      temp-filename
-                     (lambda (buf) (sha-256-update! index-checksum buf)))
-      ;; Download the signature by the SHA-256 of the file to be
+                     (lambda (buf) (sha-1-update! index-checksum buf)))
+      ;; Download the signature by the SHA-1 of the file to be
       ;; signed. Prevents a race condition where the .sig file is
       ;; replaced during the previous download, and avoids using
       ;; cleartext signatures.
-      (let ((index-sha256 (sha-256->string (sha-256-finish index-checksum))))
+      (let ((index-sha1 (sha-1->string (sha-1-finish index-checksum))))
         (download-file (url-join repository-url
-                                 (string-append "by-sha256/"
-                                                (substring index-sha256 0 2)
-                                                "/" index-sha256 ".sig"))
+                                 (string-append "by-sha1/"
+                                                (substring index-sha1 0 2)
+                                                "/" index-sha1 ".sig"))
                        temp-sig-filename #f)
         ;; Verify the signature.
         (case (verify-signature temp-filename temp-sig-filename keys-directories keyfile-glob)
