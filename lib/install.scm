@@ -624,11 +624,23 @@
                    (when always-symlink?
                      (log/warn "The multi-form file "
                                (artifact-path artifact) " will not be symlinked"))
-                   (copy-r6rs-library (path-join (libraries-directory) (car target))
-                                      (cdr target)
-                                      (path-join srcdir (artifact-path artifact))
-                                      (artifact-form-index artifact)
-                                      (artifact-last-form? artifact))))))
+                   (guard (exn
+                           ((lexical-violation? exn)
+                            (log/debug "Lexical violation in "
+                                       (path-join srcdir (artifact-path artifact))
+                                       " at line " (source-line exn)
+                                       ", column " (source-column exn)
+                                       "; using copy-source-form")
+                            (copy-source-form (path-join (libraries-directory) (car target))
+                                              (cdr target)
+                                              (path-join srcdir (artifact-path artifact))
+                                              (artifact-form-index artifact)
+                                              (artifact-last-form? artifact))))
+                     (copy-r6rs-library (path-join (libraries-directory) (car target))
+                                        (cdr target)
+                                        (path-join srcdir (artifact-path artifact))
+                                        (artifact-form-index artifact)
+                                        (artifact-last-form? artifact)))))))
            (make-alias-symlinks target-pathname
                                 (libraries-directory)
                                 aliases)))))))
