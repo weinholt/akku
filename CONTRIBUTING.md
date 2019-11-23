@@ -12,14 +12,32 @@ Go to [GitLab issues][issues] for a list of current trouble.
 ## Setting up a development environment / Building from Git
 
 Akku comes with its Scheme dependencies committed to the git
-repository, so you can do a checkout and a manual build. For building
-the normal release tarball, use `./bootstrap` and have autoreconf,
-autoconf and automake installed. You may need to adjust the
-`SCHEMESCRIPT` line to get it started on your system, but then it
-works mostly the same as any project that uses autotools.
+repository, so you can do a checkout and a manual build.
 
-If you want to build with Chez Scheme then you don't need to use
-autotools. Here are instructions for Debian:
+### Building with GNU Guile
+
+For building the normal release tarball, use `./bootstrap` and have
+autoreconf, autoconf and automake installed. This should work on
+Debian-based distributions:
+
+```sh
+sudo apt install git guile-2.2 libcurl4-gnutls-dev xz-utils \
+  autoconf automake
+git clone https://gitlab.com/akkuscm/akku
+./bootstrap
+```
+
+The bootstrap script can fail because it has pretty slim logic when
+trying to run akku update. You may need to adjust it to get it started
+on your system.
+
+After this step it works mostly the same as any project that uses
+autotools.
+
+### Building with Chez Scheme
+
+If instead you want to build with Chez Scheme then you don't need to
+use autotools. Here are instructions for Debian:
 
 ```sh
 sudo apt install git chezscheme libcurl4 xz-utils

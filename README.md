@@ -39,9 +39,11 @@ There are these options:
  - Use the pre-built version from [GitLab][GitLabTags]. Pre-built
    versions based on Chez Scheme are available for GNU/Linux amd64.
    Use the file ending with src.tar.xz for other architectures.
+   This type of installation uses `~/.local`.
 
  - If you would like to install directly from Git, then
-   see [CONTRIBUTING](CONTRIBUTING.md) for instructions.
+   see [CONTRIBUTING](CONTRIBUTING.md) for instructions. Running
+   `bin/akku.sps` directly is not going to work.
 
 Please remember to verify the OpenPGP signatures. The releases are
 signed with [E33E61A2E9B8C3A2][key]. The releases are also mirrored on

@@ -1,15 +1,22 @@
 #!/bin/sh
 set -eu
 
-#SCHEMESCRIPT=".akku/env guile -x .guile.sls -x .sls"
-SCHEMESCRIPT=${SCHEMESCRIPT:-.akku/env}
+is_executable()
+{
+    which "$1" >/dev/null 2>&1
+}
 
 datadir=${XDG_DATA_HOME:-~/.local/share}
 
 mkdir -p "$datadir"/akku/keys.d
 cp akku-archive-*.gpg "$datadir"/akku/keys.d
 
-[ -f "$datadir"/akku/index.db ] || $SCHEMESCRIPT bin/akku.sps update
+if ! [ -f "$datadir"/akku/index.db ] && is_executable guile; then
+    echo "Trying to get the index with Guile. Will retry with Chez Scheme if it fails."
+    .akku/env guile --no-auto-compile -x .guile.sls -x .sls bin/akku.sps update || true
+fi
+
+[ -f "$datadir"/akku/index.db ] || .akku/env bin/akku.sps update
 [ -f bootstrap.db ] || cp "$datadir"/akku/index.db bootstrap.db
 
 autoreconf --verbose --install --force

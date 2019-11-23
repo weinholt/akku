@@ -14,8 +14,8 @@ A crash triggered by some R7RS packages has been fixed.
 This release adds Docker images for the upcoming Guile 3.0 release,
 Chibi Scheme and Loko Scheme.
 
-Thanks to Lassi Kortela and Francesco Montanari for contributing to
-this release.
+Thanks to Lassi Kortela, Francesco Montanari and Anes for contributing
+to this release.
 
 ## Version 1.0.0
 
