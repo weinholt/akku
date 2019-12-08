@@ -1,18 +1,22 @@
 # Akku.scm release notes
 
-## Version 1.0.1 (draft)
+## Version 1.0.1
 
 This is a bug fix release.
 
 The R6RS library installer did not correctly handle libraries that
-contain non-R6RS lexical syntax, such as #!chezscheme. This has now
+contain non-R6RS lexical syntax, such as `#!chezscheme`. This has now
 been fixed, which means that packages like thunderchez can be
 installed again.
 
 A crash triggered by some R7RS packages has been fixed.
 
+Some log messages during package installation that had severity
+*error* or *warning* have been lowered to *info* due to how common
+they are.
+
 This release adds Docker images for the upcoming Guile 3.0 release,
-Chibi Scheme and Loko Scheme.
+Chibi Scheme, Loko Scheme and IronScheme on .NET Core.
 
 Thanks to Lassi Kortela, Francesco Montanari and Anes for contributing
 to this release.
