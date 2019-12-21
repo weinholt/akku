@@ -130,15 +130,17 @@
     ;; Submit.
     (for-each
      (lambda (archive-url)
-       (log/info "Submitting to " archive-url " ...")
-       (putenv "AKKU_FN" (fmt #f (fmt-join
-                                  (lambda (fn)
-                                    (cat (dsp fn) (dsp ".sig")
-                                         (dsp ",")
-                                         (dsp fn)))
-                                  filename* ",")))
-       (putenv "AKKU_URL" (url-join archive-url "packages/"))
-       (run-command "set -x;curl --upload-file \"{$AKKU_FN}\" \"$AKKU_URL\"")
+       (define (upload-file filename url)
+         (putenv "AKKU_URL" url)
+         (putenv "AKKU_FN" filename)
+         (run-command "set -x;curl --upload-file \"$AKKU_FN\" \"$AKKU_URL\""))
+       (for-each
+        (lambda (filename)
+          (log/info "Submitting to " archive-url " ...")
+          (let ((url (url-join archive-url "packages/")))
+            (upload-file (string-append filename ".sig") url)
+            (upload-file filename url)))
+        filename*)
        archive-url*)
      archive-url*)))
 
