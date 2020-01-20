@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2009, 2010, 2012, 2017, 2018 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2009, 2010, 2012, 2017, 2018, 2020 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: MIT
 #!r6rs
 
@@ -121,7 +121,7 @@
              (f32xor y (f32ior (f32not z) x)))))
     ;; Copy the message block
     (do ((t 0 (fx+ t 1)))
-        ((fx=? t 16))
+        ((eqv? t 16))
       (vector-set! W t (bytevector-u32-ref m (fx+ (fx* t 4) offset) (endianness little))))
     ;; Do the hokey pokey
     (let lp ((A (vector-ref H 0))
@@ -129,7 +129,7 @@
              (C (vector-ref H 2))
              (D (vector-ref H 3))
              (t 0))
-      (cond ((fx=? t 64)
+      (cond ((eqv? t 64)
              (vector-set! H 0 (f32and #xffffffff (f32+ A (vector-ref H 0))))
              (vector-set! H 1 (f32and #xffffffff (f32+ B (vector-ref H 1))))
              (vector-set! H 2 (f32and #xffffffff (f32+ C (vector-ref H 2))))
@@ -251,7 +251,7 @@
     (do ((ret (make-string 32))
          (H (md5state-H state))
          (i 0 (fx+ i 1)))
-        ((fx=? i 32) ret)
+        ((eqv? i 32) ret)
       (let ((n (bitwise-and (bitwise-arithmetic-shift-right
                              (vector-ref H (fxarithmetic-shift-right i 3))
                              (fx* 4 (fxand (fxxor 1 i) #b111)))
@@ -283,7 +283,7 @@
           (bytevector-copy! secret 0 k-ipad 0 (bytevector-length secret))
           (bytevector-copy! secret 0 k-opad 0 (bytevector-length secret))
           (do ((i 0 (fx+ i 1)))
-              ((fx=? i 64))
+              ((eqv? i 64))
             (bytevector-u8-set! k-ipad i (fxxor #x36 (bytevector-u8-ref k-ipad i)))
             (bytevector-u8-set! k-opad i (fxxor #x5c (bytevector-u8-ref k-opad i))))
           (let ((state (make-md5)))

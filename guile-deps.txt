@@ -51,7 +51,7 @@
 .akku/lib/compression/tar.sls
 .akku/lib/compression/xz.sls
 .akku/lib/hashing/crc.sls
-.akku/lib/hashing/fixnums.sls
+.akku/lib/hashing/fixnums.guile.sls
 .akku/lib/hashing/hmac.sls
 .akku/lib/hashing/md5.sls
 .akku/lib/hashing/private/common.sls
@@ -121,6 +121,7 @@
 .akku/lib/srfi/%3a115/regexp/boundary-impl.scm
 .akku/lib/srfi/private/include.sls
 .akku/lib/srfi/private/include/compat.guile.sls
+.akku/lib/srfi/private/include/read.sls
 .akku/lib/srfi/srfi-115.guile.sls
 .akku/lib/srfi/srfi-115/boundary.guile.sls
 .akku/lib/srfi/srfi-23.guile.sls

@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2009, 2010, 2012, 2017, 2018 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2009, 2010, 2012, 2017, 2018, 2020 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: MIT
 #!r6rs
 
@@ -39,12 +39,18 @@
     sha-512-hash=? sha-512-128-hash=?
     hmac-sha-512)
   (import
-    (rnrs (6))
-    (rnrs mutable-strings (6))
+    (rnrs arithmetic bitwise)
+    (rnrs base)
+    (rnrs bytevectors)
+    (rnrs control)
+    (rnrs mutable-strings)
+    (rnrs records syntactic)
+    (rnrs syntax-case)
     (hashing fixnums)
     (hashing hmac))
 
   (define-fixnum-procedures f32 33)
+  (define-fixnum-procedures fx 20)
 
   (define (sha-224-length) 224/8)
   (define (sha-256-length) 256/8)
@@ -105,7 +111,6 @@
   (define (sha-384-clear! state) (sha-2-clear! state))
   (define (sha-512-clear! state) (sha-2-clear! state))
 
-
   (define initial-hash224 '(#xc1059ed8 #x367cd507 #x3070dd17 #xf70e5939
                             #xffc00b31 #x68581511 #x64f98fa7 #xbefa4fa4))
 
@@ -121,7 +126,6 @@
                             #x3c6ef372fe94f82b #xa54ff53a5f1d36f1
                             #x510e527fade682d1 #x9b05688c2b3e6c1f
                             #x1f83d9abfb41bd6b #x5be0cd19137e2179))
-
 
   (define k-256
     '#(#x428a2f98 #x71374491 #xb5c0fbcf #xe9b5dba5
@@ -191,18 +195,18 @@
     (define (sigma1 x)
       (f32xor (ror32 x 17)
               (ror32 x 19)
-              (bitwise-arithmetic-shift-right x 10)))
+              (f32arithmetic-shift-right x 10)))
     ;; Copy the message block
-    (do ((t 0 (fx+ t 1)))
-        ((fx=? t 16))
-      (vector-set! W t (bytevector-u32-ref m (fx+ (fx* t 4) offset) (endianness big))))
+    (do ((t 0 (f32+ t 1)))
+        ((eqv? t 16))
+      (vector-set! W t (bytevector-u32-ref m (f32+ (f32* t 4) offset) (endianness big))))
     ;; Initialize W[16..63]
-    (do ((t 16 (fx+ t 1)))
-        ((fx=? t 64))
-      (vector-set! W t (f32and (f32+ (f32+ (sigma1 (vector-ref W (fx- t 2)))
-                                           (vector-ref W (fx- t 7)))
-                                     (f32+ (sigma0 (vector-ref W (fx- t 15)))
-                                           (vector-ref W (fx- t 16))))
+    (do ((t 16 (f32+ t 1)))
+        ((eqv? t 64))
+      (vector-set! W t (f32and (f32+ (f32+ (sigma1 (vector-ref W (f32- t 2)))
+                                           (vector-ref W (f32- t 7)))
+                                     (f32+ (sigma0 (vector-ref W (f32- t 15)))
+                                           (vector-ref W (f32- t 16))))
                                #xffffffff)))
     ;; Do the hokey pokey
     (let lp ((A (vector-ref H* 0))
@@ -214,7 +218,7 @@
              (G (vector-ref H* 6))
              (H (vector-ref H* 7))
              (t 0))
-      (cond ((fx=? t 64)
+      (cond ((eqv? t 64)
              (vector-set! H* 0 (f32and #xffffffff (+ A (vector-ref H* 0))))
              (vector-set! H* 1 (f32and #xffffffff (+ B (vector-ref H* 1))))
              (vector-set! H* 2 (f32and #xffffffff (+ C (vector-ref H* 2))))
@@ -233,7 +237,7 @@
                    A B C
                    (f32and #xffffffff (f32+ D T1))
                    E F G
-                   (fx+ t 1)))))))
+                   (f32+ t 1)))))))
 
   ;; This function transforms a whole 1024 bit block.
   (define (sha-512-transform! H* W m offset)
@@ -267,11 +271,11 @@
                    (bitwise-arithmetic-shift-right x 6)))
     ;; Copy the message block
     (do ((t 0 (fx+ t 1)))
-        ((fx=? t 16))
+        ((eqv? t 16))
       (vector-set! W t (bytevector-u64-ref m (fx+ (fx* t 8) offset) (endianness big))))
     ;; Initialize W[16..63]
     (do ((t 16 (fx+ t 1)))
-        ((fx=? t 80))
+        ((eqv? t 80))
       (vector-set! W t (bitwise-and (+ (+ (sigma1 (vector-ref W (fx- t 2)))
                                           (vector-ref W (fx- t 7)))
                                        (+ (sigma0 (vector-ref W (fx- t 15)))
@@ -287,7 +291,7 @@
              (G (vector-ref H* 6))
              (H (vector-ref H* 7))
              (t 0))
-      (cond ((fx=? t 80)
+      (cond ((eqv? t 80)
              (vector-set! H* 0 (bitwise-and #xffffffffffffffff (+ A (vector-ref H* 0))))
              (vector-set! H* 1 (bitwise-and #xffffffffffffffff (+ B (vector-ref H* 1))))
              (vector-set! H* 2 (bitwise-and #xffffffffffffffff (+ C (vector-ref H* 2))))
@@ -319,7 +323,7 @@
              (H (sha-state-H state))
              (W (sha-state-W state)))
          (let lp ((offset start))
-           (cond ((= (sha-state-pending state) 64)
+           (cond ((eqv? (sha-state-pending state) 64)
                   ;; A whole block is pending
                   (sha-256-transform! H W m 0)
                   (sha-state-pending-set! state 0)

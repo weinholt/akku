@@ -110,12 +110,28 @@
 (library (hashing crc)
   (export
     define-crc
-    define-bit-oriented-crc)
+    define-bit-oriented-crc
+    width polynomial init ref-in ref-out xor-out check)
   (import
     (except (rnrs (6)) bitwise-rotate-bit-field bitwise-reverse-bit-field)
     (hashing fixnums)
     (for (hashing private common) expand)
     (hashing private compat))
+
+;; This makes the auxiliary keywords work in the Chez repl.
+(define-syntax define-auxiliary-keyword*
+  (lambda (x)
+    (syntax-case x ()
+      ((_ keyword)
+       #'(define-syntax keyword
+           (lambda (x)
+             (syntax-violation #f "incorrect usage of auxiliary keyword" x))))
+      ((_ keyword0 keyword* ...)
+       #'(begin
+           (define-auxiliary-keyword* keyword0)
+           (define-auxiliary-keyword* keyword* ...))))))
+
+(define-auxiliary-keyword* width polynomial init ref-in ref-out xor-out check)
 
 (define (string->bits str reverse-bytes)
   ;; Horrible code that's only used for the bit-oriented test vectors.

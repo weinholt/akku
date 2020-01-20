@@ -1,9 +1,13 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2018, 2020 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2020 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: MIT
 #!r6rs
 
-;;; Easy definition of special-cased fixnum procedures.
+;;; Easy definition of special-cased fixnum procedures
+
+;; Guile runs faster with the generic procedures instead of the fixnum
+;; procedures. With Guile 2.2.x there is also a benefit to inlining
+;; manually with identifier-syntax.
 
 (library (hashing fixnums)
   (export
@@ -20,9 +24,9 @@
                                              (string-append
                                               (symbol->string (syntax->datum #'prefix))
                                               (symbol->string (syntax->datum #'op-name)))))))
-           #'(define name
-               (if (> (fixnum-width) bit-width)
-                   fxname bitwise-name)))))))
+
+           #'(define-syntax name
+               (identifier-syntax bitwise-name)))))))
 
   (define-syntax define-fixnum-procedures
     (lambda (x)
