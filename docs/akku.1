@@ -275,16 +275,17 @@ has the unfortunate consequence that Chez Scheme and SRFI 97-compliant
 SRFI distributions do not work on these platforms. Symlinks are also
 not supported.
 .PP
-GNU Guile does not provide a direct way to enable full R6RS support.
+Whereas GNU Guile 3.0 has the \-\-r6rs command line argument,
+GNU Guile 2.2 does not provide a direct way to enable full R6RS support.
 It should be started with the flags \fC-x .guile.sls -x .sls\fR on
 the command line. Alternatively you can add these lines to your
 \fC~/.guile\fR:
 .RS
 .EX
-(set! %load-extensions (append '(".guile.sls" ".sls")
+(set! %load-extensions (append \(aq(".guile.sls" ".sls")
                                %load-extensions))
-(read-enable 'r6rs-hex-escapes)
-(read-enable 'hungry-eol-escapes)
+(read-enable \(aqr6rs-hex-escapes)
+(read-enable \(aqhungry-eol-escapes)
 .EE
 .RE
 .PP
