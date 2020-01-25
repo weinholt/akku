@@ -14,13 +14,22 @@ to the local libraries.
 The `AKKU_PROJECTS` environment variable is a list of extra projects
 to install into `.akku`. Multiple directories can be separated by
 semicolons. The libraries in these directories are symlinked into
-`.akku`. This is an alternative to the `RnRS_PATH` variables described
-above which is useful when code expects libraries to be located in the
-`.akku/lib` directory.
+`.akku`. This is an alternative to the `R[67]RS_PATH` variables
+described above which is useful when code expects libraries to be
+located in the `.akku/lib` directory.
 
-The above features are not intended for most users. They can be used
+*The above features are not intended for most users.* They can be used
 to accidentally create dependencies on libraries that are not part of
 the lockfile.
+
+The `AKKU_SETTINGS` environment variable is a comma separated list of
+settings. The `no-network` setting prevents Akku from using the
+network. The `no-dependencies` setting prevents Akku from using the
+dependencies in the lockfile. The only available libraries will be:
+the current project's libraries, the libraries from `R[67]RS_PATH`,
+the libraries from `AKKU_PROJECTS` and the implementation-specific
+built-in libraries. These settings can be combined in system package
+manager scripts to ensure that no unpackaged dependencies are used.
 
 Thanks to Amirouche Boubekki and erkin for contributing to this
 release.

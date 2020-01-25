@@ -42,7 +42,8 @@
     get-realname
     get-index-filename
     check-filename
-    with-working-directory)
+    with-working-directory
+    setting get-settings)
   (import
     (rnrs (6))
     (rnrs mutable-pairs (6))
@@ -326,4 +327,16 @@
   (let ((cwd (getcwd)))
     (dynamic-wind (lambda () (cd dir))
                   thunk
-                  (lambda () (cd cwd))))))
+                  (lambda () (cd cwd)))))
+
+(define-enumeration setting
+  (no-network no-dependencies)
+  settings)
+
+(define (get-settings)
+  (cond ((getenv "AKKU_SETTINGS") =>
+         (lambda (val)
+           (enum-set-projection (make-enumeration
+                                 (map string->symbol (string-split val #\,)))
+                                (settings))))
+        (else (settings)))))

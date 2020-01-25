@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2018-2019 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2018-2020 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -34,7 +34,7 @@
     (only (akku private compat) directory-list pretty-print file-directory?
           rename-file)
     (only (akku lib utils) path-join url-join mkdir/recursive split-path
-          assq-ref)
+          assq-ref setting get-settings)
     (akku private http)
     (akku private logging))
 
@@ -136,13 +136,17 @@
           (else #f)))))
 
   ;; Download indices.
-  (for-each (lambda (i repo)
-              (unless (fetch-index (string-append "." (number->string i))
-                                   (assq-ref repo 'tag)
-                                   (assq-ref repo 'url)
-                                   (assq-ref repo 'keyfile))
-                (error 'update-index "Updating index failed" repo)))
-            (iota (length repositories)) repositories)
+  (cond
+    ((enum-set-member? (setting no-network) (get-settings))
+     (log/warn "Networking disabled; refusing to download indices"))
+    (else
+     (for-each (lambda (i repo)
+                 (unless (fetch-index (string-append "." (number->string i))
+                                      (assq-ref repo 'tag)
+                                      (assq-ref repo 'url)
+                                      (assq-ref repo 'keyfile))
+                   (error 'update-index "Updating index failed" repo)))
+               (iota (length repositories)) repositories)))
 
   ;; Merge indices.
   (let ((tempfile (string-append full-index-filename ".tmp")))

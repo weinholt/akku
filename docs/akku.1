@@ -1,5 +1,5 @@
 .\" HTML output: groff -man -Thtml docs/akku.1
-.TH AKKU "1" "December 2019" "Akku.scm" "User Commands"
+.TH AKKU "1" "January 2020" "Akku.scm" "User Commands"
 .SH "NAME"
 akku \- R6RS/R7RS Scheme language package manager
 .SH "SYNOPSIS"
@@ -351,9 +351,16 @@ $ akku install        # updates .akku/
 \fIAKKU_R6RS\fR	R6RS Scheme library path, for system libraries
 \fIAKKU_R7RS\fR	R7RS Scheme library path, for system libraries
 \fIAKKU_PROJECTS\fR	extra project directories to install into .akku/
+\fIAKKU_SETTINGS\fR	comma-separated list of settings (see below)
 \fIXDG_CACHE_HOME\fR	cache directory home (default: ~/.cache)
 \fIXDG_DATA_HOME\fR	data directory home (default: ~/.local/share/)
 \fIHOME\fR	user's home directory
+.PP
+The \fIAKKU_SETTINGS\fR variable can contain these settings:
+.ta \w'AKKU_HOME       'u
+.nf
+\fIno-network\fR	do not use the network (and fail if it would be needed)
+\fIno-dependencies\fR	do not use any projects from the lockfile
 .SH FILES
 .nf
 .ta \w'PREFIX/share/akku/bootstrap.db  'u

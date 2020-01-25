@@ -60,7 +60,7 @@
     (only (akku lib solver internals) make-universe)
     (only (akku lib solver logging) dsp-universe)
     (only (akku lib utils) split-path get-terminal-size sanitized-name
-          assq-ref assoc-replace assq-update)
+          assq-ref assoc-replace assq-update get-settings setting)
     (prefix (akku lib solver universe) universe-)
     (only (akku private compat) pretty-print rename-file)
     (akku private logging))
@@ -120,19 +120,21 @@
 
 ;; Parse a lockfile, returning a list of project records.
 (define (read-lockfile lockfile-location)
-  (call-with-input-file lockfile-location
-    (lambda (p)
-      (unless (equal? (read p) '(import (akku format lockfile)))
-        (error 'read-lockfile "Invalid lockfile (wrong import)" lockfile-location))
-      ;; TODO: More sanity checking. The names need to be
-      ;; case-insensitively unique.
-      (let lp ((project* '()))
-        (match (read p)
-          ((? eof-object?)
-           project*)
-          (('projects . prj*)
-           (lp (append (map parse-project prj*) project*)))
-          (_ (lp project*)))))))
+  (if (enum-set-member? (setting no-dependencies) (get-settings))
+      '()
+      (call-with-input-file lockfile-location
+        (lambda (p)
+          (unless (equal? (read p) '(import (akku format lockfile)))
+            (error 'read-lockfile "Invalid lockfile (wrong import)" lockfile-location))
+          ;; TODO: More sanity checking. The names need to be
+          ;; case-insensitively unique.
+          (let lp ((project* '()))
+            (match (read p)
+              ((? eof-object?)
+               project*)
+              (('projects . prj*)
+               (lp (append (map parse-project prj*) project*)))
+              (_ (lp project*))))))))
 
 ;; Direct dependencies are in the manifest and replace whatever
 ;; information there might be about them in the index. The info in the

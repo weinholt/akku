@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2017-2019 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2017-2020 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -133,12 +133,16 @@
        ;; Git repository
        (cond ((file-directory? srcdir)
               (git-remote-set-url srcdir "origin" repository))
+             ((enum-set-member? (setting no-network) (get-settings))
+              (error 'install "Networking disabled; refusing to clone" project))
              (else
               (if (project-tag project)
                   (git-shallow-clone srcdir repository)
                   (git-clone srcdir repository))))
        (let ((current-revision (git-rev-parse srcdir "HEAD")))
          (cond ((equal? current-revision (project-revision project)))
+               ((enum-set-member? (setting no-network) (get-settings))
+                (error 'install "Networking disabled; refusing to fetch" project))
                ((project-tag project)
                 (git-fetch-tag srcdir (project-tag project))
                 (git-checkout-tag srcdir (project-tag project)))
@@ -171,6 +175,8 @@
                    (eq? 'ok (verify-file-contents cached-file (project-content project))))
               (log/info "Extracting " cached-file)
               (extract-tarball cached-file srcdir))
+             ((enum-set-member? (setting no-network) (get-settings))
+              (error 'install "Networking disabled; refusing to download" project))
              ((zero? i)
               (error 'install "Download failed" url (project-name project)))
              (else

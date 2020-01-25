@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2018, 2019 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2018, 2019, 2020 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -131,6 +131,8 @@
     (for-each
      (lambda (archive-url)
        (define (upload-file filename url)
+         (when (enum-set-member? (setting no-network) (get-settings))
+           (error 'upload-file "Networking disabled; refusing to upload" filename url))
          (putenv "AKKU_URL" url)
          (putenv "AKKU_FN" filename)
          (run-command "set -x;curl --upload-file \"$AKKU_FN\" \"$AKKU_URL\""))
