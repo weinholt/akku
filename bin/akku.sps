@@ -1,6 +1,6 @@
 #!/usr/bin/env scheme-script
 ;; -*- mode: scheme; coding: utf-8 -*- !#
-;; Copyright © 2017-2019 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2017-2020 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -46,7 +46,8 @@
   (only (akku lib update) update-index)
   (only (akku lib utils) path-join assq-ref assq-update assoc-replace
         application-data-directory system-data-directory
-        get-log-threshold get-index-filename)
+        get-log-threshold get-index-filename system-project-directories
+        get-settings)
   (only (akku metadata) main-package-version)
   (akku private logging))
 
@@ -233,7 +234,7 @@ your implementation.") nl))
      (let ((index-filename (get-index-filename)))
        (run-scripts lockfile-filename manifest-filename index-filename
                     '(pre-install))
-       (install lockfile-filename manifest-filename)
+       (install lockfile-filename manifest-filename (system-project-directories))
        (run-scripts lockfile-filename manifest-filename index-filename
                     '(post-install))))
     (else
@@ -409,6 +410,7 @@ your implementation.") nl))
 (define (main cmdline)
   (set-log-level (get-log-threshold))
   (let ((args (parse-command-line cmdline)))
+    (log/debug "Active settings: " (enum-set->list (get-settings)))
     (let ((arg* (cdr (assq 'arg* args)))
           (cmd (cdr (assq 'cmd args)))
           (opts (filter (lambda (x) (not (memq (car x) '(arg* cmd))))

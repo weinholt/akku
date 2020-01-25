@@ -906,7 +906,7 @@
   (install-fish-activate-script)
   (install-env-script))
 
-(define (install-activate-script filename fmt-export fmt-unset fmt-prepend)
+(define (install-activate-script filename set set/export unset prepend prepend/export)
   (log/info "Installing " filename)
   (call-with-port (open-file-output-port filename
                                          (file-options no-fail)
@@ -918,50 +918,74 @@
             (ffi (path-join "$PWD" (ffi-libraries-directory)))
             (libobj (path-join "$PWD" (string-append (libraries-directory) "obj")))
             (bin (path-join "$PWD" (binaries-directory))))
-        ;; R6RS
-        (fmt-export p "CHEZSCHEMELIBDIRS" (string-append lib "::" libobj))
-        (fmt-unset p "CHEZSCHEMELIBEXTS")
-        (fmt-export p "GUILE_LOAD_PATH" lib)
-        (fmt-export p "GUILE_LOAD_COMPILED_PATH" libobj)
-        (fmt-export p "IKARUS_LIBRARY_PATH" lib)
-        (fmt-export p "MOSH_LOADPATH" lib)
-        (fmt-export p "PLTCOLLECTS" (string-append ":" lib))
-        (fmt-export p "SAGITTARIUS_LOADPATH" lib)
-        (fmt-export p "VICARE_SOURCE_PATH" lib)
-        (fmt-export p "YPSILON_SITELIB" lib)
-        (fmt-export p "LARCENY_LIBPATH" lib)
-        (fmt-export p "IRONSCHEME_LIBRARY_PATH" lib) ;nonstandard
-        (fmt-export p "LOKO_LIBRARY_PATH" lib)
-        ;; R7RS
-        (fmt-export p "CHIBI_MODULE_PATH" lib7)
-        (fmt-export p "GAUCHE_LOAD_PATH" lib7)
-        ;; For reaching programs installed from packages
-        (fmt-prepend p "PATH" bin)
-        ;; For Linux
-        (fmt-prepend p "LD_LIBRARY_PATH" ffi)
-        ;; For macOS
-        (fmt-prepend p "DYLD_LIBRARY_PATH" ffi)))))
+        ;; This takes in RnRS_PATH from the existing environment and
+        ;; prepends .akku/lib, and includes it in all the library path
+        ;; variables, but it does not propagate the changed RnRS_PATH
+        ;; to subshells.
+        (fmt p
+             (set "AKKU_CHEZ_PATH" "$R6RS_PATH") ;special for libobj
+             (set "AKKU_R6RS_PATH" "$R6RS_PATH")
+             (set "AKKU_R7RS_PATH" "$R7RS_PATH")
+             (prepend "AKKU_CHEZ_PATH" (string-append lib "::" libobj))
+             (prepend "AKKU_R6RS_PATH" lib)
+             (prepend "AKKU_R7RS_PATH" lib7)
+             ;; R6RS
+             (set/export "CHEZSCHEMELIBDIRS" "$AKKU_CHEZ_PATH")
+             (unset "CHEZSCHEMELIBEXTS")
+             (set/export "GUILE_LOAD_PATH" "$AKKU_R6RS_PATH")
+             (set/export "GUILE_LOAD_COMPILED_PATH" libobj)
+             (set/export "IKARUS_LIBRARY_PATH" "$AKKU_R6RS_PATH")
+             (set/export "MOSH_LOADPATH" "$AKKU_R6RS_PATH")
+             (set/export "PLTCOLLECTS" ":$AKKU_R6RS_PATH")
+             (set/export "SAGITTARIUS_LOADPATH" "$AKKU_R6RS_PATH")
+             (set/export "VICARE_SOURCE_PATH" "$AKKU_R6RS_PATH")
+             (set/export "YPSILON_SITELIB" "$AKKU_R6RS_PATH")
+             (set/export "LARCENY_LIBPATH" "$AKKU_R6RS_PATH")
+             (set/export "IRONSCHEME_LIBRARY_PATH" "$AKKU_R6RS_PATH") ;nonstandard
+             (set/export "LOKO_LIBRARY_PATH" "$AKKU_R6RS_PATH")
+             ;; R7RS
+             (set/export "CHIBI_MODULE_PATH" "$AKKU_R7RS_PATH")
+             (set/export "GAUCHE_LOAD_PATH" "$AKKU_R7RS_PATH")
+             ;; For reaching programs installed from packages
+             (prepend/export "PATH" bin)
+             ;; For Linux
+             (prepend/export "LD_LIBRARY_PATH" ffi)
+             ;; For macOS
+             (prepend/export "DYLD_LIBRARY_PATH" ffi)
+             ;; Cleanup
+             (unset "AKKU_CHEZ_PATH")
+             (unset "AKKU_R6RS_PATH")
+             (unset "AKKU_R7RS_PATH"))))))
 
 (define (install-bash-activate-script)
-  (define (fmt-export p variable value)
-    (fmt p "export " variable "=" (wrt value) ";" nl))
-  (define (fmt-unset p variable)
-    (fmt p "unset " variable ";" nl))
-  (define (fmt-prepend p variable value)
-    (fmt p "export " variable "=" value
+  (define (set variable value)
+    (cat variable "=" (wrt value) ";" nl))
+  (define (set/export variable value)
+    (cat "export " variable "=" (wrt value) ";" nl))
+  (define (unset variable)
+    (cat "unset " variable ";" nl))
+  (define (prepend variable value)
+    (cat variable "=" value
+         "${" variable ":+:}" "$" variable ";" nl))
+  (define (prepend/export variable value)
+    (cat "export " variable "=" value
          "${" variable ":+:}" "$" variable ";" nl))
   (install-activate-script (path-join (binaries-directory) "activate")
-                           fmt-export fmt-unset fmt-prepend))
+                           set set/export unset prepend prepend/export))
 
 (define (install-fish-activate-script)
-  (define (fmt-export p variable value)
-    (fmt p "set --export " variable " " (wrt value) nl))
-  (define (fmt-unset p variable)
-    (fmt p "set --erase " variable nl))
-  (define (fmt-prepend p variable value)
-    (fmt p "set --export --prepend " variable " " value nl))
+  (define (set variable value)
+    (cat "set " variable " " (wrt value) nl))
+  (define (set/export variable value)
+    (cat "set --export " variable " " (wrt value) nl))
+  (define (unset variable)
+    (cat "set --erase " variable nl))
+  (define (prepend variable value)
+    (cat "set --prepend " variable " " value nl))
+  (define (prepend/export variable value)
+    (cat "set --export --prepend " variable " " value nl))
   (install-activate-script (path-join (binaries-directory) "activate.fish")
-                           fmt-export fmt-unset fmt-prepend))
+                           set set/export unset prepend prepend/export))
 
 (define (install-env-script)
   (let ((filename (path-join (akku-directory) "env")))

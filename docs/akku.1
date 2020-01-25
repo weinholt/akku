@@ -348,6 +348,8 @@ $ akku install        # updates .akku/
 .nf
 \fIAKKU_LOG_LEVEL\fR	log level: trace, debug, info, warning, error, critical
 \fIAKKU_ENV\fR	informative variable; not used (set by .akku/env)
+\fIAKKU_R6RS\fR	R6RS Scheme library path, for system libraries
+\fIAKKU_R7RS\fR	R7RS Scheme library path, for system libraries
 \fIXDG_CACHE_HOME\fR	cache directory home (default: ~/.cache)
 \fIXDG_DATA_HOME\fR	data directory home (default: ~/.local/share/)
 \fIHOME\fR	user's home directory
@@ -377,7 +379,7 @@ The dependency solver comes from Andreas Rottmann's dorodango, an
 earlier R6RS package manager, and he ported it from the solver in
 .BR aptitude (8).
 .SH COPYRIGHT
-Copyright \(co 2019 G\[:o]ran Weinholt.
+Copyright \(co 2020 G\[:o]ran Weinholt.
 License GPLv3+: GNU GPL version 3 or later
 .UR http://\:gnu.org/\:licenses/\:gpl.html
 .UE

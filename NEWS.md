@@ -1,5 +1,23 @@
 # Akku.scm release notes
 
+## Version 1.1.0
+
+This release introduces new features to assist in packaging and using
+Scheme code in system package managers (such as dpkg and rpm).
+
+The environment activation scripts now look at the variables
+`R6RS_PATH` and `R7RS_PATH`. These path variables are included at the
+end of each Scheme implementation's own library search path. This
+allows use of globally installed directories, but still gives priority
+to the local libraries.
+
+The above features are not intended for most users. They can be used
+to accidentally create dependencies on libraries that are not part of
+the lockfile.
+
+Thanks to Amirouche Boubekki and erkin for contributing to this
+release.
+
 ## Version 1.0.1
 
 This is a bug fix release.
