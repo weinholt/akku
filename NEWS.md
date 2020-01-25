@@ -3,13 +3,20 @@
 ## Version 1.1.0
 
 This release introduces new features to assist in packaging and using
-Scheme code in system package managers (such as dpkg and rpm).
+Scheme code with system package managers (such as dpkg and rpm).
 
 The environment activation scripts now look at the variables
 `R6RS_PATH` and `R7RS_PATH`. These path variables are included at the
 end of each Scheme implementation's own library search path. This
-allows use of globally installed directories, but still gives priority
+allows use of globally installed libraries, but still gives priority
 to the local libraries.
+
+The `AKKU_PROJECTS` environment variable is a list of extra projects
+to install into `.akku`. Multiple directories can be separated by
+semicolons. The libraries in these directories are symlinked into
+`.akku`. This is an alternative to the `RnRS_PATH` variables described
+above which is useful when code expects libraries to be located in the
+`.akku/lib` directory.
 
 The above features are not intended for most users. They can be used
 to accidentally create dependencies on libraries that are not part of

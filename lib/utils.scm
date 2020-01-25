@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2017-2019 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2017-2020 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #!r6rs
 
-;; Common utilities that should really be imported from elsewhere.
+;; Common utilities, a big bag of everything
 
 (library (akku lib utils)
   (export
@@ -28,6 +28,7 @@
     read-shebang
     pipe-ports
     application-data-directory system-data-directory
+    system-project-directories
     cache-directory
     local-ignore-file
     running-from-home?
@@ -170,6 +171,14 @@
          (lambda (dir)
            (path-join dir "share/akku")))
         (else #f)))
+
+(define (system-project-directories)
+  (cond ((getenv "AKKU_PROJECTS") =>
+         (lambda (dir)
+           (if (equal? dir "")
+               '()
+               (string-split dir #\:))))
+        (else '())))
 
 (define (running-from-home?)
   (equal? (string-trim-right (getcwd) #\/)

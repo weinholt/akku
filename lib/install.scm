@@ -1209,14 +1209,24 @@
     (log/info "R7RS-small libraries are available in the akku-r7rs package")))
 
 ;; Install all projects, assuming that fetch already ran.
-(define (install lockfile-location manifest-filename)
+(define (install lockfile-location manifest-filename system-project-dirs)
   (let ((project-list (read-lockfile lockfile-location))
+        (system-project-list
+         (filter-map (lambda (dirname)
+                       (and (file-directory? dirname)
+                            (make-dummy-project dirname `(directory ,dirname))))
+                     system-project-dirs))
         (current-project (make-dummy-project "" '(directory "."))))
     (mkdir/recursive (libraries-directory))
     (let* ((installed-project/artifact*
             (map-in-order (lambda (project)
-                            (vector project (install-project project #f)))
-                          project-list))
+                            (vector project (install-project project 'symlink)))
+                          system-project-list))
+           (installed-project/artifact*
+            (append installed-project/artifact*
+                    (map-in-order (lambda (project)
+                                    (vector project (install-project project #f)))
+                                  project-list)))
            (installed-project/artifact*
             (if (running-from-home?)    ;protect against user being in $HOME
                 installed-project/artifact*
