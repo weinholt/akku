@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2017-2019 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2017-2020 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -906,78 +906,62 @@
   (install-fish-activate-script)
   (install-env-script))
 
-;; Installs the activate script for Bash, which used to be the only activation script
+(define (install-activate-script filename fmt-export fmt-unset fmt-prepend)
+  (log/info "Installing " filename)
+  (call-with-port (open-file-output-port filename
+                                         (file-options no-fail)
+                                         (buffer-mode block)
+                                         (native-transcoder))
+    (lambda (p)
+      (let ((lib (path-join "$PWD" (libraries-directory)))
+            (lib7 (path-join "$PWD" (r7rs-libraries-directory)))
+            (ffi (path-join "$PWD" (ffi-libraries-directory)))
+            (libobj (path-join "$PWD" (string-append (libraries-directory) "obj")))
+            (bin (path-join "$PWD" (binaries-directory))))
+        ;; R6RS
+        (fmt-export p "CHEZSCHEMELIBDIRS" (string-append lib "::" libobj))
+        (fmt-unset p "CHEZSCHEMELIBEXTS")
+        (fmt-export p "GUILE_LOAD_PATH" lib)
+        (fmt-export p "GUILE_LOAD_COMPILED_PATH" libobj)
+        (fmt-export p "IKARUS_LIBRARY_PATH" lib)
+        (fmt-export p "MOSH_LOADPATH" lib)
+        (fmt-export p "PLTCOLLECTS" (string-append ":" lib))
+        (fmt-export p "SAGITTARIUS_LOADPATH" lib)
+        (fmt-export p "VICARE_SOURCE_PATH" lib)
+        (fmt-export p "YPSILON_SITELIB" lib)
+        (fmt-export p "LARCENY_LIBPATH" lib)
+        (fmt-export p "IRONSCHEME_LIBRARY_PATH" lib) ;nonstandard
+        (fmt-export p "LOKO_LIBRARY_PATH" lib)
+        ;; R7RS
+        (fmt-export p "CHIBI_MODULE_PATH" lib7)
+        (fmt-export p "GAUCHE_LOAD_PATH" lib7)
+        ;; For reaching programs installed from packages
+        (fmt-prepend p "PATH" bin)
+        ;; For Linux
+        (fmt-prepend p "LD_LIBRARY_PATH" ffi)
+        ;; For macOS
+        (fmt-prepend p "DYLD_LIBRARY_PATH" ffi)))))
+
 (define (install-bash-activate-script)
-  ;; TODO: Setup routines for more Schemes, perhaps take the wrappers
-  ;; from scheme-ci.
-  (let ((filename (path-join (binaries-directory) "activate")))
-    (log/info "Installing " filename)
-    (call-with-port (open-file-output-port filename
-                                           (file-options no-fail)
-                                           (buffer-mode block)
-                                           (native-transcoder))
-      (lambda (p)
-        (let ((lib (libraries-directory))
-              (lib7 (r7rs-libraries-directory))
-              (ffi (ffi-libraries-directory)))
-          (fmt p
-               ;; R6RS
-               "export CHEZSCHEMELIBDIRS=\"$PWD/.akku/lib::$PWD/.akku/libobj\";" nl
-               "unset CHEZSCHEMELIBEXTS;" nl
-               "export GUILE_LOAD_PATH=\"$PWD/.akku/lib\";" nl
-               "export GUILE_LOAD_COMPILED_PATH=\"$PWD/.akku/libobj\";" nl
-               "export IKARUS_LIBRARY_PATH=\"$PWD/.akku/lib\";" nl
-               "export MOSH_LOADPATH=\"$PWD/.akku/lib\";" nl
-               "export PLTCOLLECTS=\":$PWD/.akku/lib\";" nl
-               "export SAGITTARIUS_LOADPATH=\"$PWD/.akku/lib\";" nl
-               "export VICARE_SOURCE_PATH=\"$PWD/.akku/lib\";" nl
-               "export YPSILON_SITELIB=\"$PWD/.akku/lib\";" nl
-               "export LARCENY_LIBPATH=\"$PWD/" lib "\";" nl
-               "export IRONSCHEME_LIBRARY_PATH=\"$PWD/" lib "\";" nl ;nonstandard
-               "export LOKO_LIBRARY_PATH=\"$PWD/" lib "\";" nl
-               ;; R7RS
-               "export CHIBI_MODULE_PATH=\"$PWD/" lib7 "\";" nl
-               "export GAUCHE_LOAD_PATH=\"$PWD/" lib7 "\";" nl
-               "export PATH=$PWD/.akku/bin:$PATH;" nl
-               ;; For Linux
-               "export LD_LIBRARY_PATH=$PWD/" ffi "${LD_LIBRARY_PATH:+:}$LD_LIBRARY_PATH;" nl
-               ;; For macOS
-               "export DYLD_LIBRARY_PATH=$PWD/" ffi "${DYLD_LIBRARY_PATH:+:}$DYLD_LIBRARY_PATH;" nl))))))
+  (define (fmt-export p variable value)
+    (fmt p "export " variable "=" (wrt value) ";" nl))
+  (define (fmt-unset p variable)
+    (fmt p "unset " variable ";" nl))
+  (define (fmt-prepend p variable value)
+    (fmt p "export " variable "=" value
+         "${" variable ":+:}" "$" variable ";" nl))
+  (install-activate-script (path-join (binaries-directory) "activate")
+                           fmt-export fmt-unset fmt-prepend))
 
 (define (install-fish-activate-script)
-  (let ((filename (path-join (binaries-directory) "activate.fish")))
-    (log/info "Installing " filename)
-    (call-with-port (open-file-output-port filename
-                                           (file-options no-fail)
-                                           (buffer-mode block)
-                                           (native-transcoder))
-      (lambda (p)
-        (let ((lib (libraries-directory))
-              (lib7 (r7rs-libraries-directory))
-              (ffi (ffi-libraries-directory)))
-          (fmt p
-               ;; R6RS
-               "set --export CHEZSCHEMELIBDIRS \"$PWD/.akku/lib::$PWD/.akku/libobj\"" nl
-               "set --erase CHEZSCHEMELIBEXTS" nl
-               "set --export GUILE_LOAD_PATH \"$PWD/.akku/lib\"" nl
-               "set --export GUILE_LOAD_COMPILED_PATH \"$PWD/.akku/libobj\"" nl
-               "set --export IKARUS_LIBRARY_PATH \"$PWD/.akku/lib\"" nl
-               "set --export MOSH_LOADPATH \"$PWD/.akku/lib\"" nl
-               "set --export PLTCOLLECTS \":$PWD/.akku/lib\"" nl
-               "set --export SAGITTARIUS_LOADPATH \"$PWD/.akku/lib\"" nl
-               "set --export VICARE_SOURCE_PATH \"$PWD/.akku/lib\"" nl
-               "set --export YPSILON_SITELIB \"$PWD/.akku/lib\"" nl
-               "set --export LARCENY_LIBPATH \"$PWD/" lib "\"" nl
-               "set --export IRONSCHEME_LIBRARY_PATH \"$PWD/" lib "\"" nl  ;nonstandard
-               "set --export LOKO_LIBRARY_PATH \"$PWD/" lib "\"" nl
-               ;; R7RS
-               "set --export CHIBI_MODULE_PATH \"$PWD/" lib7 "\"" nl
-               "set --export GAUCHE_LOAD_PATH \"$PWD/" lib7 "\"" nl
-               "set --export --prepend PATH $PWD/.akku/bin" nl
-               ;; For Linux
-               "set --export --prepend LD_LIBRARY_PATH $PWD/" ffi nl
-               ;; For macOS
-               "set --export --prepend DYLD_LIBRARY_PATH $PWD/" ffi nl))))))
+  (define (fmt-export p variable value)
+    (fmt p "set --export " variable " " (wrt value) nl))
+  (define (fmt-unset p variable)
+    (fmt p "set --erase " variable nl))
+  (define (fmt-prepend p variable value)
+    (fmt p "set --export --prepend " variable " " value nl))
+  (install-activate-script (path-join (binaries-directory) "activate.fish")
+                           fmt-export fmt-unset fmt-prepend))
 
 (define (install-env-script)
   (let ((filename (path-join (akku-directory) "env")))

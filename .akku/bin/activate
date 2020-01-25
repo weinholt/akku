@@ -13,6 +13,6 @@ export IRONSCHEME_LIBRARY_PATH="$PWD/.akku/lib";
 export LOKO_LIBRARY_PATH="$PWD/.akku/lib";
 export CHIBI_MODULE_PATH="$PWD/.akku/lib";
 export GAUCHE_LOAD_PATH="$PWD/.akku/lib";
-export PATH=$PWD/.akku/bin:$PATH;
+export PATH=$PWD/.akku/bin${PATH:+:}$PATH;
 export LD_LIBRARY_PATH=$PWD/.akku/ffi${LD_LIBRARY_PATH:+:}$LD_LIBRARY_PATH;
 export DYLD_LIBRARY_PATH=$PWD/.akku/ffi${DYLD_LIBRARY_PATH:+:}$DYLD_LIBRARY_PATH;
