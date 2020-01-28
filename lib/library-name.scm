@@ -1,5 +1,5 @@
 ;;; Copyright (c) 2006, 2007 Abdulaziz Ghuloum and Kent Dybvig
-;;; Copyright © 2017, 2018, 2019 Göran Weinholt <goran@weinholt.se>
+;;; Copyright © 2017, 2018, 2019, 2020 Göran Weinholt <goran@weinholt.se>
 ;;; SPDX-License-Identifier: MIT
 ;;;
 ;;; Permission is hereby granted, free of charge, to any person obtaining a
@@ -34,6 +34,7 @@
     library-name->file-name/psyntax
     library-name->file-name/racket
     library-name->file-name/sagittarius
+    library-name->file-name/vicare
     library-name->file-name/ypsilon
     library-name->file-name-variant
     library-name->file-name-variant/r7rs)
@@ -379,6 +380,8 @@
             (bytevector->u8-list (string->utf8 name)))))
        ls))))
 
+(define library-name->file-name/vicare library-name->file-name/ikarus)
+
 (define (library-name->file-name-variant implementation)
   (case implementation
     ((chezscheme) library-name->file-name/chezscheme)
@@ -391,6 +394,7 @@
     ((nmosh) library-name->file-name/mosh)
     ((sagittarius) library-name->file-name/sagittarius)
     ((ypsilon) library-name->file-name/ypsilon)
+    ((vicare) library-name->file-name/vicare)
     ((loko) library-name->file-name/loko)
     (else                               ;default fallback
      library-name->file-name/chezscheme)))
