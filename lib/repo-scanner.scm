@@ -73,6 +73,10 @@
           (>= (length relpath-list)
               (length link-dots))))))
 
+(define (symlink-to-root? realpath)
+  (let ((link (readlink realpath)))
+    (equal? link "/")))
+
 (define (read-ignore-file directory)
   (let ((ignore-file (local-ignore-file directory)))
     (if (file-exists? ignore-file)
@@ -98,7 +102,8 @@
              (string=? "Akku.lock" fn)
              (string=? "Akku.manifest" fn)
              (and (file-symbolic-link? realpath)
-                  (symlink-inside-repo? realpath relpath-list))
+                  (or (symlink-inside-repo? realpath relpath-list)
+                      (symlink-to-root? realpath)))
              (member fn ignored-files))
          (log/debug "Ignored " realpath)
          '())                        ;ignore
