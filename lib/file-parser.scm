@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2017-2019 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2017-2020 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -477,8 +477,7 @@
     (parse-r7rs-import-spec import-set))
    (('except (? list? import-set) _id ...)
     (parse-r7rs-import-spec import-set))
-   (('prefix (? list? import-set) prefix)
-    (identifier? #'prefix)
+   (('prefix (? list? import-set) (? symbol? prefix))
     (parse-r7rs-import-spec import-set))
    (('rename (? list? import-set) ((? symbol?) (? symbol?)) ...)
     (parse-r7rs-import-spec import-set))
@@ -502,8 +501,7 @@
       (parse-import-set import-set))
      (('except (? list? import-set) _id ...)
       (parse-import-set import-set))
-     (('prefix (? list? import-set) prefix)
-      (identifier? #'prefix)
+     (('prefix (? list? import-set) (? symbol? prefix))
       (parse-import-set import-set))
      (('rename (? list? import-set) ((? symbol?) (? symbol?)) ...)
       (parse-import-set import-set))
