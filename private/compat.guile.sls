@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2017-2019 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2017-2020 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -87,9 +87,9 @@
 
 (define (open-process-ports cmd buffer-mode transcoder)
   (let ((p (spells:spawn-process #f #f #f #f "/bin/sh" "-c" cmd)))
-    (values (spells:process-input p)
-            (spells:process-output p)
-            (spells:process-errors p)
+    (values (transcoded-port (spells:process-input p) transcoder)
+            (transcoded-port (spells:process-output p) transcoder)
+            (transcoded-port (spells:process-errors p) transcoder)
             (spells:process-id p))))
 
 (define (putenv name value)
