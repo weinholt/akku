@@ -1,5 +1,9 @@
-moddir=$(datadir)/guile/site/$(GUILE_EFFECTIVE_VERSION)
-godir=$(libdir)/guile/$(GUILE_EFFECTIVE_VERSION)/site-ccache
+# These directories are prefixed with akku/ so that the libraries we
+# install as vendored dependencies are not made available with (or
+# conflict with) the libraries provided by Guile. This is likely to
+# happen with the SRFI and R7RS libraries.
+moddir=$(datadir)/akku/guile/site/$(GUILE_EFFECTIVE_VERSION)
+godir=$(libdir)/akku/guile/$(GUILE_EFFECTIVE_VERSION)/site-ccache
 
 do_subst = sed -e 's,[@]GUILE[@],$(GUILE),g' \
 	    -e 's,[@]moddir[@],$(moddir),g'  \
