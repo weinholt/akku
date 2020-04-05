@@ -43,7 +43,6 @@ AC_SUBST([akku_libs])
 AC_SUBST([akku_incs])
 
 AC_CONFIG_FILES([Makefile])
-AC_CONFIG_FILES([akku/config.scm:config.scm.in])
 AC_CONFIG_FILES([pre-inst-env], [chmod +x pre-inst-env])
 
 AC_OUTPUT

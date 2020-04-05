@@ -168,9 +168,7 @@
 
 ;; System-wide data directory, e.g. /usr/share/akku
 (define (system-data-directory)
-  (cond ((install-prefix) =>
-         (lambda (dir)
-           (path-join dir "share/akku")))
+  (cond ((install-pkgdatadir))
         (else #f)))
 
 (define (system-project-directories)

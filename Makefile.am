@@ -3,7 +3,14 @@ godir=$(libdir)/guile/$(GUILE_EFFECTIVE_VERSION)/site-ccache
 
 do_subst = sed -e 's,[@]GUILE[@],$(GUILE),g' \
 	    -e 's,[@]moddir[@],$(moddir),g'  \
-	    -e 's,[@]godir[@],$(godir),g'
+	    -e 's,[@]godir[@],$(godir),g'    \
+	    -e 's,[@]prefix[@],$(prefix),g'  \
+	    -e 's,[@]pkgdatadir[@],$(pkgdatadir),g'
+
+akku/config.scm: $(srcdir)/config.scm.in
+	@$(MKDIR_P) akku
+	$(AM_V_GEN) $(do_subst) < $(srcdir)/config.scm.in > akku/config.scm
+akku/lib/*.scm: akku/config.scm
 
 GOBJECTS = $(SOURCES:%.scm=%.go) akku/config.go
 
@@ -31,12 +38,12 @@ NOCOMP_SOURCES = $(akku_incs)
 
 bin_SCRIPTS = bin/akku
 
-bin/akku: bin/akku.sps Makefile guile-script-header.in
+bin/akku: akku/config.scm bin/akku.sps Makefile guile-script-header.in
 	@$(MKDIR_P) bin
 	$(AM_V_GEN)( $(do_subst) < $(srcdir)/guile-script-header.in; cat $(srcdir)/bin/akku.sps ) > bin/akku
 	chmod +x bin/akku
 
-CLEANFILES += bin/akku
+CLEANFILES += bin/akku akku/config.scm
 
 dist_man_MANS = docs/akku.1
 
@@ -47,6 +54,7 @@ dist_pkgdata_DATA = bootstrap.db
 dist_doc_DATA = CREDITS.md CONTRIBUTING.md NEWS.md README.md
 
 EXTRA_DIST = \
+	config.scm.in \
 	bin/akku.sps \
 	guile-deps.txt \
 	guile-script-header.in
