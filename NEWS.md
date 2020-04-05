@@ -2,6 +2,11 @@
 
 ## Version 1.1.0
 
+**Note:** The autotools-based version no longer installs itself to the
+Guile library path. You might want to run `make uninstall` if you have
+an older version installed. This change was made so that Akku's
+vendored dependencies will not conflict with the system's versions.
+
 This release introduces new features to assist in packaging and using
 Scheme code with system package managers (such as dpkg and rpm).
 
@@ -30,9 +35,11 @@ the current project's libraries, the libraries from `R[67]RS_PATH`,
 the libraries from `AKKU_PROJECTS` and the implementation-specific
 built-in libraries. These settings can be combined in system package
 manager scripts to ensure that no unpackaged dependencies are used.
+The `copy-current-project` makes copies instead of symlinks of the
+current project.
 
-Thanks to Amirouche Boubekki and erkin for contributing to this
-release.
+Thanks to Amirouche Boubekki, erkin and Antoine Luciani for
+contributing to this release.
 
 ## Version 1.0.1
 
