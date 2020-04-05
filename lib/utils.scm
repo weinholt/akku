@@ -328,7 +328,7 @@
                   (lambda () (cd cwd)))))
 
 (define-enumeration setting
-  (no-network no-dependencies)
+  (no-network no-dependencies copy-current-project)
   settings)
 
 (define (get-settings)

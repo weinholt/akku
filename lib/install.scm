@@ -1210,6 +1210,8 @@
 
 ;; Install all projects, assuming that fetch already ran.
 (define (install lockfile-location manifest-filename system-project-dirs)
+  (define copy-current-project (enum-set-member? (setting copy-current-project)
+                                                 (get-settings)))
   (let ((project-list (read-lockfile lockfile-location))
         (system-project-list
          (filter-map (lambda (dirname)
@@ -1232,7 +1234,8 @@
                 installed-project/artifact*
                 (append installed-project/artifact*
                         (list (vector current-project
-                                      (install-project current-project 'symlink))))))
+                                      (install-project current-project
+                                                       (if copy-current-project #f 'symlink)))))))
            (complete-list (append installed-project/artifact*
                                   (list
                                    (vector current-project

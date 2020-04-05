@@ -500,6 +500,7 @@
                        (('akku-package (name version) prop* ...)
                         `(akku-package
                           (,name ,version)
+                          ;; FIXME: This adds depends at the beginning
                           ,@(assq-update prop*
                                          (if dev? 'depends/dev 'depends)
                                          (lambda (prev)

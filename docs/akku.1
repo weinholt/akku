@@ -357,10 +357,11 @@ $ akku install        # updates .akku/
 \fIHOME\fR	user's home directory
 .PP
 The \fIAKKU_SETTINGS\fR variable can contain these settings:
-.ta \w'AKKU_HOME       'u
+.ta \w'copy-current-project'u
 .nf
 \fIno-network\fR	do not use the network (and fail if it would be needed)
 \fIno-dependencies\fR	do not use any projects from the lockfile
+\fIcopy-current-project\fR copy (do not symlink) the current project
 .SH FILES
 .nf
 .ta \w'PREFIX/share/akku/bootstrap.db  'u
