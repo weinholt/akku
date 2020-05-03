@@ -38,6 +38,10 @@ manager scripts to ensure that no unpackaged dependencies are used.
 The `copy-current-project` makes copies instead of symlinks of the
 current project.
 
+New in this release is also support
+for [Digamma](https://github.com/fujita-y/digamma), a new experimental
+R6RS/R7RS Scheme derived from Ypsilon.
+
 Thanks to Amirouche Boubekki, erkin and Antoine Luciani for
 contributing to this release.
 

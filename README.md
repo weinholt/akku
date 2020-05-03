@@ -69,10 +69,10 @@ How to get started with a new project:
    programs and libraries in `.akku`.
 
 The installed libraries should now be in the load path of Chez Scheme,
-GNU Guile (with R6RS settings), Ikarus, Larceny, Mosh, Racket
+Digamma, GNU Guile (with R6RS settings), Ikarus, Larceny, Mosh, Racket
 (plt-r6rs), Sagittarius, Vicare and Ypsilon. Original R7RS libraries
-will be available to Chibi, Gauche, Larceny and Sagittarius. Any
-installed programs are available in your shell's path.
+will be available to Chibi, Digamma, Gauche, Larceny and Sagittarius.
+Any installed programs are available in your shell's path.
 
 Most implementations can use the libraries as-is. GNU Guile requires a
 small adjustment: `guile -x .guile.sls -x .sls`. You may also need to

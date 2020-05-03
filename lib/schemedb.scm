@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2017-2019 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2017-2020 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -85,6 +85,7 @@
            (chibi time)
            (meta))
     (cyclone (scheme cyclone *))
+    (digamma (digamma *))
     (guile (guile *)
            (ice-9 *)
            (system foreign)
@@ -182,6 +183,7 @@
     (('nmosh . _) 'nmosh)
     (('sagittarius . _) 'sagittarius)
     (('vicare . _) 'vicare)
+    (('digamma . _) 'digamma)
     (else #f)))
 
 ;; Takes a list of library names and determines which implementation
@@ -199,6 +201,7 @@
                  (('kawa . _) 'kawa)
                  (('rapid . _) 'rapid-scheme)
                  (('scheme 'cyclone . _) 'cyclone)
+                 (('digamma . _) 'digamma)
                  (else #f))))
     (and guess (is-implementation-specific? lib-name guess) guess)))
 
@@ -210,6 +213,7 @@
 ;; Implementation names matching <impl>.sls or cond-expand.
 (define r6rs-implementation-names
   '(chezscheme
+    digamma
     guile
     ikarus
     ironscheme
@@ -227,6 +231,7 @@
   '(chibi
     chicken
     cyclone
+    digamma
     foment
     gauche
     kawa
@@ -297,6 +302,7 @@
 
 (define supported-srfis
   '((chezscheme . ())
+    (digamma . (1 6 8 #;9 13 14 19 26 27 28 38 39 41 42 48 98))
     (guile . (1 2 4 6 8 9 10 11 13 14 16 17 18 19 26 27 28 31 34
                 35 37 38 39 41 42 43 45 60 64 67 69 71 88 98 111))
     (ikarus . ())

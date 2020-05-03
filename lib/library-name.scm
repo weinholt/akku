@@ -25,6 +25,7 @@
 (library (akku lib library-name)
   (export
     library-name->file-name/chezscheme
+    library-name->file-name/digamma
     library-name->file-name/guile
     library-name->file-name/ikarus
     library-name->file-name/ironscheme
@@ -277,6 +278,8 @@
           (f (car ls) (cdr ls)))))
     (extract)))
 
+(define library-name->file-name/digamma library-name->file-name/ypsilon)
+
 (define (library-name->file-name/sagittarius ls)
   (let-values (((p extract) (open-string-output-port)))
     (define (display-hex n)
@@ -396,6 +399,7 @@
     ((ypsilon) library-name->file-name/ypsilon)
     ((vicare) library-name->file-name/vicare)
     ((loko) library-name->file-name/loko)
+    ((digamma) library-name->file-name/digamma)
     (else                               ;default fallback
      library-name->file-name/chezscheme)))
 
@@ -412,5 +416,7 @@
    (case implementation
      ((larceny)
       library-name->file-name/larceny)
+     ((digamma)
+      library-name->file-name/digamma)
      (else                               ;default fallback
       library-name->file-name/chezscheme)))))

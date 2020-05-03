@@ -17,6 +17,7 @@ set --export YPSILON_SITELIB "$AKKU_R6RS_PATH"
 set --export LARCENY_LIBPATH "$AKKU_R6RS_PATH"
 set --export IRONSCHEME_LIBRARY_PATH "$AKKU_R6RS_PATH"
 set --export LOKO_LIBRARY_PATH "$AKKU_R6RS_PATH"
+set --export DIGAMMA_SITELIB "$AKKU_R6RS_PATH"
 set --export CHIBI_MODULE_PATH "$AKKU_R7RS_PATH"
 set --export GAUCHE_LOAD_PATH "$AKKU_R7RS_PATH"
 set --export --prepend PATH $PWD/.akku/bin
