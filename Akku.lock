@@ -4,75 +4,118 @@
 (projects
  ((name "ip-address")
    (location
-     (git "https://github.com/weinholt/ip-address.git"))
-   (tag "v1.0.0")
-   (revision "7574dcab570a444a0b925a22d8fc11b485482ae1"))
+     (url "https://archive.akkuscm.org/archive/pkg/i/ip-address_1.0.0_repack.tar.xz"))
+   (content
+     (sha256
+       "29ae6a9ff8c2c784ec08e66f0c3195c10a86b2c23fb5a40819599aaaa13863e4")))
  ((name "packrat")
-   (location (git "https://github.com/weinholt/packrat.git"))
-   (tag "v0.1.1")
-   (revision "4201ebe741b605db58a21d70195cfb7db3c38eae"))
+   (location
+     (url "https://archive.akkuscm.org/archive/pkg/p/packrat_0.1.1_repack.tar.xz"))
+   (content
+     (sha256
+       "ba72d6b8081ac5ab4344de026b1cff3a86414c746a979fbb407f2ad05fd66c8c")))
  ((name "struct-pack")
    (location
-     (git "https://github.com/weinholt/struct-pack.git"))
-   (tag "v1.1.1")
-   (revision "11b71963793ed4a3bf761efdd83cf2fe123239ee"))
+     (url "https://archive.akkuscm.org/archive/pkg/s/struct-pack_1.1.1_repack.tar.xz"))
+   (content
+     (sha256
+       "42d34a4d7052bdda1bddec0dfddd8f1e576bd0a51b483215a4ca3a8ed7b56d09")))
  ((name "wak-common")
    (location
-     (git "https://gitlab.com/weinholt/wak-common.git"))
-   (revision "6d495fcaf7250f414614b1979d1ac07904496970"))
+     (url "https://archive.akkuscm.org/archive/pkg/w/wak-common_0.1.0-akku.15.6d495fc_repack.tar.xz"))
+   (content
+     (sha256
+       "9c5170c85c885d9e35ce62dcf829597d31cc0b3697b79fe544640bf828c5a22d")))
  ((name "wak-irregex")
-   (location (git "https://gitlab.com/wak/wak-irregex.git"))
-   (revision "e0304c7ac9b67a1e9dc1e5ec8ec9ceb3ff0ff019"))
+   (location
+     (url "https://archive.akkuscm.org/archive/pkg/w/wak-irregex_0.8.1_repack.tar.xz"))
+   (content
+     (sha256
+       "097677fcd0d3a7a741729d4b3bad04ea083fff0fc2cd9b0332b44d1e067a9eca")))
  ((name "wak-syn-param")
-   (location (git "https://gitlab.com/wak/wak-syn-param.git"))
-   (revision "8ca3272796e62fda209ca0395439e02edfd5087d"))
+   (location
+     (url "https://archive.akkuscm.org/archive/pkg/w/wak-syn-param_0.0.0-akku.4.8ca3272_repack.tar.xz"))
+   (content
+     (sha256
+       "f81250b57f88336805b43c72f491d5a652fe8221a0f5529361d3401bcd60ec7c")))
  ((name "chez-srfi")
-   (location (git "https://github.com/arcfide/chez-srfi"))
-   (revision "ad3b9f9020cf3b65f209866aca0b10cfc10556f3"))
+   (location
+     (url "https://archive.akkuscm.org/archive/pkg/c/chez-srfi_0.0.0-akku.102.ad3b9f9_repack.tar.xz"))
+   (content
+     (sha256
+       "5efb7e812db84457a33362af983ce7b20d11b366a387125d284f39f5dc4ba5bb")))
  ((name "industria")
-   (location (git "https://github.com/weinholt/industria.git"))
-   (tag "v2.1.0")
-   (revision "360090f68bd9b2096f2e8da8d62b1786af453a3c"))
+   (location
+     (url "https://archive.akkuscm.org/archive/pkg/i/industria_2.1.0_repack.tar.xz"))
+   (content
+     (sha256
+       "dacd4976bfae23da90289b39221aa69ddc83973a989ed87323d52517c93ba008")))
  ((name "spells")
-   (location (git "https://github.com/weinholt/spells.git"))
-   (revision "f91ed0b954e5f17b10b324b719e32b5c0ab0396c"))
+   (location
+     (url "https://archive.akkuscm.org/archive/pkg/s/spells_0.0.0-akku.499.f91ed0b_repack.tar.xz"))
+   (content
+     (sha256
+       "5538c2a3ac9b01fe3c1b622b1719376c4cea5769c517aa4f293f7ad7878147d1")))
  ((name "semver")
-   (location (git "https://github.com/weinholt/semver.git"))
-   (tag "v1.0.3")
-   (revision "97f51c1facd477477618f8a842f259525daf5559"))
+   (location
+     (url "https://archive.akkuscm.org/archive/pkg/s/semver_1.0.3_repack.tar.xz"))
+   (content
+     (sha256
+       "294b9b6b30f98c4cdba9ef40b0dc2f0b3494d5f03daeecba926817366b27b39e")))
  ((name "spdx")
-   (location (git "https://github.com/weinholt/spdx.git"))
-   (tag "v1.0.0")
-   (revision "7df9873ee079086a533d500de4358c0adb96f2ff"))
+   (location
+     (url "https://archive.akkuscm.org/archive/pkg/s/spdx_1.0.0_repack.tar.xz"))
+   (content
+     (sha256
+       "5e621cb4447c9fb5136002aa01f5600de84f44cd321786262af69de4c6379c66")))
  ((name "wak-fmt")
-   (location (git "https://gitlab.com/wak/wak-fmt.git"))
-   (revision "d5b2a5aec60daf66b347d345498584628cd043cd"))
+   (location
+     (url "https://archive.akkuscm.org/archive/pkg/w/wak-fmt_0.8.0-akku.10.d5b2a5a_repack.tar.xz"))
+   (content
+     (sha256
+       "807c3b78a2c5d4a89017a8a811a5f58fe3a2c81494107cab710b23d9f1a3a34f")))
  ((name "wak-riastreams")
-   (location (git "https://gitlab.com/wak/wak-riastreams.git"))
-   (revision "b44464595c745a78c016c5360252440cbae00f46"))
+   (location
+     (url "https://archive.akkuscm.org/archive/pkg/w/wak-riastreams_0.0.0-akku.5.b444645_repack.tar.xz"))
+   (content
+     (sha256
+       "9d31a6f505db6b8bcdd8d3387c302084e7efa97ba7faded987fbeb2c2f666de8")))
  ((name "wak-foof-loop")
    (location
-     (git "https://gitlab.com/weinholt/wak-foof-loop.git"))
-   (revision "a7b9cd8af9d66a16d450f30203c43252b931b31c"))
+     (url "https://archive.akkuscm.org/archive/pkg/w/wak-foof-loop_0.0.0-akku.4.a7b9cd8_repack.tar.xz"))
+   (content
+     (sha256
+       "4612a0060480d128cb00d7b0f67e7455f5765960bc9b2e95c3471dd14ebf01a4")))
  ((name "wak-wt-tree")
-   (location (git "https://gitlab.com/wak/wak-wt-tree.git"))
-   (revision "2a2c9335b7e75563e6e037236daffe23da36bb1b"))
+   (location
+     (url "https://archive.akkuscm.org/archive/pkg/w/wak-wt-tree_0.0.0-akku.5.2a2c933_repack.tar.xz"))
+   (content
+     (sha256
+       "049871743518fc55bc63e6ba9da651e78d4ec892c852cef2607fc64033fc0a7b")))
  ((name "hashing")
-   (location (git "https://github.com/weinholt/hashing.git"))
-   (tag "v1.3.0")
-   (revision "eb28080180b5fdfb6ffc74f8cdf2c1a7823ef0cb"))
+   (location
+     (url "https://archive.akkuscm.org/archive/pkg/h/hashing_1.3.0_repack.tar.xz"))
+   (content
+     (sha256
+       "45dc285ed1dbfe24fc54c2417fe5baefc408c3cad502333894d3c111f8255be6")))
  ((name "compression")
    (location
-     (git "https://github.com/weinholt/compression.git"))
-   (tag "v0.1.2")
-   (revision "019ed92d92b71d737f3d5beba4464da5184f7833"))
+     (url "https://archive.akkuscm.org/archive/pkg/c/compression_0.1.2_repack.tar.xz"))
+   (content
+     (sha256
+       "68109a1b95d731a95fb762260e4be411fb971363eb2d89075d95fe138008395d")))
  ((name "laesare")
-   (location (git "https://github.com/weinholt/laesare.git"))
-   (tag "v1.0.0")
-   (revision "27791ac19f715d2894586623ab87e9a7bd39b46c"))
+   (location
+     (url "https://archive.akkuscm.org/archive/pkg/l/laesare_1.0.0_repack.tar.xz"))
+   (content
+     (sha256
+       "bd9c6cf5dabc9fc961094e0bf3f7339b7ad13902cb80a1e62377d57991548d7b")))
  ((name "r6rs-pffi")
-   (location (git "https://github.com/ktakashi/r6rs-pffi"))
-   (revision "2a62053059d7e2dee53fc3e1905bffb71a64bb7a"))
+   (location
+     (url "https://archive.akkuscm.org/archive/pkg/r/r6rs-pffi_1.3.0_repack.tar.xz"))
+   (content
+     (sha256
+       "6fd54ecb1b2bc110f588797fc17f6030b9504139a6e3ba374f530c34090a1bb1")))
  ((name (chibi match))
    (location
      (url "http://snow-fort.org/s/gmail.com/alexshinn/chibi/match/0.7.3/chibi-match-0.7.3.tgz"))
@@ -80,6 +123,8 @@
      (sha256
        "a165dcf7676ff178964b8cd58bcf6ee68d879605a025a8193b6b4af769f9bdc8")))
  ((name "akku-r7rs")
-   (location (git "https://gitlab.com/akkuscm/akku-r7rs.git"))
-   (tag "v1.0.0-beta.4")
-   (revision "ca21d9724e46b6b0ff03089f2a7bfc6f981fe959")))
+   (location
+     (url "https://archive.akkuscm.org/archive/pkg/a/akku-r7rs_1.0.0-beta.4_repack.tar.xz"))
+   (content
+     (sha256
+       "eb60fc164748d2105da635fb28b721ef10bc9476adc6d83e0ae1563eac8c4b2c"))))
