@@ -202,6 +202,7 @@
                  (('rapid . _) 'rapid-scheme)
                  (('scheme 'cyclone . _) 'cyclone)
                  (('digamma . _) 'digamma)
+                 (('loko . _) 'loko)
                  (else #f))))
     (and guess (is-implementation-specific? lib-name guess) guess)))
 
@@ -236,6 +237,7 @@
     gauche
     kawa
     larceny
+    loko
     rapid-scheme
     sagittarius))
 
