@@ -155,15 +155,21 @@
 
 ;; Does the file appear to be part of a test suite?
 (define (artifact-for-test? artifact)
-  (or (memq 'test (artifact-path-list artifact))
-      (memq 'tests (artifact-path-list artifact))
-      (match (string-split (artifact-path artifact) #\.)
-        ((base . _)
-         (or (string-suffix? "-tests" base)
-             (string-suffix? "-test" base)
-             (string-suffix? "/test" base)
-             (string-prefix? "test-" base)))
-        (else #f))))
+  (and (or (memq 'test (artifact-path-list artifact))
+           (memq 'tests (artifact-path-list artifact))
+           (match (string-split (artifact-path artifact) #\.)
+             ((base . _)
+              (or (string-suffix? "-tests" base)
+                  (string-suffix? "-test" base)
+                  (string-suffix? "/test" base)
+                  (string-prefix? "test-" base)))
+             (else #f)))
+       ;; This is a bit of pragmatism. The (chibi test) library is
+       ;; normal dependency for test suites, and it isn't a test suite
+       ;; by itself.
+       (not (and (r7rs-library? artifact)
+                 (equal? (r7rs-library-name artifact)
+                         '(chibi test))))))
 
 ;; Does the file appear to be internal/private to the package?
 (define (artifact-internal? artifact)
