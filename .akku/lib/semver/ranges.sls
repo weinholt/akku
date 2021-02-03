@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2018, 2019 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2018, 2019, 2021 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: MIT
 #!r6rs
 
@@ -13,7 +13,7 @@
   (import
     (rnrs)
     (srfi :67 compare-procedures)
-    (chibi match)
+    (semver compat match)
     (packrat)
     (semver versions))
 

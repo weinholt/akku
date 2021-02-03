@@ -61,7 +61,7 @@
     (define (process-clauses struct-name clauses)
       (define sname (symbol->string (syntax->datum struct-name)))
       (define d syntax->datum)
-      (define (process-fields fields)
+      (define (process-fields ofields)
         (define (ref name)
           (string->symbol
            (string-append sname "-" (symbol->string (syntax->datum name)))))
@@ -69,21 +69,33 @@
           (string->symbol
            (string-append sname "-" (symbol->string (syntax->datum name))
                           "-set!")))
-        (let loop ((fields fields) (r '()))
+	(define (type-error name)
+	  (syntax-violation
+	   'define-foreign-struct
+	   "Type must be one of the foreign types except 'callback'"
+	   (d name)))
+        (let loop ((fields ofields) (r '()))
           (syntax-case fields ()
             (() (reverse r))
             (((type name) . rest)
+	     (or (identifier? #'type) (type-error #'type))
              (loop #'rest
                    (cons (list (d #'type) (d  #'name)
                                (ref #'name) (set #'name)) r)))
             (((type name ref) . rest)
+	     (or (identifier? #'type) (type-error #'type))
              (loop #'rest
                    (cons (list (d #'type) (d #'name) (d #'ref)
                                (set #'name)) r)))
             (((type name ref set) . rest)
+	     (or (identifier? #'type) (type-error #'type))
              (loop #'rest
                    (cons (list (d #'type) (d #'name) (d #'ref) (d #'set))
-                         r))))))
+                         r)))
+	    (_ (syntax-violation 'define-foreign-struct
+				 "Invalid field declaration"
+				 (d ofields)
+				 (d (car fields)))))))
       (let loop ((clauses clauses) (fs #f) (par #f) (proto #f) (align #f))
         (syntax-case clauses (fields parent protocol)
           (() (list fs par proto align))
@@ -212,21 +224,31 @@
           (string->symbol
            (string-append sname "-" (symbol->string (syntax->datum name))
                           "-set!")))
+	(define (type-error name)
+	  (syntax-violation
+	   'define-foreign-struct
+	   "Type must be one of the foreign types except 'callback'"
+	   (d name)))
         (let loop ((fields fields) (r '()))
           (syntax-case fields ()
             (() (reverse r))
             (((type name) . rest)
+	     (or (identifier? #'type) (type-error #'type))
              (loop #'rest
                    (cons (list (d #'type) (d  #'name)
                                (ref #'name) (set #'name)) r)))
             (((type name ref) . rest)
+	     (or (identifier? #'type) (type-error #'type))
              (loop #'rest
                    (cons (list (d #'type) (d #'name) (d #'ref)
                                (set #'name)) r)))
             (((type name ref set) . rest)
+	     (or (identifier? #'type) (type-error #'type))
              (loop #'rest
                    (cons (list (d #'type) (d #'name) (d #'ref) (d #'set))
-                         r))))))
+                         r)))
+	    (_ (syntax-violation 'define-foreign-struct
+				 "invalid define-foreign-struct" x clauses)))))
       (let loop ((clauses clauses) (fs #f) (proto #f))
         (syntax-case clauses (fields protocol)
           (() (list fs proto))

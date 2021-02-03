@@ -57,12 +57,15 @@
             map for-each member assoc
             vector-map read
             let-syntax
-            expt)
+            expt flush-output-port
+            string-for-each
+            vector-for-each)
     (prefix (rnrs) r6:)
     (only (rnrs bytevectors) u8-list->bytevector)
     (only (rnrs control) case-lambda)
     (rnrs conditions)
-    (rnrs io ports)
+    (except (rnrs io ports)
+            flush-output-port)
     (rnrs mutable-pairs)
     (prefix (rnrs mutable-strings) r6:)
     (only (rnrs mutable-strings) string-set!)
@@ -380,6 +383,13 @@
     ((str port start end)
      (write-string (substring str start end) port))))
 
+(define flush-output-port
+  (case-lambda
+    (()
+     (flush-output-port (current-output-port)))
+    ((port)
+     (r6:flush-output-port port))))
+
 ;;; List additions
 
 (define (list-set! l k obj)
@@ -449,6 +459,12 @@
          (itr (+ r 1))))
      (itr start))))
 
+(define (string-for-each proc str . str*)
+  (do ((len (fold-left min (string-length str) (map string-length str*)))
+       (i 0 (+ i 1)))
+      ((= i len))
+    (apply proc (string-ref str i) (map (lambda (s) (string-ref s i)) str*))))
+
 ;;; vector
 
 (define (%subvector v start end)
@@ -492,6 +508,12 @@
          (vector-set! vec r fill)
          (itr (+ r 1))))
      (itr start))))
+
+(define (vector-for-each proc vec . vec*)
+  (do ((len (fold-left min (vector-length vec) (map vector-length vec*)))
+       (i 0 (+ i 1)))
+      ((= i len))
+    (apply proc (vector-ref vec i) (map (lambda (s) (vector-ref s i)) vec*))))
 
 (define (%subbytevector bv start end)
   (define mlen (- end start))

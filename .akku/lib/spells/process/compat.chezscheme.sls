@@ -61,7 +61,7 @@
           ((fx=? i (bytevector-length bv)) bv)
         (when (zero? (bytevector-u8-ref bv i))
           (error 'bytevector->c-string
-                 "not unrepresentable as a NUL-terminated string" x)))))
+                 "unrepresentable as a NUL-terminated string" x)))))
 
   ;; Converts a bytevector to a NUL-terminated foreign string (it must
   ;; later be foreign-free'd).

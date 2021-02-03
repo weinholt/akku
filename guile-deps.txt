@@ -1,6 +1,3 @@
-.akku/lib/akku-r7rs/base.sls
-.akku/lib/akku-r7rs/compat.guile.sls
-.akku/lib/akku-r7rs/include.sls
 .akku/lib/akku/config.sls
 .akku/lib/akku/format/lockfile.sls
 .akku/lib/akku/format/manifest.sls
@@ -37,8 +34,7 @@
 .akku/lib/akku/private/http.sls
 .akku/lib/akku/private/logging.sls
 .akku/lib/akku/private/utils.sls
-.akku/lib/chibi/match.sls
-.akku/lib/chibi/match/match.scm
+.akku/lib/chibi/match.guile.sls
 .akku/lib/compression/bitstream.sls
 .akku/lib/compression/gzip.sls
 .akku/lib/compression/huffman.sls
@@ -78,7 +74,7 @@
 .akku/lib/pffi/procedure.sls
 .akku/lib/pffi/struct.sls
 .akku/lib/pffi/variable.sls
-.akku/lib/scheme/base.guile.sls
+.akku/lib/semver/compat/match.guile.sls
 .akku/lib/semver/ranges.sls
 .akku/lib/semver/versions.sls
 .akku/lib/spdx/ids.sls

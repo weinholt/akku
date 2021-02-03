@@ -205,6 +205,7 @@
                          prog+args))
          (port (transcoded-port (process-output process) (native-transcoder))))
     (receive results (receiver port)
+      (close-port port)
       (close-process-ports process)
       (receive status+signal (wait-for-process process)
         (apply values (append status+signal results))))))
@@ -218,7 +219,7 @@
 ;; Using @code{srfi-8}, @0 can be used as follows:
 ;; @lisp
 ;; (receive (status signal output)
-;;          (run-process/string #f "cat /etc/hostname")
+;;          (run-process/string #f "/bin/cat" "/etc/hostname")
 ;;   ...)
 ;; @end lisp
 (define (run-process/string env prog . args)

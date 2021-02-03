@@ -52,9 +52,13 @@
             pointer callback
             void
 
+            size-of-unsigned-char
             size-of-char
+            size-of-unsigned-short
             size-of-short
+            size-of-unsigned-int
             size-of-int
+            size-of-unsigned-long
             size-of-long
             size-of-float
             size-of-double
@@ -130,9 +134,12 @@
             (pffi struct)
             (only (rnrs) define))
 
+(define size-of-unsigned-char  size-of-char)
+(define size-of-unsigned-short size-of-short)
+(define size-of-unsigned-int   size-of-int)
+(define size-of-unsigned-long  size-of-long)
 (define size-of-uint8_t  size-of-int8_t)
 (define size-of-uint16_t size-of-int16_t)
 (define size-of-uint32_t size-of-int32_t)
 (define size-of-uint64_t size-of-int64_t)
-
 )

@@ -40,10 +40,10 @@
        "f81250b57f88336805b43c72f491d5a652fe8221a0f5529361d3401bcd60ec7c")))
  ((name "chez-srfi")
    (location
-     (url "https://archive.akkuscm.org/archive/pkg/c/chez-srfi_0.0.0-akku.102.ad3b9f9_repack.tar.xz"))
+     (url "https://archive.akkuscm.org/archive/pkg/c/chez-srfi_0.0.0-akku.181.7879b52_repack.tar.xz"))
    (content
      (sha256
-       "5efb7e812db84457a33362af983ce7b20d11b366a387125d284f39f5dc4ba5bb")))
+       "f002bc7fc669b5980c885a5fb6770f8e016b06761e8e9755154bfa3a4f578fcb")))
  ((name "industria")
    (location
      (url "https://archive.akkuscm.org/archive/pkg/i/industria_2.1.0_repack.tar.xz"))
@@ -52,16 +52,16 @@
        "dacd4976bfae23da90289b39221aa69ddc83973a989ed87323d52517c93ba008")))
  ((name "spells")
    (location
-     (url "https://archive.akkuscm.org/archive/pkg/s/spells_0.0.0-akku.499.f91ed0b_repack.tar.xz"))
+     (url "https://archive.akkuscm.org/archive/pkg/s/spells_0.0.0-akku.509.1bfe3b8_repack.tar.xz"))
    (content
      (sha256
-       "5538c2a3ac9b01fe3c1b622b1719376c4cea5769c517aa4f293f7ad7878147d1")))
+       "03d8c1bb15e0a31cfbad5f30c5f23146ea0826947f1093d3890ebc44f66bc0f7")))
  ((name "semver")
    (location
-     (url "https://archive.akkuscm.org/archive/pkg/s/semver_1.0.3_repack.tar.xz"))
+     (url "https://archive.akkuscm.org/archive/pkg/s/semver_1.0.4_repack.tar.xz"))
    (content
      (sha256
-       "294b9b6b30f98c4cdba9ef40b0dc2f0b3494d5f03daeecba926817366b27b39e")))
+       "e20046c87741d7af6468422a459c304413a152b765fa674a66addf732273252e")))
  ((name "spdx")
    (location
      (url "https://archive.akkuscm.org/archive/pkg/s/spdx_1.0.0_repack.tar.xz"))
@@ -112,10 +112,10 @@
        "bd9c6cf5dabc9fc961094e0bf3f7339b7ad13902cb80a1e62377d57991548d7b")))
  ((name "r6rs-pffi")
    (location
-     (url "https://archive.akkuscm.org/archive/pkg/r/r6rs-pffi_1.3.0_repack.tar.xz"))
+     (url "https://archive.akkuscm.org/archive/pkg/r/r6rs-pffi_1.4.0_repack.tar.xz"))
    (content
      (sha256
-       "6fd54ecb1b2bc110f588797fc17f6030b9504139a6e3ba374f530c34090a1bb1")))
+       "c5cbd55231883aa3dea0c8cd20ffd180368ffd674433ae0513caf59287ba4160")))
  ((name (chibi match))
    (location
      (url "http://snow-fort.org/s/gmail.com/alexshinn/chibi/match/0.7.3/chibi-match-0.7.3.tgz"))
@@ -124,7 +124,7 @@
        "a165dcf7676ff178964b8cd58bcf6ee68d879605a025a8193b6b4af769f9bdc8")))
  ((name "akku-r7rs")
    (location
-     (url "https://archive.akkuscm.org/archive/pkg/a/akku-r7rs_1.0.0-beta.4_repack.tar.xz"))
+     (url "https://archive.akkuscm.org/archive/pkg/a/akku-r7rs_1.0.1_repack.tar.xz"))
    (content
      (sha256
-       "eb60fc164748d2105da635fb28b721ef10bc9476adc6d83e0ae1563eac8c4b2c"))))
+       "dedce2bc5eda6735aa5880741802a5b508b49c3b327d14b40e9fecbdf86353db"))))
