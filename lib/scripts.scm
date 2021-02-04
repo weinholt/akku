@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2018, 2019 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2018, 2019, 2021 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -214,7 +214,7 @@ Security goals for scripts
      [(project . cmd)
       ;; Compare with the index. Is the result different from what
       ;; "akku lock" would have created?
-      (let ((version* (package-index-find-project index-filename project)))
+      (let ((version* (or (package-index-find-project index-filename project) '())))
         (cond
           ((null? version*)
            (log/warn "The project " (project-name project) " in " lockfile-location " is not in the index (try: akku update)")
