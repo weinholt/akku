@@ -22,7 +22,7 @@ freebsd_test_task:
     - build
   freebsd_instance:
     image_family: freebsd-13-0
-  deps_script: pkg install -y guile2 pkgconf zip curl git
+  deps_script: pkg install -y guile2 pkgconf zip curl git gmake
   fetch_script:
     - curl -O https://api.cirrus-ci.com/v1/artifact/build/${CIRRUS_BUILD_ID}/build/source.zip
     - unzip source.zip
@@ -30,8 +30,8 @@ freebsd_test_task:
     - tar -xvzf akku-*.tar.gz
     - mkdir build && cd build
     - ../akku-*/configure
-    - make -j2
-    - make install
+    - gmake
+    - gmake install
   script:
     - akku init test && cd test
     - akku install
@@ -70,7 +70,7 @@ windows_test_task:
     - ps: Expand-Archive source.zip
   deps_script:
     - choco install -y msys2
-    - C:\tools\msys64\usr\bin\bash.exe -lc "pacman -Sy --noconfirm pkg-config guile libguile-devel make git curl"
+    - C:\tools\msys64\usr\bin\bash.exe -lc "pacman -Sy --noconfirm pkg-config guile libguile-devel make git curl libcurl libcurl-devel"
   install_script:
     - echo set -eux >> user_script
     - echo tar -xvzf source/akku-*.tar.gz >> user_script
