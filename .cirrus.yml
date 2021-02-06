@@ -63,11 +63,13 @@ windows_test_task:
     os_version: 2019
   clone_script: |
     @echo Not cloning
+  env:
+    MSYSTEM: MINGW64
   fetch_script:
-    - set MSYSTEM=MSYS
     - ps: Invoke-WebRequest -Uri "https://api.cirrus-ci.com/v1/artifact/build/$env:CIRRUS_BUILD_ID/build/source.zip" -OutFile source.zip
     - ps: Expand-Archive source.zip
   deps_script:
+    - choco install -y msys2
     - C:\tools\msys64\usr\bin\bash.exe -lc "pacman -Sy --noconfirm pkg-config guile libguile-devel make git curl"
   install_script:
     - echo set -eux >> user_script
