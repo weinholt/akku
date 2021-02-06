@@ -1,0 +1,1 @@
+../../../../compat/spells-process-compat.loko.sls

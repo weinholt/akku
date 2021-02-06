@@ -64,6 +64,20 @@ build:autotools:
     paths:
       - akku-*.tar.gz
 
+build:loko:
+  image: "weinholt/loko"
+  stage: build
+  before_script:
+    - apt-get update -qq
+    - apt-get install --no-install-recommends -qq curl git
+    - source .akku/bin/activate
+    - mkdir -p ~/.local/share/akku/keys.d
+    - cp akku-archive-*.gpg ~/.local/share/akku/keys.d
+  script:
+    - loko -ftarget=linux -feval --compile bin/akku.sps --output bin/akku
+    - bin/akku update
+    - bin/akku install
+
 # Tests the newly built Akku under Chez and Guile.
 
 .job_template: &job_definition

@@ -1,0 +1,1 @@
+../../../../compat/spells-misc-compat.loko.sls

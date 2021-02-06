@@ -8,7 +8,7 @@ bin/akku.sps 2>/dev/null || exit 0
 echo "Doing git rm/add on dependencies..."
 git rm --quiet -r --cached .akku/lib
 bin/akku.sps install 2>/dev/null
-bin/akku.sps dependency-scan --implementation=chezscheme,guile bin/akku.sps | xargs git add -f
+bin/akku.sps dependency-scan --implementation=chezscheme,guile,loko bin/akku.sps | xargs git add -f
 git add -f .akku/lib/akku/metadata.sls
 git add -f .akku/bin/activate
 git add -f .akku/bin/activate.fish
