@@ -76,7 +76,7 @@ build:loko:
   script:
     - loko -ftarget=linux -feval --compile bin/akku.sps --output bin/akku
     - bin/akku update
-    - bin/akku install
+    # - bin/akku install
 
 # Tests the newly built Akku under Chez and Guile.
 
