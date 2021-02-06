@@ -3,12 +3,14 @@
 ## Version 1.1.0
 
 **Note:** The autotools-based version no longer installs itself to the
-Guile library path. You might want to run `make uninstall` if you have
-an older version installed. This change was made so that Akku's
-vendored dependencies will not conflict with the system's versions.
+Guile library path. You might want to run `make uninstall` from the
+old version if you have an older version installed. This change was
+made so that Akku's vendored dependencies will not conflict with the
+system's versions.
 
 This release introduces new features to assist in packaging and using
 Scheme code with system package managers (such as dpkg and rpm).
+There are also some bug fixes.
 
 The environment activation scripts now look at the variables
 `R6RS_PATH` and `R7RS_PATH`. These path variables are included at the
@@ -16,12 +18,12 @@ end of each Scheme implementation's own library search path. This
 allows use of globally installed libraries, but still gives priority
 to the local libraries.
 
-The `AKKU_PROJECTS` environment variable is a list of extra projects
-to install into `.akku`. Multiple directories can be separated by
-semicolons. The libraries in these directories are symlinked into
-`.akku`. This is an alternative to the `R[67]RS_PATH` variables
-described above which is useful when code expects libraries to be
-located in the `.akku/lib` directory.
+The `AKKU_PROJECTS` environment variable is a list of extra project
+directories to install into `.akku`. Multiple directories can be
+separated by semicolons. The libraries in these directories are
+symlinked into `.akku`. This is an alternative to the `R[67]RS_PATH`
+variables described above which is useful when code expects libraries
+to be located in the `.akku/lib` directory.
 
 *The above features are not intended for most users.* They can be used
 to accidentally create dependencies on libraries that are not part of
@@ -39,8 +41,20 @@ The `copy-current-project` makes copies instead of symlinks of the
 current project.
 
 New in this release is also support
-for [Digamma](https://github.com/fujita-y/digamma), a new experimental
-R6RS/R7RS Scheme derived from Ypsilon.
+for [Digamma](https://github.com/fujita-y/digamma), a new R6RS/R7RS
+Scheme derived from Ypsilon.
+
+This release fixes support for running with GNU Guile 3.0. The version
+in git can now also be compiled with Loko Scheme, but there is no
+release build yet.
+
+A crash in the install command has been fixed. The crash happened if a
+lockfile contained script instructions for a package not yet in the
+index.
+
+The dependency-scan command no longer skips over symlinks internal to
+the project. This fix makes the command work for those implementations
+that tend to get symlinks for libraries in .akku/lib.
 
 Thanks to Amirouche Boubekki, erkin and Antoine Luciani for
 contributing to this release.
