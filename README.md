@@ -32,7 +32,7 @@ Chez Scheme.
 There are these options:
 
  - Use the release source tarball. This option uses the GNU build
-   system and requires Guile 2.2 (the development package),
+   system and requires Guile 2.2 or 3.0 (the development package),
    pkg-config, make, git and libcurl. This works on the widest range
    of operating systems and architectures.
 
@@ -76,8 +76,9 @@ Any installed programs are available in your shell's path.
 
 Most implementations can use the libraries as-is. GNU Guile requires a
 small adjustment: `guile -x .guile.sls -x .sls`. You may also need to
-enable R6RS syntax with `(read-enable 'r6rs-hex-escapes)`
-and `(read-enable 'hungry-eol-escapes)`.
+enable R6RS syntax with `(read-enable 'r6rs-hex-escapes)` and
+`(read-enable 'hungry-eol-escapes)`. Guile 3.0 adds the `--r6rs`
+command line flag that you can use instead.
 
 Your users can unpack your source code and run `akku install` to get
 the same dependencies that you used during development.
