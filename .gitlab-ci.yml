@@ -111,6 +111,17 @@ test:guile:
     - tar xvaf akku-*src.tar.xz
     - (cd akku-*src; ./install.sh)
 
+test:guile3:
+  <<: *job_definition
+  dependencies: ["build:debian"]
+  image: "debian:bullseye"
+  before_script:
+    - apt-get update -qq
+    # XXX: libcurl4-dev should not really be needed
+    - apt-get install -qq guile-3.0 curl git xz-utils libcurl4-gnutls-dev
+    - tar xvaf akku-*src.tar.xz
+    - (cd akku-*src; ./install.sh)
+
 # Check the Chez-bundled version on CentOS.
 test:chezscheme-centos:
   <<: *job_definition
