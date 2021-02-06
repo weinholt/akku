@@ -69,7 +69,7 @@ build:loko:
   stage: build
   before_script:
     - apt-get update -qq
-    - apt-get install --no-install-recommends -qq curl git
+    - apt-get install --no-install-recommends -qq curl git ca-certificates
     - source .akku/bin/activate
     - mkdir -p ~/.local/share/akku/keys.d
     - cp akku-archive-*.gpg ~/.local/share/akku/keys.d

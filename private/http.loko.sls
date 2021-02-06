@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2018, 2019, 2020 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2018, 2019, 2020, 2021 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -38,7 +38,13 @@
     (akku private logging)
     (wak fmt)
     (pre-srfi processes)
-    (loko system fibers))
+    (loko system fibers)
+
+    ;; For set-fd-blocking
+    (loko arch amd64 linux-syscalls)
+    (loko arch amd64 linux-numbers)
+    (only (loko) port-file-descriptor)
+    )
 
 (define logger:akku.http (make-logger logger:akku 'http))
 (define log/info (make-fmt-log logger:akku.http 'info))
@@ -60,13 +66,22 @@
 (define (read-http-header resp-ch port)
   (let* ((port (transcoded-port port (make-transcoder (utf-8-codec)
                                                       (eol-style crlf))))
-         (status (string-split (get-line port) #\space)))
-    ;; TODO: Check if curl always writes this status before the data,
-    ;; or if data needs to be read for it to not block
-    (spawn-fiber
-     (lambda ()
-       (get-string-all port)))
-    (cadr status)))
+         (line (get-line port)))
+    (log/debug "First HTTP line: " (wrt line))
+    (if (eof-object? line)
+        "500"                           ;let's pretend
+        (let ((status (string-split line #\space)))
+          ;; TODO: Check if curl always writes this status before the data,
+          ;; or if data needs to be read for it to not block
+          (spawn-fiber
+           (lambda ()
+             (get-string-all port)))
+          (cadr status)))))
+
+(define (set-fd-blocking fd)
+  (let ((prev (sys_fcntl fd F_GETFL 0)))
+    (unless (eqv? 0 (fxand O_NONBLOCK prev))
+      (sys_fcntl fd F_SETFL (fxand (fxnot O_NONBLOCK) prev)))))
 
 (define (open-http-request req)
   (define url (http-request-url req))
@@ -74,12 +89,14 @@
   (let-values ([(head-r head-w) (make-pipe)]
                [(data-r data-w) (make-pipe)])
     (log/debug method " " (wrt url))
+    (set-fd-blocking (port-file-descriptor head-w))
+    (set-fd-blocking (port-file-descriptor data-w))
     (let* ((setup (list 'path #t
                         'stdin #f
                         'stdout data-w
                         'wait #f
                         3 head-w))
-           (curl (make-process setup "curl" "-s"
+           (curl (make-process setup "curl" "-sS"
                                "-D" (string-append "/dev/fd/3")
                                "-X" (string-upcase (symbol->string method))
                                url)))
