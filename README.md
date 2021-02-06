@@ -34,7 +34,10 @@ There are these options:
  - Use the release source tarball. This option uses the GNU build
    system and requires Guile 2.2 or 3.0 (the development package),
    pkg-config, make, git and libcurl. This works on the widest range
-   of operating systems and architectures.
+   of operating systems and architectures. Unpack the tarball, run
+   `./configure`, `make` and `sudo make install`. If the configure
+   script can't find Guile then you might need something like this:
+   `./configure GUILD=/usr/bin/guild GUILE_CONFIG=/usr/bin/guile-config`.
 
  - Use the pre-built version from [GitLab][GitLabTags]. Pre-built
    versions based on Chez Scheme are available for GNU/Linux amd64.
