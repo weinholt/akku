@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2017-2019 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2017-2019, 2021 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -123,7 +123,7 @@
                 (hashtable-set! filename->artifact
                                 (path-join dir (artifact-path artifact))
                                 artifact))
-              (find-artifacts dir #f))
+              (find-artifacts/allow-links dir #f))
     filename->artifact)
   (assert (for-all file-exists? filenames))
   (let ((files-to-scan (append-map (lambda (filename)

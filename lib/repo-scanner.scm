@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
-;; Copyright © 2017-2019 Göran Weinholt <goran@weinholt.se>
+;; Copyright © 2017-2019, 2021 Göran Weinholt <goran@weinholt.se>
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -21,7 +21,8 @@
 (library (akku lib repo-scanner)
   (export
     scm-file-list
-    find-artifacts)
+    find-artifacts
+    find-artifacts/allow-links)
   (import
     (rnrs (6))
     (only (srfi :1 lists) take-while)
@@ -91,7 +92,7 @@
 
 ;; Takes a directory name and a list of files contained in it. Returns
 ;; a list of artifact records.
-(define (find-artifacts* realpath relpath relpath-list files tracked-files ignored-files)
+(define (find-artifacts* realpath relpath relpath-list files tracked-files ignored-files allow-internal-links?)
   (define (filename->record* fn)
     (let ([realpath (path-join realpath fn)]
           [relpath (path-join relpath fn)])
@@ -102,7 +103,8 @@
              (string=? "Akku.lock" fn)
              (string=? "Akku.manifest" fn)
              (and (file-symbolic-link? realpath)
-                  (or (symlink-inside-repo? realpath relpath-list)
+                  (or (and (not allow-internal-links?)
+                           (symlink-inside-repo? realpath relpath-list))
                       (symlink-to-root? realpath)))
              (member fn ignored-files))
          (log/debug "Ignored " realpath)
@@ -126,7 +128,7 @@
          (find-artifacts* realpath relpath
                           (cons (basename->library-component fn) relpath-list)
                           (directory-list realpath)
-                          tracked-files ignored-files))
+                          tracked-files ignored-files allow-internal-links?))
         (else
          (log/debug "Ignored " realpath " because it is not a regular file or directory")
          '()))))
@@ -136,4 +138,12 @@
   (find-artifacts* directory "" '()
                    (directory-list directory)
                    tracked-files
-                   (read-ignore-file directory))))
+                   (read-ignore-file directory)
+                   #f))
+
+(define (find-artifacts/allow-links directory tracked-files)
+  (find-artifacts* directory "" '()
+                   (directory-list directory)
+                   tracked-files
+                   (read-ignore-file directory)
+                   #t)))
