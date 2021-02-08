@@ -6,3 +6,4 @@
 (set! %load-path (cons "@moddir@" %load-path))
 (read-enable 'r6rs-hex-escapes)
 (read-enable 'hungry-eol-escapes)
+(default-duplicate-binding-handler '(replace last))
